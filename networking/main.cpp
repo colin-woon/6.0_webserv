@@ -1,4 +1,5 @@
 #include "Network.hpp"
+#include <ostream>
 
 // bool setNonBlocking(int fd){
 // 	int flags = fcntl (fd, F_GETFL, 0);
@@ -51,9 +52,34 @@ int main(){
 	// 	return (1);
 	// }
 	//
-	
-	while (true)
-		sleep(1);
+
+	sockaddr_in client;
+	socklen_t	client_len = sizeof(client);
+	int client_fd = accept(listen_fd, (sockaddr*)&client, &client_len);
+	if (client_fd == -1){
+		std::cerr << "accept error!" << std::endl;
+		return (1);
+	}
+	std::cout << "client has connected!" << std::endl;
+	while (1){
+		char buf[1024];
+		memset(buf, 0, sizeof(buf));
+		ssize_t bytes_received = read(client_fd, &buf, sizeof(buf));
+		if (bytes_received == -1){
+			std::cerr << "read from client_fd error." << std::endl;
+			return (1);
+		}
+		else if (bytes_received == 0){
+			std::cout << "client did not send anything..." << std::endl;
+			break;
+		}
+		else {
+			std::cout << "webserv received " << bytes_received << " bytes!" << std::endl;
+			write(client_fd, &buf, sizeof(buf));
+		}
+		
+		// close (client_fd);
+	}
 
 	close (listen_fd);
 	return (0);
