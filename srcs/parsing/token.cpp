@@ -1,6 +1,6 @@
 #include "../../includes/token.hpp"
 
-token::token(const std::string& buffer, bool delimiter) : _buffer(buffer), _delimiter(delimiter) {}
+token::token(const std::string& str, bool delimiter) : buffer(str), isDelimiter(delimiter) {}
 
 token::~token() {}
 

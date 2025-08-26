@@ -1,26 +1,26 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
-#include "./parsing.hpp"
+#include "./header.hpp"
 #include "./location.hpp"
 
 class server
 {
 	public:
-		int	_port;
-		int	_backlog;
-		bool	_autoindex;
-		std::string	_host;
-		std::string _root;
-		std::string _index;
-		std::vector<std::string>	_name;
-		std::map<int, std::string>	_error_pages;
-		std::deque<location>	_chunks;
+		int	port;
+		int	backlog;
+		bool	autoindex;
+		std::string	host;
+		std::string root;
+		std::string index;
+		std::vector<std::string>	name;
+		std::map<int, std::string>	error_pages;
+		std::deque<location>	chunks;
 
-		int	_client_timeout_sec;
-		size_t	_max_body_size;
-		size_t	_body_ram_threshold;
-		size_t	_header_cap;
+		int	client_timeout_sec;
+		size_t	max_body_size;
+		size_t	body_ram_threshold;
+		size_t	header_cap;
 
 		server();
 		~server();
