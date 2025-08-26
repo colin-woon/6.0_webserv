@@ -32,8 +32,8 @@ OBJS_DIR		=	bin/
 # Set search path for source files
 VPATH			=	$(SRCS_DIR):$(MODELS_DIR)
 
-HTTP_HEADERS	=	http/models/HttpRequest.hpp
-HTTP_MODELS		=	http/models/HttpRequest.cpp
+HTTP_HEADERS	=	models/HttpRequest.hpp
+HTTP_MODELS		=	models/HttpRequest.cpp
 
 MODEL_FILES		=	$(HTTP_MODELS)
 MODEL_HEADERS	=	$(HTTP_HEADERS)

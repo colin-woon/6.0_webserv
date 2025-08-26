@@ -9,11 +9,13 @@
 
 class HttpRequest
 {
+public:
+	typedef std::pair<std::string, std::string> QueryParams;
+
 private:
 	std::string _method;
 	std::string _target;
 	std::string _path;
-	typedef std::pair<std::string, std::string> QueryParams;
 	std::vector<QueryParams> _queryParams;
 	std::string _version;
 	std::map<std::string, std::string> _headers;

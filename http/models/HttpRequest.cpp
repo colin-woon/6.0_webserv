@@ -225,5 +225,13 @@ std::ostream &operator<<(std::ostream &out, const HttpRequest &request)
 		out << request.getBody();
 	}
 
+	out << "Query Parameters:\n";
+	const std::vector<HttpRequest::QueryParams> &params = request.getQueryParams();
+	for (std::vector<HttpRequest::QueryParams>::const_iterator it = params.begin();
+		 it != params.end(); ++it)
+	{
+		out << "  " << it->first << " = " << it->second << "\n";
+	}
+
 	return out;
 }

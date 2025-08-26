@@ -167,25 +167,33 @@ public:
 // ===== Main =====
 int main()
 {
-	Config config("./config/test_config.conf"); // Teammate A
-	ServerSocket server;						// Teammate B
+	Config config("./config/test_config.conf");
+	ServerSocket server;
 	server.start(config.port);
 
-	int client_fd = server.acceptClient();
-	std::string req = server.readRequest(client_fd);
+	while (true)
+	{ // Add this loop to handle multiple requests
+		int client_fd = server.acceptClient();
+		std::string req = server.readRequest(client_fd);
 
-	std::cout << req << std::endl;
+		std::cout << "Received new request:\n"
+				  << req << std::endl;
 
-	HttpRequest request;
-	request.parseRawRequest(req);
+		HttpRequest request;
+		request.parseRawRequest(req);
 
-	std::cout << std::endl;
-	std::cout << request << std::endl;
+		std::cout << std::endl;
+		std::cout << request << std::endl;
 
-	HttpHandler http(config); // Teammate C
-	std::string resp = http.handleRequest(req);
+		HttpHandler http(config);
+		std::string resp = http.handleRequest(req);
 
-	server.sendResponse(client_fd, resp);
-	close(client_fd);
+		server.sendResponse(client_fd, resp);
+		close(client_fd);
+
+		std::cout << "\n--- Ready for next request ---\n"
+				  << std::endl;
+	}
+
 	return 0;
 }
