@@ -50,13 +50,37 @@ public:
 	void start(int port)
 	{
 		server_fd = socket(AF_INET, SOCK_STREAM, 0);
+		if (server_fd < 0)
+		{
+			std::cerr << "Socket creation failed" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		// Add SO_REUSEADDR option
+		int opt = 1;
+		if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+		{
+			std::cerr << "setsockopt failed" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
 		std::memset(&address, 0, sizeof(address));
 		address.sin_family = AF_INET;
 		address.sin_addr.s_addr = INADDR_ANY;
 		address.sin_port = htons(port);
 
-		bind(server_fd, (struct sockaddr *)&address, sizeof(address));
-		listen(server_fd, 1);
+		if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
+		{
+			std::cerr << "Bind failed: Port " << port << " may already be in use" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		if (listen(server_fd, 1) < 0)
+		{
+			std::cerr << "Listen failed" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
 		std::cout << "Listening on http://localhost:" << port << std::endl;
 	}
 
@@ -150,8 +174,13 @@ int main()
 	int client_fd = server.acceptClient();
 	std::string req = server.readRequest(client_fd);
 
+	std::cout << req << std::endl;
+
 	HttpRequest request;
 	request.parseRawRequest(req);
+
+	std::cout << std::endl;
+	std::cout << request << std::endl;
 
 	HttpHandler http(config); // Teammate C
 	std::string resp = http.handleRequest(req);

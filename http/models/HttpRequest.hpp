@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <iostream>
+#include <sstream>
 
 class HttpRequest
 {
@@ -42,6 +43,11 @@ public:
 
 	HttpRequest(const std::string &request);
 	void parseRawRequest(const std::string &request);
+
+	void parseQueryParams(const std::string &queryString);
+	void parseQueryParam(const std::string &param);
 };
+
+std::ostream &operator<<(std::ostream &out, const HttpRequest &request);
 
 #endif
