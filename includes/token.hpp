@@ -1,15 +1,15 @@
 #ifndef TOKEN_HPP
 # define TOKEN_HPP
 
-#include "./parsing.hpp"
+#include "./header.hpp"
 
 class token
 {
 	public:
-		bool	_delimiter;
-		std::string	_buffer;
+		std::string	buffer;
+		bool	isDelimiter;
 	
-		token(const std::string& buffer, bool delimiter);
+		token(const std::string& str, bool delimiter);
 		~token();
 
 };
