@@ -11,6 +11,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include <HttpRequest.hpp>
+
 // ===== Config Parser =====
 class Config
 {
@@ -147,6 +149,9 @@ int main()
 
 	int client_fd = server.acceptClient();
 	std::string req = server.readRequest(client_fd);
+
+	HttpRequest request;
+	request.parseRawRequest(req);
 
 	HttpHandler http(config); // Teammate C
 	std::string resp = http.handleRequest(req);

@@ -15,7 +15,7 @@ CXX			=	c++
 CFLAGS		=	$(INCLUDES) $(STANDARD) $(DEBUG)
 STANDARD	=	-Wpedantic -std=c++98
 WFLAGS		=	-Wall -Werror -Wextra
-INCLUDES	=	-I$(INC_DIR)
+INCLUDES	=	-I$(INC_DIR) -I$(MODELS_DIR)
 DEBUG		=	-g3
 FSAN		=	-fsanitize=address,leak
 RM			=	rm -rf
@@ -25,13 +25,26 @@ NAME	=	webserv
 
 # Directories
 INC_DIR			=	includes/
+MODELS_DIR		=	models/
 SRCS_DIR		=	srcs/
 OBJS_DIR		=	bin/
 
+# Set search path for source files
+VPATH			=	$(SRCS_DIR):$(MODELS_DIR)
+
+HTTP_HEADERS	=	http/models/HttpRequest.hpp
+HTTP_MODELS		=	http/models/HttpRequest.cpp
+
+MODEL_FILES		=	$(HTTP_MODELS)
+MODEL_HEADERS	=	$(HTTP_HEADERS)
+
 INC_FILES		=
 SRCS_FILES		=	srcs/test.cpp
-OBJS_FILES		=	$(patsubst $(SRCS_DIR)%.c, $(OBJS_DIR)%.o, $(SRCS_FILES))
 
+# All source files combined
+ALL_SRCS		=	$(SRCS_FILES) $(MODEL_FILES)
+
+OBJS_FILES		=	$(addprefix $(OBJS_DIR), $(notdir $(ALL_SRCS:.cpp=.o)))
 #------------------------------------------------------------------------------#
 #                                 TARGETS                                      #
 #------------------------------------------------------------------------------#
@@ -43,7 +56,7 @@ $(NAME): $(OBJS_FILES)
 	$(CXX) $(CFLAGS) $(OBJS_FILES) -o $(NAME)
 
 # Rule to compile the object files
-$(OBJS_DIR)%.o: $(SRCS_DIR)%.c $(INC_DIR)cub3d.h | $(OBJS_DIR)
+$(OBJS_DIR)%.o: %.cpp $(MODEL_FILES) | $(OBJS_DIR)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CFLAGS) -c $< -o $@
 
@@ -60,4 +73,4 @@ fclean: clean
 	$(RM) $(NAME)
 
 # Removes objects and executables and remakes
-re: fclean $(OBJS_DIR) all
+re: fclean all

@@ -113,4 +113,5 @@ HttpRequest::HttpRequest(const std::string &request) : _method(""),
 
 void HttpRequest::parseRawRequest(const std::string &request)
 {
+	std::cout << request << std::endl;
 }
