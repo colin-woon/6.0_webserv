@@ -4,7 +4,7 @@ CC          = c++
 CFLAGS      = -Wextra -Wall -Werror -std=c++98 -g
 RM          = rm -rf
 
-SRCS        = main.cpp
+SRCS        = main.cpp		Sockets/Sockets.cpp
 
 OBJS        = $(SRCS:.cpp=.o)
 

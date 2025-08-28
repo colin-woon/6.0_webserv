@@ -12,7 +12,7 @@ class parsing
 		~parsing();
 
 		std::deque<token>	tokens;
-		std::deque<server>	nodes;
+		std::deque<Server>	nodes;
 };
 
 #endif

@@ -4,7 +4,7 @@
 #include "./header.hpp"
 #include "./location.hpp"
 
-class server
+class Server
 {
 	public:
 		int	port;
@@ -22,8 +22,8 @@ class server
 		size_t	body_ram_threshold;
 		size_t	header_cap;
 
-		server();
-		~server();
+		Server();
+		~Server();
 
 		class ServerSyntaxException : public std::exception
 		{
