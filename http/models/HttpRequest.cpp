@@ -111,24 +111,45 @@ HttpRequest::HttpRequest(const std::string &request) : _method(""),
 	parseRawRequest(request);
 }
 
+// Visualization https://chat.qwen.ai/s/c6b79ac1-d473-48b4-a34e-394bb622a11f?fev=0.0.201
+// Use a string stream to process the request line by line
+// Parse the request line (first line)
+// Remove carriage return if present
 void HttpRequest::parseRawRequest(const std::string &request)
 {
-	// Use a string stream to process the request line by line
 	std::istringstream requestStream(request);
 	std::string line;
 
-	// Parse the request line (first line)
+	parseRequestLine(requestStream, line);
+	parseHeaders(requestStream, line);
+	parseBody(requestStream, line);
+}
+
+void HttpRequest::parseBody(std::istringstream &requestStream, std::string &line)
+{
+	std::string body;
+	while (std::getline(requestStream, line))
+	{
+		body += line;
+		if (!requestStream.eof())
+			body += "\n";
+	}
+	_body = body;
+}
+
+void HttpRequest::parseRequestLine(std::istringstream &requestStream, std::string &line)
+{
 	if (std::getline(requestStream, line))
 	{
-		// Remove carriage return if present
 		if (!line.empty() && line[line.size() - 1] == '\r')
 			line.erase(line.size() - 1);
 
-		// Extract method, target, and version
+		// Extract method, target, and version, >> is overloaded by istringstream, space is default delimeter
 		std::istringstream lineStream(line);
 		lineStream >> _method >> _target >> _version;
 
 		// Parse the path and query parameters from target
+		// query params start after "?"
 		size_t questionPos = _target.find('?');
 		if (questionPos != std::string::npos)
 		{
@@ -140,8 +161,10 @@ void HttpRequest::parseRawRequest(const std::string &request)
 			_path = _target;
 		}
 	}
+}
 
-	// Parse headers
+void HttpRequest::parseHeaders(std::istringstream &requestStream, std::string &line)
+{
 	while (std::getline(requestStream, line) && !line.empty() && line != "\r")
 	{
 		// Remove carriage return if present
@@ -166,16 +189,6 @@ void HttpRequest::parseRawRequest(const std::string &request)
 			}
 		}
 	}
-
-	// The rest is the body (if any)
-	std::string body;
-	while (std::getline(requestStream, line))
-	{
-		body += line;
-		if (!requestStream.eof())
-			body += "\n";
-	}
-	_body = body;
 }
 
 // Helper method to parse query parameters
@@ -225,7 +238,7 @@ std::ostream &operator<<(std::ostream &out, const HttpRequest &request)
 		out << request.getBody();
 	}
 
-	out << "Query Parameters:\n";
+	out << "\nQuery Parameters:\n";
 	const std::vector<HttpRequest::QueryParams> &params = request.getQueryParams();
 	for (std::vector<HttpRequest::QueryParams>::const_iterator it = params.begin();
 		 it != params.end(); ++it)

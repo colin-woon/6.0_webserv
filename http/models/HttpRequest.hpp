@@ -45,7 +45,9 @@ public:
 
 	HttpRequest(const std::string &request);
 	void parseRawRequest(const std::string &request);
-
+	void parseBody(std::istringstream &requestStream, std::string &line);
+	void parseRequestLine(std::istringstream &requestStream, std::string &line);
+	void parseHeaders(std::istringstream &requestStream, std::string &line);
 	void parseQueryParams(const std::string &queryString);
 	void parseQueryParam(const std::string &param);
 };
