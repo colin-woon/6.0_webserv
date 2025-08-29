@@ -1,4 +1,5 @@
 #include "ServerLoop.hpp"
+#include <ostream>
 #include <stdexcept>
 #include <poll.h>
 #include <sstream>
@@ -57,6 +58,48 @@ bool listenerOrNot(std::vector<int>& listenerFdList, int fd){
 	return false;
 }
 
+static void closeClient(int fd, std::vector<pollfd>& pollFdList, std::map<int, size_t>& fdIndex, std::map<int, Client>& clientList){
+    delPollFd(pollFdList, fdIndex, fd);
+    std::map<int, Client>::iterator itr = clientList.find(fd);
+    if (itr != clientList.end())
+		clientList.erase(itr);
+    close(fd);
+    std::cout << "closed " << fd << "\n";
+}
+
+static void readToBuffer(int fd, std::vector<struct pollfd>& pfds, std::map<int, size_t>& fdIndex, std::map<int, Client>& clientList){
+    Client& c = clientList[fd];
+	std::ifstream in("ServerLoop/test.txt");
+
+	std::string buff;
+	std::string final;
+	while (std::getline(in, buff))
+		final.append(buff).append("\n");
+
+    while (1){
+        char buf[4096];
+        ssize_t n = recv(fd, buf, sizeof(buf), 0);
+		if (n > 0){
+            c.inBuff.append(buf, (size_t)n);
+			std::cout << c.inBuff << std::endl;
+			//below testing html page
+			//write(fd, final.c_str(), 15000);
+            // check for \r\n\r\n?
+        }
+		else if (n == 0){
+            closeClient(fd, pfds, fdIndex, clientList);
+            return;
+        }
+		else{
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+				break;
+            std::cerr << "recv error on fd " << fd << std::endl;;
+            closeClient(fd, pfds, fdIndex, clientList);
+            return;
+        }
+    }
+}
+
 void acceptClients(int lfd, std::vector<struct pollfd>& pfds, std::map<int, size_t>& fdIndex, std::map<int, Client>& clientList){
     while (1){
         int clientFd = accept(lfd, 0, 0);
@@ -68,7 +111,7 @@ void acceptClients(int lfd, std::vector<struct pollfd>& pfds, std::map<int, size
         }
         if (setNonBlocking(clientFd) == false) {
             close(clientFd);
-            continue;
+			continue;
         }
         addPollFd(pfds, fdIndex, clientFd, POLLIN);
         Client c;
@@ -105,6 +148,13 @@ void mainServerLoop(std::vector<int>& listenerFdList, std::vector<Server>& serve
 					acceptClients(p.fd, pollFdList,fdIndex, clientList);
 				continue;
 			}
+
+			if (clientList.find(p.fd) != clientList.end()){
+				if (((p.revents & POLLIN) != 0)){
+					readToBuffer(p.fd, pollFdList, fdIndex, clientList);
+				}
+			}
 		}
+
 	}
 }

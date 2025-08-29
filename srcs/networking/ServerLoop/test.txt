@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=UTF-8
+Content-Length: 132
+Connection: close
+
+<!doctype html><html><head><meta charset="utf-8"><title>blue hello</title></head><body><p style="color:blue">hello</p></body></html>
+

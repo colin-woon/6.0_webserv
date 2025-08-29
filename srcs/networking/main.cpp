@@ -18,19 +18,19 @@ location::~location(){}
 
 int main(){
 	Server bumServer;
-	// Server bomServer;
+	Server bomServer;
 
 	bumServer.host = "127.0.0.1";
 	bumServer.port = 8080;
 	bumServer.backlog = 64;
 	bumServer.client_timeout_sec = 1000;
-	// bomServer.host = "0.0.0.0";
-	// bomServer.port = 6969;
-	// bomServer.backlog = 128;
+	bomServer.host = "0.0.0.0";
+	bomServer.port = 6969;
+	bomServer.backlog = 128;
 
 	std::vector<Server> serverList;
 	serverList.push_back(bumServer);
-	// serverList.push_back((bomServer));
+	serverList.push_back((bomServer));
 
 	try {
 		std::vector<int> listenerFdList;
