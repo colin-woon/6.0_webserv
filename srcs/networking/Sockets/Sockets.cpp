@@ -33,6 +33,13 @@ static bool toSockAddr(std::string host, int port, sockaddr_in &socketAddr){
 	return true;
 }
 
+bool setNonBlocking(int listenerFd){
+	int flags = fcntl(listenerFd, F_GETFL, 0);
+	if (flags == -1)
+		return false;
+	return (fcntl(listenerFd, F_SETFL, flags | O_NONBLOCK) != -1);
+}
+
 static bool openListeners(sockaddr_in socketAddr, int backlog, int &listenerFd){
 	listenerFd = socket(AF_INET, SOCK_STREAM, 0);
 	if (listenerFd == -1){
@@ -46,8 +53,11 @@ static bool openListeners(sockaddr_in socketAddr, int backlog, int &listenerFd){
 		return false;
 	}
 
-	//set nonblocking
-	
+	if (setNonBlocking(listenerFd) == false){
+		std::cerr << "Error when setting non-blocking on listener" << std::endl;
+		return false;
+	}
+
 	if (bind(listenerFd, (sockaddr*)&socketAddr, sizeof(socketAddr)) == -1){
 		std::cerr << "Socket binding to FD failed!" <<std::endl;
 		return false;
@@ -66,7 +76,7 @@ static bool openListeners(sockaddr_in socketAddr, int backlog, int &listenerFd){
 	return true;
 }
 
-void setupListenerSockets(std::vector<Server> serverList){
+std::vector<int> setupListenerSockets(std::vector<Server> serverList){
 	std::vector<int> listenerFdList;
 	for (size_t i = 0; i < serverList.size(); i++){
 		sockaddr_in socketAddr;
@@ -83,6 +93,5 @@ void setupListenerSockets(std::vector<Server> serverList){
 	if (listenerFdList.empty())
 		throw (std::runtime_error("No Listeners Opened!"));
 	std::cout << "Listeners are open... Waiting for response..." << std::endl;
-	while (true)
-		sleep(1);
+	return (listenerFdList);
 }

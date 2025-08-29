@@ -1,4 +1,5 @@
 #include "Sockets/Sockets.hpp"
+#include "ServerLoop/ServerLoop.hpp"
 
 Server::Server(){}
 
@@ -17,21 +18,24 @@ location::~location(){}
 
 int main(){
 	Server bumServer;
-	Server bomServer;
+	// Server bomServer;
 
-	bumServer.host = "127.0.0.12";
+	bumServer.host = "127.0.0.1";
 	bumServer.port = 8080;
 	bumServer.backlog = 64;
-	bomServer.host = "0.0.0.0";
-	bomServer.port = 6969;
-	bomServer.backlog = 128;
+	bumServer.client_timeout_sec = 1000;
+	// bomServer.host = "0.0.0.0";
+	// bomServer.port = 6969;
+	// bomServer.backlog = 128;
 
 	std::vector<Server> serverList;
 	serverList.push_back(bumServer);
-	serverList.push_back((bomServer));
+	// serverList.push_back((bomServer));
 
 	try {
-		setupListenerSockets(serverList);
+		std::vector<int> listenerFdList;
+		listenerFdList = setupListenerSockets(serverList);
+		mainServerLoop(listenerFdList, serverList);	
 		std::cout << "done" << std::endl;
 	}
 	catch (std::exception &e){
