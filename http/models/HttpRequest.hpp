@@ -38,10 +38,11 @@ public:
 	void setMethod(const std::string &method);
 	void setTarget(const std::string &target);
 	void setPath(const std::string &path);
-	void addQueryParams(const std::string &key, const std::string &value);
 	void setVersion(const std::string &version);
-	void addHeader(const std::string &key, const std::string &value);
 	void setBody(const std::string &body);
+
+	void addQueryParams(const std::string &key, const std::string &value);
+	void addHeader(const std::string &key, const std::string &value);
 
 	HttpRequest(const std::string &request);
 	void parseRawRequest(const std::string &request);
