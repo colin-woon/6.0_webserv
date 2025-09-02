@@ -67,40 +67,66 @@ static void closeClient(int fd, std::vector<pollfd>& pollFdList, std::map<int, s
     std::cout << "closed " << fd << "\n";
 }
 
-static void readToBuffer(int fd, std::vector<struct pollfd>& pfds, std::map<int, size_t>& fdIndex, std::map<int, Client>& clientList){
-    Client& c = clientList[fd];
-	std::ifstream in("ServerLoop/test.txt");
-
-	std::string buff;
-	std::string final;
-	while (std::getline(in, buff))
-		final.append(buff).append("\n");
-
-    while (1){
-        char buf[4096];
-        ssize_t n = recv(fd, buf, sizeof(buf), 0);
-		if (n > 0){
-            c.inBuff.append(buf, (size_t)n);
-			std::cout << c.inBuff << std::endl;
-			//below testing html page
-			//write(fd, final.c_str(), 15000);
-            // check for \r\n\r\n?
-        }
-		else if (n == 0){
-            closeClient(fd, pfds, fdIndex, clientList);
-            return;
-        }
-		else{
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-				break;
-            std::cerr << "recv error on fd " << fd << std::endl;;
-            closeClient(fd, pfds, fdIndex, clientList);
-            return;
-        }
-    }
+bool headersComplete(const std::string& s){
+    return (s.find("\r\n\r\n") != std::string::npos);
 }
 
-void acceptClients(int lfd, std::vector<struct pollfd>& pfds, std::map<int, size_t>& fdIndex, std::map<int, Client>& clientList){
+void buildSimpleResponse(Client& c){
+    const char* body = "Hello from webserv (poll)\n";
+    std::ostringstream oss;
+    oss << "HTTP/1.1 200 OK\r\n"
+        << "Content-Type: text/plain\r\n"
+        << "Content-Length: " << std::strlen(body) << "\r\n"
+        << "Connection: close\r\n"
+        << "\r\n"
+        << body;
+    c.outBuff = oss.str();
+    c.closeFlag = true;
+}
+
+void readOnce(int fd, std::vector<struct pollfd>& pollFdList, std::map<int, size_t>& fdIndex, std::map<int, Client>& clients){
+    std::map<int, Client>::iterator it = clients.find(fd);
+    if (it == clients.end())
+        return;
+    Client& c = it->second;
+    char buf[4096];
+    ssize_t n = recv(fd, buf, sizeof(buf), 0);
+
+    if (n > 0) {
+        c.inBuff.append(buf, (size_t)n);
+        if (c.outBuff.empty() && headersComplete(c.inBuff)) {
+            buildSimpleResponse(c);
+            modifyEvent(pollFdList, fdIndex, fd, (short)(POLLIN | POLLOUT));
+        }
+        return;
+    }
+    closeClient(fd, pollFdList, fdIndex, clients);
+}
+
+void writeOnce(int fd, std::vector<struct pollfd>& pollFdList, std::map<int, size_t>& fdIndex, std::map<int, Client>& clients){
+    std::map<int, Client>::iterator it = clients.find(fd);
+    if (it == clients.end())
+        return;
+    Client& c = it->second;
+    if (c.outBuff.empty()) {
+        modifyEvent(pollFdList, fdIndex, fd, POLLIN);
+        return;
+    }
+	std::cout << "Http Response to be sent:\n" << c.outBuff << std::endl; 
+    ssize_t n = send(fd, c.outBuff.data(), c.outBuff.size(), 0);
+    if (n > 0) {
+        c.outBuff.erase(0, (size_t)n);
+        if (c.outBuff.empty()) {
+            modifyEvent(pollFdList, fdIndex, fd, POLLIN);
+            if (c.closeFlag)
+                closeClient(fd, pollFdList, fdIndex, clients);
+        }
+        return;
+    }
+    closeClient(fd, pollFdList, fdIndex, clients);
+}
+
+void acceptClients(int lfd, std::vector<struct pollfd>& pollFdList, std::map<int, size_t>& fdIndex, std::map<int, Client>& clientList){
     while (1){
         int clientFd = accept(lfd, 0, 0);
         if (clientFd == -1) {
@@ -109,11 +135,11 @@ void acceptClients(int lfd, std::vector<struct pollfd>& pfds, std::map<int, size
             std::cerr << "accept error\n";
 			break;
         }
-        if (setNonBlocking(clientFd) == false) {
+        if (setNonBlocking(clientFd) == false){
             close(clientFd);
 			continue;
         }
-        addPollFd(pfds, fdIndex, clientFd, POLLIN);
+        addPollFd(pollFdList, fdIndex, clientFd, POLLIN);
         Client c;
         c.fd = clientFd;
         clientList[clientFd] = c;
@@ -121,7 +147,7 @@ void acceptClients(int lfd, std::vector<struct pollfd>& pfds, std::map<int, size
     }
 }
 
-void mainServerLoop(std::vector<int>& listenerFdList, std::vector<Server>& serverList) {
+void mainServerLoop(std::vector<int>& listenerFdList, std::vector<Server>& serverList){
 	std::vector<pollfd> pollFdList;
 	std::map<int, size_t> fdIndex;
 	std::map<int, Client> clientList;
@@ -129,7 +155,6 @@ void mainServerLoop(std::vector<int>& listenerFdList, std::vector<Server>& serve
 
 	for (size_t i = 0; i < listenerFdList.size(); i++)
 		addPollFd(pollFdList, fdIndex, listenerFdList[i], POLLIN);
-
 	while (1){
 		//later need to change timeout according to server block
 		int pollReady = poll(&pollFdList[0], pollFdList.size(), 1000);
@@ -138,23 +163,50 @@ void mainServerLoop(std::vector<int>& listenerFdList, std::vector<Server>& serve
 				continue;
 			throw std::runtime_error("poll error.");
 		}
-		
-		size_t count = pollFdList.size();
-		for (size_t i = 0; i < count; i++){
-			pollfd p = pollFdList[i];
+		//timeout place below later
+		if (pollReady == 0)
+			continue;
 
-			if (listenerOrNot(listenerFdList, p.fd)){
-				if ((p.revents & POLLIN) != 0)
-					acceptClients(p.fd, pollFdList,fdIndex, clientList);
+        std::vector<int> errFds;
+        std::vector<int> readyListeners;
+        std::vector<int> readyReaders;
+        std::vector<int> readyWriters;
+
+        size_t count = pollFdList.size();
+        for (size_t i = 0; i < count; ++i) {
+            struct pollfd p = pollFdList[i];
+            if (p.revents == 0)
 				continue;
-			}
-
-			if (clientList.find(p.fd) != clientList.end()){
-				if (((p.revents & POLLIN) != 0)){
-					readToBuffer(p.fd, pollFdList, fdIndex, clientList);
-				}
-			}
+            if ((p.revents & POLLERR) != 0 || (p.revents & POLLHUP) != 0 || (p.revents & POLLNVAL) != 0){
+				if (!listenerOrNot(listenerFdList, p.fd))
+                    errFds.push_back(p.fd);
+				else
+                    std::cerr << "listener error-ish revents on fd " << p.fd << "\n";
+                continue;
+            }
+            if (listenerOrNot(listenerFdList, p.fd)) {
+                if ((p.revents & POLLIN) != 0)
+                    readyListeners.push_back(p.fd);
+                continue;
+            }
+            if (clientList.find(p.fd) != clientList.end()) {
+                if ((p.revents & POLLOUT) != 0)
+                    readyWriters.push_back(p.fd); // prioritize write
+                if ((p.revents & POLLIN) != 0)
+                    readyReaders.push_back(p.fd);
+            }
+        }
+        for (size_t i = 0; i < errFds.size(); ++i)
+            closeClient(errFds[i], pollFdList, fdIndex, clientList);
+        for (size_t i = 0; i < readyListeners.size(); ++i)
+            acceptClients(readyListeners[i], pollFdList, fdIndex, clientList);
+        for (size_t i = 0; i < readyWriters.size(); ++i)
+            if (clientList.find(readyWriters[i]) != clientList.end())
+                writeOnce(readyWriters[i], pollFdList, fdIndex, clientList);
+        for (size_t i = 0; i < readyReaders.size(); ++i) {
+            int fd = readyReaders[i];
+            if (clientList.find(fd) != clientList.end())
+                readOnce(fd, pollFdList, fdIndex, clientList);
 		}
-
 	}
 }
