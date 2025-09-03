@@ -64,4 +64,38 @@ void HttpResponse::setBody(const std::string &body)
 {
 	_body = body;
 }
+void HttpResponse::addHeader(const std::string &key, const std::string &value)
+{
+	_headers[key] = value;
+}
+
 //
+std::string HttpResponse::toString() const
+{
+	std::stringstream ss;
+	ss << "HTTP/1.1 " << statusToString(_statusCode) << "\r\n"; // Convert status code to string
+
+	// Use C++98 iterator for map
+	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+	{
+		ss << it->first << ": " << it->second << "\r\n";
+	}
+
+	ss << "\r\n"
+	   << _body;
+	return ss.str();
+}
+
+std::string HttpResponse::statusToString(int status) const
+{
+	// Simple mapping, expand as needed
+	switch (status)
+	{
+	case StatusCode::HTTP_200_OK:
+		return "200 OK";
+	case StatusCode::HTTP_404_NOT_FOUND:
+		return "404 Not Found";
+	default:
+		return "500 Internal Server Error";
+	}
+}

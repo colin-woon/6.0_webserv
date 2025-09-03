@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <HttpStatusCodes.hpp>
+#include <sstream>
 
 class HttpResponse
 {
@@ -28,6 +29,10 @@ public:
 	void setStatusText(const std::string &statusText);
 	void setHeaders(const std::map<std::string, std::string> &headers);
 	void setBody(const std::string &body);
+
+	void addHeader(const std::string &key, const std::string &value);
+	std::string toString() const;
+	std::string statusToString(int status) const;
 };
 
 #endif

@@ -12,7 +12,7 @@
 # add back WFLAGS later to CFLAGS, removed cause it doesnt work for testing
 # Compiler and flags
 CXX			=	c++
-CFLAGS		=	$(INCLUDES) $(STANDARD) $(DEBUG)
+CFLAGS		=	$(INCLUDES) $(STANDARD) $(DEBUG) $(FSAN)
 STANDARD	=	-Wpedantic -std=c++98
 WFLAGS		=	-Wall -Werror -Wextra
 INCLUDES	=	-I$(INC_DIR) -I$(MODELS_DIR)
@@ -32,8 +32,14 @@ OBJS_DIR		=	bin/
 # Set search path for source files
 VPATH			=	$(SRCS_DIR):$(MODELS_DIR)
 
-HTTP_HEADERS	=	models/HttpRequest.hpp
-HTTP_MODELS		=	models/HttpRequest.cpp
+HTTP_HEADERS	=	models/HttpRequest.hpp \
+					models/HttpResponse.hpp \
+					models/HttpHandler.hpp \
+					models/HttpStatusCodes.hpp \
+
+HTTP_MODELS		=	models/HttpRequest.cpp \
+					models/HttpResponse.cpp \
+					models/HttpHandler.cpp \
 
 MODEL_FILES		=	$(HTTP_MODELS)
 MODEL_HEADERS	=	$(HTTP_HEADERS)

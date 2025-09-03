@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 
 #include <HttpRequest.hpp>
+#include <HttpHandler.hpp>
 
 // ===== Config Parser =====
 class Config
@@ -104,65 +105,65 @@ public:
 	}
 };
 
-// ===== HTTP + CGI =====
-class HttpHandler
-{
-	Config &config;
+// // ===== HTTP + CGI =====
+// class HttpHandler
+// {
+// 	Config &config;
 
-public:
-	HttpHandler(Config &cfg) : config(cfg) {}
+// public:
+// 	HttpHandler(Config &cfg) : config(cfg) {}
 
-	std::string runCgi(const std::string &path)
-	{
-		int pipefd[2];
-		pipe(pipefd);
+// 	std::string runCgi(const std::string &path)
+// 	{
+// 		int pipefd[2];
+// 		pipe(pipefd);
 
-		pid_t pid = fork();
-		if (pid == 0)
-		{
-			// Child
-			dup2(pipefd[1], STDOUT_FILENO);
-			close(pipefd[0]);
-			close(pipefd[1]);
+// 		pid_t pid = fork();
+// 		if (pid == 0)
+// 		{
+// 			// Child
+// 			dup2(pipefd[1], STDOUT_FILENO);
+// 			close(pipefd[0]);
+// 			close(pipefd[1]);
 
-			// Pick interpreter from config
-			std::string ext = path.substr(path.find_last_of('.'));
-			std::string interp = config.cgiMap[ext];
+// 			// Pick interpreter from config
+// 			std::string ext = path.substr(path.find_last_of('.'));
+// 			std::string interp = config.cgiMap[ext];
 
-			char *args[3];
-			args[0] = const_cast<char *>(interp.c_str());
-			args[1] = const_cast<char *>(path.c_str());
-			args[2] = NULL;
+// 			char *args[3];
+// 			args[0] = const_cast<char *>(interp.c_str());
+// 			args[1] = const_cast<char *>(path.c_str());
+// 			args[2] = NULL;
 
-			execve(args[0], args, NULL);
-			_exit(1);
-		}
-		else
-		{
-			// Parent
-			close(pipefd[1]);
-			char buffer[1024];
-			std::memset(buffer, 0, sizeof(buffer));
-			read(pipefd[0], buffer, sizeof(buffer) - 1);
-			close(pipefd[0]);
-			return std::string(buffer);
-		}
-	}
+// 			execve(args[0], args, NULL);
+// 			_exit(1);
+// 		}
+// 		else
+// 		{
+// 			// Parent
+// 			close(pipefd[1]);
+// 			char buffer[1024];
+// 			std::memset(buffer, 0, sizeof(buffer));
+// 			read(pipefd[0], buffer, sizeof(buffer) - 1);
+// 			close(pipefd[0]);
+// 			return std::string(buffer);
+// 		}
+// 	}
 
-	std::string handleRequest(const std::string &raw)
-	{
-		// For demo, always run hello.py
-		std::string cgiOut = runCgi("./cgi/test.py");
+// 	std::string handleRequest(const std::string &raw)
+// 	{
+// 		// For demo, always run hello.py
+// 		std::string cgiOut = runCgi("./cgi/test.py");
 
-		// Wrap into proper HTTP response
-		std::ostringstream resp;
-		resp << "HTTP/1.1 200 OK\r\n";
-		resp << "Content-Length: " << cgiOut.size() << "\r\n";
-		resp << "\r\n";
-		resp << cgiOut;
-		return resp.str();
-	}
-};
+// 		// Wrap into proper HTTP response
+// 		std::ostringstream resp;
+// 		resp << "HTTP/1.1 200 OK\r\n";
+// 		resp << "Content-Length: " << cgiOut.size() << "\r\n";
+// 		resp << "\r\n";
+// 		resp << cgiOut;
+// 		return resp.str();
+// 	}
+// };
 
 // ===== Main =====
 int main()
@@ -172,7 +173,7 @@ int main()
 	server.start(config.port);
 
 	while (true)
-	{ // Add this loop to handle multiple requests
+	{ // Loop to handle multiple requests
 		int client_fd = server.acceptClient();
 		std::string req = server.readRequest(client_fd);
 
@@ -185,10 +186,14 @@ int main()
 		std::cout << std::endl;
 		std::cout << request << std::endl;
 
-		HttpHandler http(config);
-		std::string resp = http.handleRequest(req);
+		HttpHandler http;								  // Create HttpHandler with config
+		HttpResponse &resp = http.handleRequest(request); // Use HttpRequest object
 
-		server.sendResponse(client_fd, resp);
+		// Convert HttpResponse to string for sending (assuming server.sendResponse expects a string)
+		std::string respStr = resp.toString(); // Assuming HttpResponse has a toString() method
+		server.sendResponse(client_fd, respStr);
+
+		// Close client socket (adjust based on HTTP persistence requirements)
 		close(client_fd);
 
 		std::cout << "\n--- Ready for next request ---\n"
