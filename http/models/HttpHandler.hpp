@@ -16,8 +16,8 @@ public:
 	HttpHandler &operator=(const HttpHandler &other);
 	~HttpHandler();
 
-	HttpResponse &handleRequest(HttpRequest &request);
-	HttpResponse &handleGetRequest(HttpRequest &request);
+	void handleRequest(HttpRequest &request, HttpResponse &response);
+	void handleGetRequest(HttpRequest &request, HttpResponse &response);
 };
 
 #endif

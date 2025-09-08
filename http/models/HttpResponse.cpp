@@ -72,18 +72,18 @@ void HttpResponse::addHeader(const std::string &key, const std::string &value)
 //
 std::string HttpResponse::toString() const
 {
-	std::stringstream ss;
-	ss << "HTTP/1.1 " << statusToString(_statusCode) << "\r\n"; // Convert status code to string
+	std::ostringstream oss;
+	oss << "HTTP/1.1 " << statusToString(_statusCode) << "\r\n"; // Convert status code to string
 
 	// Use C++98 iterator for map
 	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 	{
-		ss << it->first << ": " << it->second << "\r\n";
+		oss << it->first << ": " << it->second << "\r\n";
 	}
 
-	ss << "\r\n"
-	   << _body;
-	return ss.str();
+	oss << "\r\n"
+		<< _body;
+	return oss.str();
 }
 
 std::string HttpResponse::statusToString(int status) const
