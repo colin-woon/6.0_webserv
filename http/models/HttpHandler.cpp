@@ -32,8 +32,13 @@ HttpResponse &HttpHandler::handleRequest(HttpRequest &request)
 	}
 	std::cout << std::endl;
 
-	if (method.compare("GET") == 0)
+	if (request.getMethod().compare("GET") == 0)
 		return handleGetRequest(request);
+	else
+	{
+		HttpResponse response;
+		return response;
+	}
 }
 
 HttpResponse &HttpHandler::handleGetRequest(HttpRequest &request)

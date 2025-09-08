@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # curl -vX POST http://localhost:8080 \
 #   -H "Content-Type: application/x-www-form-urlencoded" \
 #   -d "username=testuser&password=123456"
@@ -11,6 +13,19 @@
 
 # # Empty values
 # curl -v "http://localhost:8080/search?q="
+
+
+# # POST with form-urlencoded data
+# echo -e "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 23\r\n\r\nusername=testuser&password=123456" | nc localhost 8080
+
+# # POST with JSON data
+# echo -e "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 37\r\n\r\n{\"username\":\"testuser\",\"password\":\"123456\"}" | nc localhost 8080
+
+# # GET with query parameters
+# echo -e "GET /path?param1=value1&param2=value2 HTTP/1.1\r\nHost: localhost\r\n\r\n" | nc localhost 8080
+
+# GET with empty query parameter
+echo -e "GET /search?q= HTTP/1.1\r\nHost: localhost\r\n\r\n" | nc localhost 8080
 
 # # Special characters in query parameters
 # curl -v "http://localhost:8080/search?q=hello%20world&filter=price%3E100"

@@ -91,9 +91,9 @@ std::string HttpResponse::statusToString(int status) const
 	// Simple mapping, expand as needed
 	switch (status)
 	{
-	case StatusCode::HTTP_200_OK:
+	case HTTP_200_OK:
 		return "200 OK";
-	case StatusCode::HTTP_404_NOT_FOUND:
+	case HTTP_404_NOT_FOUND:
 		return "404 Not Found";
 	default:
 		return "500 Internal Server Error";
