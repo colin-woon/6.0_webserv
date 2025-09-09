@@ -3,7 +3,7 @@
 
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
-#include "HttpStatusCodes.hpp"
+#include "HttpExceptions.hpp"
 #include <fstream>
 #include <string>
 #include <sstream>

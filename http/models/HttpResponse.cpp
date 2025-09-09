@@ -1,7 +1,7 @@
 #include "HttpResponse.hpp"
 
 // OCF
-HttpResponse::HttpResponse() : _statusCode(UNKNOWN),
+HttpResponse::HttpResponse() : _statusCode(""),
 							   _statusText(""),
 							   _headers(),
 							   _body("")
@@ -30,7 +30,7 @@ HttpResponse &HttpResponse::operator=(const HttpResponse &other)
 HttpResponse::~HttpResponse() {}
 
 // GETTER
-const StatusCode &HttpResponse::getStatusCode() const
+const std::string &HttpResponse::getStatusCode() const
 {
 	return _statusCode;
 }
@@ -48,7 +48,7 @@ const std::string &HttpResponse::getBody() const
 }
 
 // SETTER
-void HttpResponse::setStatusCode(const StatusCode &statusCode)
+void HttpResponse::setStatusCode(const std::string &statusCode)
 {
 	_statusCode = statusCode;
 }
@@ -69,11 +69,10 @@ void HttpResponse::addHeader(const std::string &key, const std::string &value)
 	_headers[key] = value;
 }
 
-//
 std::string HttpResponse::toString() const
 {
 	std::ostringstream oss;
-	oss << "HTTP/1.1 " << statusToString(_statusCode) << "\r\n"; // Convert status code to string
+	oss << "HTTP/1.1 " << _statusCode << " " << _statusText << "\r\n"; // Convert status code to string
 
 	// Use C++98 iterator for map
 	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
@@ -86,16 +85,13 @@ std::string HttpResponse::toString() const
 	return oss.str();
 }
 
-std::string HttpResponse::statusToString(int status) const
+void HttpResponse::createResponse(std::string statusCode,
+								  std::string statusText,
+								  std::map<std::string, std::string> headers,
+								  std::string body)
 {
-	// Simple mapping, expand as needed
-	switch (status)
-	{
-	case HTTP_200_OK:
-		return "200 OK";
-	case HTTP_404_NOT_FOUND:
-		return "404 Not Found";
-	default:
-		return "500 Internal Server Error";
-	}
+	_statusCode = statusCode;
+	_statusText = statusText;
+	_headers = headers;
+	_body = body;
 }

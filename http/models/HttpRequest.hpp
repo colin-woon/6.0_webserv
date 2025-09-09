@@ -6,6 +6,7 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
+#include "HttpUtils.hpp"
 
 class HttpRequest
 {

@@ -36,12 +36,15 @@ HTTP_HEADERS	=	models/HttpRequest.hpp \
 					models/HttpResponse.hpp \
 					models/HttpHandlerGET.hpp \
 					models/HttpHandler.hpp \
-					models/HttpStatusCodes.hpp \
+					models/HttpUtils.hpp \
+					models/HttpExceptions.hpp \
 
 HTTP_MODELS		=	models/HttpRequest.cpp \
 					models/HttpResponse.cpp \
 					models/HttpHandlerGET.cpp \
 					models/HttpHandler.cpp \
+					models/HttpUtils.cpp \
+					models/HttpExceptions.cpp \
 
 MODEL_FILES		=	$(HTTP_MODELS)
 MODEL_HEADERS	=	$(HTTP_HEADERS)

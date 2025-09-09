@@ -26,10 +26,7 @@ void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &respon
 	std::string fullPath = TEMP_root + path;
 	std::ifstream file(fullPath.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open())
-	{
-		response.setStatusCode(HTTP_404_NOT_FOUND); // Using integer directly, assuming StatusCode is defined as enum or const int
-		response.setBody("404 Not Found");
-	}
+		throw Http404NotFoundException();
 	else
 	{
 		std::stringstream buffer;
@@ -37,7 +34,7 @@ void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &respon
 		std::string content = buffer.str();
 		file.close();
 
-		response.setStatusCode(HTTP_200_OK); // Using integer directly, assuming StatusCode is defined as enum or const int
+		response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK)); // Using integer directly, assuming StatusCode is defined as enum or const int
 		response.addHeader("Content-Type", "text/html");
 
 		std::stringstream contentLength;
