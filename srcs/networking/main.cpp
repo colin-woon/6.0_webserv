@@ -23,9 +23,10 @@ int main(){
 	bumServer.host = "127.0.0.1";
 	bumServer.port = 8080;
 	bumServer.backlog = 64;
-	bumServer.client_timeout_sec = 1000;
+	bumServer.client_timeout_sec = 10;
 	bomServer.host = "0.0.0.0";
 	bomServer.port = 6969;
+	bomServer.client_timeout_sec = 20;
 	bomServer.backlog = 128;
 
 	std::vector<Server> serverList;

@@ -21,6 +21,9 @@ class Client{
 		std::string outBuff;
 		bool closeFlag;
 		const Server* owner;
+
+		int timeoutMs;
+		long long	expiresAtMs;
 };
 
 void mainServerLoop(std::vector<int>& listenerFdList, std::vector<Server>& serverList);

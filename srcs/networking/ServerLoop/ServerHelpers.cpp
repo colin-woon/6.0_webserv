@@ -1,4 +1,5 @@
 #include "ServerHelpers.hpp"
+#include "Timeout.hpp"
 
 void buildSimpleResponse(Client& c) {
     // Build a small, styled HTML page
@@ -64,6 +65,7 @@ void readOnce(int fd, std::vector<struct pollfd>& pollFdList, std::map<int, size
 
     if (n > 0) {
         c.inBuff.append(buf, (size_t)n);
+		resetClientTimeout(c);
         if (c.outBuff.empty() && headersComplete(c.inBuff)) {
             buildSimpleResponse(c);
             modifyEvent(pollFdList, fdIndex, fd, (short)(POLLIN | POLLOUT));
@@ -86,6 +88,7 @@ void writeOnce(int fd, std::vector<struct pollfd>& pollFdList, std::map<int, siz
     ssize_t n = send(fd, c.outBuff.data(), c.outBuff.size(), 0);
     if (n > 0) {
         c.outBuff.erase(0, (size_t)n);
+		resetClientTimeout(c);
         if (c.outBuff.empty()) {
             modifyEvent(pollFdList, fdIndex, fd, POLLIN);
             if (c.closeFlag){
@@ -98,7 +101,7 @@ void writeOnce(int fd, std::vector<struct pollfd>& pollFdList, std::map<int, siz
     closeClient(fd, pollFdList, fdIndex, clients);
 }
 
-void acceptClients(int lfd, std::vector<struct pollfd>& pollFdList, std::map<int, size_t>& fdIndex, std::map<int, Client>& clientList){
+void acceptClients(int lfd, std::vector<struct pollfd>& pollFdList, std::map<int, size_t>& fdIndex, std::map<int, Client>& clientList, std::map<int, int> &listenerTimeoutMs){
     while (1){
         int clientFd = accept(lfd, 0, 0);
         if (clientFd == -1) {
@@ -106,7 +109,7 @@ void acceptClients(int lfd, std::vector<struct pollfd>& pollFdList, std::map<int
 				break;
             std::cerr << "accept error\n";
 			break;
-        }
+		}
         if (setNonBlocking(clientFd) == false){
             close(clientFd);
 			continue;
@@ -114,6 +117,7 @@ void acceptClients(int lfd, std::vector<struct pollfd>& pollFdList, std::map<int
         addPollFd(pollFdList, fdIndex, clientFd, POLLIN);
         Client c;
         c.fd = clientFd;
+		setClientTimeout(lfd, c, listenerTimeoutMs);
         clientList[clientFd] = c;
         std::cout << "accepted " << clientFd << "\n";
     }

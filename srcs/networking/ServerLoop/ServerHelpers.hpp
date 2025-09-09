@@ -8,6 +8,6 @@ void closeClient(int fd, std::vector<pollfd>& pollFdList, std::map<int, size_t>&
 bool headersComplete(const std::string& s);
 void readOnce(int fd, std::vector<struct pollfd>& pollFdList, std::map<int, size_t>& fdIndex, std::map<int, Client>& clients);
 void writeOnce(int fd, std::vector<struct pollfd>& pollFdList, std::map<int, size_t>& fdIndex, std::map<int, Client>& clients);
-void acceptClients(int lfd, std::vector<struct pollfd>& pollFdList, std::map<int, size_t>& fdIndex, std::map<int, Client>& clientList);
+void acceptClients(int lfd, std::vector<struct pollfd>& pollFdList, std::map<int, size_t>& fdIndex, std::map<int, Client>& clientList, std::map<int, int> &listenerTimeoutMs);
 
 #endif
