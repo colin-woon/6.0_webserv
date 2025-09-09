@@ -3,9 +3,16 @@
 
 #include "../../../includes/server.hpp"
 #include "../Sockets/Sockets.hpp"
+#include <ostream>
+#include <stdexcept>
+#include <poll.h>
+#include <sstream>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <climits> 
 
 
-class Client {
+class Client{
 	public:
 		Client();
 		~Client();
@@ -13,6 +20,7 @@ class Client {
 		std::string inBuff;
 		std::string outBuff;
 		bool closeFlag;
+		const Server* owner;
 };
 
 void mainServerLoop(std::vector<int>& listenerFdList, std::vector<Server>& serverList);
