@@ -34,11 +34,13 @@ VPATH			=	$(SRCS_DIR):$(MODELS_DIR)
 
 HTTP_HEADERS	=	models/HttpRequest.hpp \
 					models/HttpResponse.hpp \
+					models/HttpHandlerGET.hpp \
 					models/HttpHandler.hpp \
 					models/HttpStatusCodes.hpp \
 
 HTTP_MODELS		=	models/HttpRequest.cpp \
 					models/HttpResponse.cpp \
+					models/HttpHandlerGET.cpp \
 					models/HttpHandler.cpp \
 
 MODEL_FILES		=	$(HTTP_MODELS)

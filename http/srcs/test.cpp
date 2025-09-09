@@ -186,10 +186,9 @@ int main()
 		std::cout << std::endl;
 		std::cout << request << std::endl;
 
-		HttpHandler http; // Create HttpHandler with config
 		HttpResponse response;
 
-		http.handleRequest(request, response); // Use HttpRequest object
+		HttpHandler::handleRequest(request, response); // Use HttpRequest object
 
 		// Convert HttpResponse to string for sending (assuming server.sendResponse expects a string)
 		std::string respStr = response.toString(); // Assuming HttpResponse has a toString() method
