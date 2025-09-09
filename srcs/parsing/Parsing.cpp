@@ -1,41 +1,43 @@
 #include "../../includes/Parsing.hpp"
 
-Parsing::Parsing(std::ifstream& inputStream)
+Parsing::Parsing(int argc, char **argv)
 {
+	if (argc != 2)
+		throw Parsing::ParsingSimpleException("Invalid Argument Count");
+
+	std::ifstream	inputStream(argv[1]);
+	if (!inputStream.is_open())
+		throw Parsing::ParsingSimpleException("Invalid File Path");
+
 	Lexer	lex(inputStream);
 	lex.tokenise(this->tokens);
 	if (this->tokens.empty())
-		throw Parsing::EmptyConfigException();
+		throw Parsing::ParsingSimpleException("Empty Config");
 }
 
 Parsing::~Parsing() {}
 
-const char	*Parsing::EmptyConfigException::what() const throw()
-{
-	return ("Error: Empty Config");
-}
+Parsing::ParsingSimpleException::ParsingSimpleException(const std::string message) : _message("Parsing Error: " + message) {}
+const char	*Parsing::ParsingSimpleException::what() const throw()
+{ return (this->_message.c_str()); }
 
 Parsing::ParsingSyntaxException::ParsingSyntaxException(Token &token, const std::string message)
 {
 	std::stringstream stream;
 	stream << token.line;
-	_message = "Error at line " + stream.str() + ": " + message;
+	_message = "Parsing Error at line " + stream.str() + ": " + message;
 }
 const char	*Parsing::ParsingSyntaxException::what() const throw()
-{
-	return (this->_message.c_str());
-}
+{ return (this->_message.c_str()); }
 
 Parsing::ParsingInvalidContextException::ParsingInvalidContextException(Token &token, const std::string message)
 {
 	std::stringstream stream;
 	stream << token.line;
-	_message = "Error at line " + stream.str() + ": " + message + " \"" + token.buffer + "\"";
+	_message = "Parsing Error at line " + stream.str() + ": " + message + " \"" + token.buffer + "\"";
 }
 const char	*Parsing::ParsingInvalidContextException::what() const throw()
-{
-	return (this->_message.c_str());
-}
+{ return (this->_message.c_str()); }
 
 void	Parsing::toggleContext(int &level)
 {

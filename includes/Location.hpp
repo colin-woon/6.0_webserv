@@ -8,9 +8,10 @@ class Location
 {
 	private:
 		std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator>	_Context;
-		
-		typedef void	(*directiveHandler)(Location&);
-		static std::map<std::string, directiveHandler>	directiveMap;
+
+		typedef void	(*_directiveHandler)(Location&);
+		static std::map<std::string, _directiveHandler>	_directiveMap;
+		static std::vector<std::string>	_totalMethods;
 
 		static void	handleAutoindex(Location& loc);
 		static void	handlePath(Location& loc);
@@ -23,6 +24,8 @@ class Location
 		static void	handleAllowedMethods(Location& loc);
 		static void	handleError_page(Location& loc);
 		static void	fillDirectiveMap(void);
+
+		void	stoiLocation(const std::string& str, int& value);
 	public:
 		bool	autoindex;
 		std::string	path;
@@ -43,7 +46,7 @@ class Location
 			private:
 				std::string _message;
 			public:
-				LocationSyntaxException(const std::string& error);
+				LocationSyntaxException(Token& token, const std::string message);
 				~LocationSyntaxException() throw() {}
 				const char	*what() const throw();
 		};
@@ -52,7 +55,7 @@ class Location
 			private:
 				std::string	_message;
 			public:
-				LocationInvalidContextException(const std::string& error);
+				LocationInvalidContextException(Token& token, const std::string message);
 				~LocationInvalidContextException() throw() {}
 				const char	*what() const throw();
 		};

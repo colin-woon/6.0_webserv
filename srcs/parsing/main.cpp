@@ -4,10 +4,7 @@ int	main(int argc, char **argv)
 {
 	try
 	{
-		if (argc != 2)
-			return (std::cerr << "Invalid input" << std::endl, 1);
-		std::ifstream	inputStream(argv[1]);
-		Parsing parse(inputStream);
+		Parsing parse(argc, argv);
 		parse.parseNodes();
 	}
 	catch(const std::exception& e)

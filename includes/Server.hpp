@@ -10,8 +10,8 @@ class Server
 	private:
 		std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator>	_Context;
 
-		typedef void	(*directiveHandler)(Server&);
-		static std::map<std::string, directiveHandler> directiveMap;
+		typedef void	(*_directiveHandler)(Server&);
+		static std::map<std::string, _directiveHandler> _directiveMap;
 
 		static void	handlePort(Server& srv);
 		static void	handleBacklog(Server& srv);
@@ -27,8 +27,9 @@ class Server
 		static void	handleError_page(Server& srv);
 		static void	handleLocation(Server& srv);
 		static void	fillDirectiveMap(void);
+
+		void	stoiServer(const std::string& str, int& value);
 	public:
-		int	port;
 		int	backlog;
 		int	client_timeout_sec;
 		int	max_body_size;
@@ -38,6 +39,7 @@ class Server
 		std::string	host;
 		std::string root;
 		std::string index;
+		std::vector<int>	port;
 		std::vector<std::string>	name;
 		std::map<int, std::string>	error_pages;
 		std::vector<Location>	location;

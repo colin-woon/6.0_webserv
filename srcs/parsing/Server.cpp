@@ -1,21 +1,21 @@
 #include "../../includes/Server.hpp"
 
-std::map<std::string, Server::directiveHandler>	Server::directiveMap;
+std::map<std::string, Server::_directiveHandler>	Server::_directiveMap;
 
-void	stoiServer(Token& token, const std::string& str, int& value)
+void	Server::stoiServer(const std::string& str, int& value)
 {
 	char	*end = NULL;
 	errno = 0;
 	long val = std::strtol(str.c_str(), &end, 10);
 
 	if (value != -1)
-		throw Server::ServerInvalidContextException(token, "Duplicate Directive");
+		throw Server::ServerInvalidContextException(*(this->_Context.first - 1), "Duplicate Directive");
 	if (errno == ERANGE || val > std::numeric_limits<int>::max() || val < std::numeric_limits<int>::min()
 		|| *end != '\0')
-		throw Server::ServerInvalidContextException(token, "Invalid Number");
+		throw Server::ServerInvalidContextException(*this->_Context.first, "Invalid Number");
 	value = static_cast<int>(val);
 	if (value < 0)
-		throw Server::ServerInvalidContextException(token, "Improper Negative Number");
+		throw Server::ServerInvalidContextException(*this->_Context.first, "Improper Negative Number");
 }
 
 void	Server::handlePort(Server& srv)
@@ -23,9 +23,11 @@ void	Server::handlePort(Server& srv)
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
-	stoiServer(*srv._Context.first, srv._Context.first->buffer, srv.port);
-	if (srv.port > 65535)
+	int	port = -1;
+	srv.stoiServer(srv._Context.first->buffer, port);
+	if (port > 65535)
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Invalid Port");
+	srv.port.push_back(port);
 }
 
 void	Server::handleBacklog(Server& srv)
@@ -33,7 +35,7 @@ void	Server::handleBacklog(Server& srv)
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
-	stoiServer(*srv._Context.first, srv._Context.first->buffer, srv.backlog);
+	srv.stoiServer(srv._Context.first->buffer, srv.backlog);
 	if (srv.backlog < 1 || srv.backlog > SOMAXCONN)
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Invalid Backlog");
 }
@@ -43,7 +45,7 @@ void	Server::handleClient_timeout_sec(Server& srv)
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
-	stoiServer(*srv._Context.first, srv._Context.first->buffer, srv.client_timeout_sec);
+	srv.stoiServer(srv._Context.first->buffer, srv.client_timeout_sec);
 	if (srv.client_timeout_sec > 86400)
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Timeout too large");
 }
@@ -76,7 +78,7 @@ void	Server::handleMax_body_size(Server& srv)
 		suffix = 1000000;
 	if (suffix != 1)
 		srv._Context.first->buffer.resize(srv._Context.first->buffer.size() - 1);	
-	stoiServer(*srv._Context.first, srv._Context.first->buffer, srv.max_body_size);
+	srv.stoiServer(srv._Context.first->buffer, srv.max_body_size);
 	srv.max_body_size *= suffix;
 }
 
@@ -85,9 +87,9 @@ void	Server::handleBody_ram_threshold(Server& srv)
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
-	stoiServer(*srv._Context.first, srv._Context.first->buffer, srv.body_ram_threshold);
+	srv.stoiServer(srv._Context.first->buffer, srv.body_ram_threshold);
 	if (srv.max_body_size != -1 && srv.body_ram_threshold > srv.max_body_size)
-		throw Server::ServerInvalidContextException(*srv._Context.first, "Client_body_ram_threshold cannot be larger than Client_max_body_size");
+		throw Server::ServerInvalidContextException(*srv._Context.first, "Body_ram_threshold too high");
 }
 
 void	Server::handleHeader_cap(Server& srv)
@@ -103,20 +105,38 @@ void	Server::handleHeader_cap(Server& srv)
 		suffix = 1000000;
 	if (suffix != 1)
 		srv._Context.first->buffer.resize(srv._Context.first->buffer.size() - 1);	
-	stoiServer(*srv._Context.first, srv._Context.first->buffer, srv.header_cap);
+	srv.stoiServer(srv._Context.first->buffer, srv.header_cap);
 	srv.header_cap *= suffix;
 }
 
 void	Server::handleHost(Server& srv)
 {
+	if (!srv.host.empty())
+		throw Server::ServerInvalidContextException(*srv._Context.first, "Duplicate Directive");
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
-	srv.host = srv._Context.first->buffer;
+
+	std::string	substr = srv._Context.first->buffer;
+	std::string::iterator	delim = std::find(srv._Context.first->buffer.begin(), srv._Context.first->buffer.end(), ':');
+
+	if (delim != srv._Context.first->buffer.end())
+	{
+		std::string ip(srv._Context.first->buffer.begin(), delim);
+		std::string	portS(delim + 1, srv._Context.first->buffer.end());
+		int	port = -1;
+
+		if (portS.empty())
+			throw Server::ServerInvalidContextException(*srv._Context.first, "Missing Port");
+		srv.stoiServer(portS, port);
+		if (port > 65535)
+			throw Server::ServerInvalidContextException(*srv._Context.first, "Invalid Port");
+		srv.port.push_back(port);
+		substr = ip;
+	}
 
 	std::vector<std::string>	ipSplit;
-	std::stringstream	ss(srv.host);
-	std::string	substr;
+	std::stringstream	ss(substr);
 	int	octet;
 
 	while (ss.good())
@@ -128,17 +148,22 @@ void	Server::handleHost(Server& srv)
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Invalid Octet Number");
 	for (size_t i = 0; i < ipSplit.size(); i++)
 	{
+		if (ipSplit[i].empty())
+			throw Server::ServerInvalidContextException(*srv._Context.first, "Missing Octet");
 		if (ipSplit[i].size() > 1 && ipSplit[i][0] == '0')
 			throw Server::ServerInvalidContextException(*srv._Context.first, "Invalid Octet Structure");
 		octet = -1;
-		stoiServer(*srv._Context.first, ipSplit[i], octet);
+		srv.stoiServer(ipSplit[i], octet);
 		if (octet > 255)
 			throw Server::ServerInvalidContextException(*srv._Context.first, "Octet exceeds 255");
 	}
+	srv.host = srv._Context.first->buffer;
 }
 
 void	Server::handleRoot(Server& srv)
 {
+	if (!srv.root.empty())
+		throw Server::ServerInvalidContextException(*srv._Context.first, "Duplicate Directive");
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
@@ -147,6 +172,8 @@ void	Server::handleRoot(Server& srv)
 
 void	Server::handleIndex(Server& srv)
 {
+	if (!srv.index.empty())
+		throw Server::ServerInvalidContextException(*srv._Context.first, "Duplicate Directive");
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
@@ -175,7 +202,7 @@ void	Server::handleError_page(Server& srv)
 	it = ++srv._Context.first;
 	while (it != srv._Context.second && it->type == Argument)
 		it++;
-	if (it == srv._Context.second)
+	if (it == srv._Context.second || it->type != SimpleEnd)
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Missing ';'");
 	--it;
 	while (srv._Context.first != it)
@@ -183,7 +210,7 @@ void	Server::handleError_page(Server& srv)
 		std::pair<int, std::string>	error;
 
 		error.first = -1;
-		stoiServer(*srv._Context.first, srv._Context.first->buffer, error.first);
+		srv.stoiServer(srv._Context.first->buffer, error.first);
 		if (error.first < 400 || error.first > 599)
 			throw Server::ServerInvalidContextException(*srv._Context.first, "Unrecognised Error Code");
 		if (srv.error_pages.find(error.first) != srv.error_pages.end())
@@ -222,25 +249,25 @@ void	Server::handleLocation(Server& srv)
 
 void	Server::fillDirectiveMap(void)
 {
-	if (!directiveMap.empty())
+	if (!_directiveMap.empty())
 		return ;
-	directiveMap["listen"] = &Server::handlePort;
-	directiveMap["backlog"] = &Server::handleBacklog;
-	directiveMap["autoindex"] = &Server::handleAutoindex;
-	directiveMap["host"] = &Server::handleHost;
-	directiveMap["index"] = &Server::handleIndex;
-	directiveMap["server_name"] = &Server::handleName;
-	directiveMap["root"] = &Server::handleRoot;
-	directiveMap["body_ram_threshold"] = &Server::handleBody_ram_threshold;
-	directiveMap["client_timeout_sec"] = &Server::handleClient_timeout_sec;
-	directiveMap["client_max_body_size"] = &Server::handleMax_body_size;
-	directiveMap["client_header_buffer_size"] = &Server::handleHeader_cap;
-	directiveMap["error_page"] = &Server::handleError_page;
-	directiveMap["location"] = &Server::handleLocation;
+	_directiveMap["listen"] = &Server::handlePort;
+	_directiveMap["backlog"] = &Server::handleBacklog;
+	_directiveMap["autoindex"] = &Server::handleAutoindex;
+	_directiveMap["host"] = &Server::handleHost;
+	_directiveMap["index"] = &Server::handleIndex;
+	_directiveMap["server_name"] = &Server::handleName;
+	_directiveMap["root"] = &Server::handleRoot;
+	_directiveMap["body_ram_threshold"] = &Server::handleBody_ram_threshold;
+	_directiveMap["client_timeout_sec"] = &Server::handleClient_timeout_sec;
+	_directiveMap["client_max_body_size"] = &Server::handleMax_body_size;
+	_directiveMap["client_header_buffer_size"] = &Server::handleHeader_cap;
+	_directiveMap["error_page"] = &Server::handleError_page;
+	_directiveMap["location"] = &Server::handleLocation;
 }
 
 Server::Server(std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator> context)
-	: _Context(context), port(-1), backlog(-1), client_timeout_sec(-1),
+	: _Context(context), backlog(-1), client_timeout_sec(-1),
 		max_body_size(-1), body_ram_threshold(-1), header_cap(-1), autoindex(false)
 {
 	fillDirectiveMap();
@@ -253,31 +280,29 @@ Server::ServerSyntaxException::ServerSyntaxException(Token& token, const std::st
 {
 	std::stringstream stream;
 	stream << token.line;
-	_message = "Error at line " + stream.str() + ": " + message;
+	_message = "Server Error at line " + stream.str() + ": " + message;
 }
 const char	*Server::ServerSyntaxException::what() const throw()
-{
-	return (this->_message.c_str());
-}
+{ return (this->_message.c_str()); }
 
 Server::ServerInvalidContextException::ServerInvalidContextException(Token& token, const std::string message)
 {
 	std::stringstream stream;
 	stream << token.line;
-	_message = "Error at line " + stream.str() + ": " + message + " \"" + token.buffer + "\"";
+	_message = "Server Error at line " + stream.str() + ": " + message + " \"" + token.buffer + "\"";
 }
 const char	*Server::ServerInvalidContextException::what() const throw()
 { return (this->_message.c_str()); }
 
 void	Server::parseDirectives(void)
 {
-	std::map<std::string, directiveHandler>::iterator	it;
+	std::map<std::string, _directiveHandler>::iterator	it;
 	while (this->_Context.first != this->_Context.second)
 	{
 		if (this->_Context.first->type == Key)
 		{
-			it = directiveMap.find(this->_Context.first->buffer);
-			if (it == directiveMap.end())
+			it = _directiveMap.find(this->_Context.first->buffer);
+			if (it == _directiveMap.end())
 				throw Server::ServerInvalidContextException(*this->_Context.first, "Unknown Directive");
 			else
 				it->second(*this);

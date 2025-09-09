@@ -10,15 +10,19 @@ class Parsing
 	private:
 		std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator>	_Context;
 	public:
-		Parsing(std::ifstream& inputStream);
+		Parsing(int argc, char **argv);
 		~Parsing();
 
 		std::vector<Token>	tokens;
 		std::vector<Server>	nodes;
 		
-		class EmptyConfigException : public std::exception
+		class ParsingSimpleException : public std::exception
 		{
+			private:
+				std::string _message;
 			public:
+				ParsingSimpleException(const std::string message);
+				~ParsingSimpleException() throw() {};
 				const char	*what() const throw();
 		};
 		class ParsingSyntaxException : public std::exception
