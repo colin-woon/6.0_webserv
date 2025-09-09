@@ -27,9 +27,13 @@ void HttpHandler::handleRequest(HttpRequest &request, HttpResponse &response)
 
 void HttpHandler::handleGetRequest(HttpRequest &request, HttpResponse &response)
 {
-	std::string root = "/home/colin/42_core_program/6.0_webserv/http/var/www";
+	std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/http/var/www";
 
-	std::string fullPath = root + request.getPath();
+	std::string path = request.getPath();
+
+	if (path.compare("/") == 0)
+		path = "/index.html";
+	std::string fullPath = TEMP_root + path;
 	std::ifstream file(fullPath.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open())
 	{
