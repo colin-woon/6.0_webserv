@@ -14,7 +14,16 @@
 #include <map>
 #include <exception>
 #include <limits>
-#include <sys/socket.h>
 #include <sys/stat.h>
+#include <cerrno>
+
+// for network
+#include <fcntl.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/epoll.h>
+#include <sys/types.h>
 
 #endif
