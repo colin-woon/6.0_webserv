@@ -12,6 +12,13 @@
 #include <climits> 
 
 
+#include "../../http/models/HttpRequest.hpp"
+#include "../../http/models/HttpResponse.hpp"
+#include "../../http/models/HttpExceptions.hpp"
+#include "../../http/models/HttpUtils.hpp"
+#include "../../http/models/HttpHandlerGET.hpp"
+#include "../../http/models/HttpHandler.hpp"
+
 class Client{
 	public:
 		Client();
@@ -24,6 +31,9 @@ class Client{
 
 		int timeoutMs;
 		long long	expiresAtMs;
+
+		HttpRequest request;
+		HttpResponse response;
 
 		bool responseQueued;
 };

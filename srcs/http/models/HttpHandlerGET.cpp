@@ -17,7 +17,7 @@ HttpHandlerGET::~HttpHandlerGET() {}
 
 void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &response)
 {
-	std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/http/var/www";
+	std::string TEMP_root = "/home/joshua/42Core/webserv/srcs/http/var/www";
 
 	std::string path = request.getPath();
 

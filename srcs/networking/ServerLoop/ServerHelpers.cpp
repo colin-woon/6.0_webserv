@@ -67,11 +67,14 @@ void readOnce(int fd, std::vector<struct pollfd>& pollFdList, std::map<int, size
         c.inBuff.append(buf, (size_t)n);
 		resetClientTimeout(c);
         if (c.outBuff.empty() && headersComplete(c.inBuff)) {
-            buildSimpleResponse(c);
-			//if (c.responseQueued == false){
-			// HttpHandler()...
-			// c.responseQueued = true
-			// }
+           
+            // buildSimpleResponse(c);
+			if (c.responseQueued == false){
+			    HttpHandler::handleRequest(c.request, c.response, c.inBuff);
+                c.outBuff = c.response.toString();
+                std::cout << c.outBuff << std::endl;
+			    c.responseQueued = true;
+			}
             modifyEvent(pollFdList, fdIndex, fd, (short)(POLLIN | POLLOUT));
         }
         return;
@@ -100,11 +103,11 @@ void writeOnce(int fd, std::vector<struct pollfd>& pollFdList, std::map<int, siz
                 closeClient(fd, pollFdList, fdIndex, clients);
 			}
 		}
-		// else{
-		// 	c.inBuff.clear();
-		// 	c.responseQueued = false;
-		// 	c.closeFlag = false;
-		// }
+		else{
+			c.inBuff.clear();
+			c.responseQueued = false;
+			c.closeFlag = false;
+		}
         return;
     }
     closeClient(fd, pollFdList, fdIndex, clients);

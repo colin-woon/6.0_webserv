@@ -2,7 +2,9 @@ NAME = webserv
 SRCS = srcs/main.cpp\
 	srcs/parsing/Parsing.cpp srcs/parsing/Token.cpp srcs/parsing/Server.cpp srcs/parsing/Location.cpp\
 	srcs/networking/Sockets/Sockets.cpp srcs/networking/ServerLoop/ServerLoop.cpp\
-	srcs/networking/ServerLoop/PollHelpers.cpp srcs/networking/ServerLoop/ServerHelpers.cpp srcs/networking/ServerLoop/Timeout.cpp
+	srcs/networking/ServerLoop/PollHelpers.cpp srcs/networking/ServerLoop/ServerHelpers.cpp srcs/networking/ServerLoop/Timeout.cpp\
+	srcs/http/models/HttpRequest.cpp srcs/http/models/HttpResponse.cpp srcs/http/models/HttpHandlerGET.cpp\
+	srcs/http/models/HttpHandler.cpp srcs/http/models/HttpUtils.cpp srcs/http/models/HttpExceptions.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 CXX = c++
