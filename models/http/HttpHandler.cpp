@@ -1,7 +1,10 @@
 #include "HttpHandler.hpp"
 
-void HttpHandler::handleRequest(HttpRequest &request, HttpResponse &response, const std::string &rawRequestBytes)
+void HttpHandler::handleRequest(Client &client)
 {
+	std::string &rawRequestBytes = client.inBuff;
+	HttpRequest &request = client.request;
+	HttpResponse &response = client.response;
 	try
 	{
 		HttpUtils::parseRawRequest(request, rawRequestBytes);
