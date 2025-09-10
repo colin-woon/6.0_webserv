@@ -24,6 +24,8 @@ class Client{
 
 		int timeoutMs;
 		long long	expiresAtMs;
+
+		bool responseQueued;
 };
 
 void mainServerLoop(std::vector<int>& listenerFdList, std::vector<Server>& serverList);

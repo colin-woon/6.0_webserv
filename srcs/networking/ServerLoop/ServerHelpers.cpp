@@ -68,6 +68,10 @@ void readOnce(int fd, std::vector<struct pollfd>& pollFdList, std::map<int, size
 		resetClientTimeout(c);
         if (c.outBuff.empty() && headersComplete(c.inBuff)) {
             buildSimpleResponse(c);
+			//if (c.responseQueued == false){
+			// HttpHandler()...
+			// c.responseQueued = true
+			// }
             modifyEvent(pollFdList, fdIndex, fd, (short)(POLLIN | POLLOUT));
         }
         return;
@@ -89,13 +93,18 @@ void writeOnce(int fd, std::vector<struct pollfd>& pollFdList, std::map<int, siz
     if (n > 0) {
         c.outBuff.erase(0, (size_t)n);
 		resetClientTimeout(c);
-        if (c.outBuff.empty()) {
+		if (c.outBuff.empty()) {
             modifyEvent(pollFdList, fdIndex, fd, POLLIN);
             if (c.closeFlag){
 				std::cout << "closing, 2nd loop with no content" << std::endl;
                 closeClient(fd, pollFdList, fdIndex, clients);
 			}
-        }
+		}
+		// else{
+		// 	c.inBuff.clear();
+		// 	c.responseQueued = false;
+		// 	c.closeFlag = false;
+		// }
         return;
     }
     closeClient(fd, pollFdList, fdIndex, clients);
@@ -105,7 +114,7 @@ void acceptClients(int lfd, std::vector<struct pollfd>& pollFdList, std::map<int
     while (1){
         int clientFd = accept(lfd, 0, 0);
         if (clientFd == -1) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK)
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				break;
             std::cerr << "accept error\n";
 			break;

@@ -3,7 +3,7 @@
 #include "ServerHelpers.hpp"
 #include "Timeout.hpp"
 
-Client::Client():fd(-1), closeFlag(false), timeoutMs(0), expiresAtMs(0){}
+Client::Client():fd(-1), closeFlag(false), timeoutMs(0), expiresAtMs(0), responseQueued(false){}
 
 Client::~Client(){}
 
