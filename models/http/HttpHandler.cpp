@@ -5,8 +5,8 @@ void HttpHandler::handleRequest(HttpRequest &request, HttpResponse &response, co
 	try
 	{
 		HttpUtils::parseRawRequest(request, rawRequestBytes);
-		std::cout << std::endl;
-		std::cout << request << std::endl;
+		// std::cout << std::endl;
+		// std::cout << request << std::endl;
 		if (request.getMethod().compare("GET") == 0)
 			return HttpHandlerGET::handleGetRequest(request, response);
 	}

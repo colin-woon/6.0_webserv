@@ -12,7 +12,7 @@
 # add back WFLAGS later to CFLAGS, removed cause it doesnt work for testing
 # Compiler and flags
 CXX			=	c++
-CFLAGS		=	$(INCLUDES) $(FSAN)
+CFLAGS		=	$(INCLUDES) $(FSAN) $(WFLAGS)
 STANDARD	=	-Wpedantic -std=c++98
 WFLAGS		=	-Wall -Werror -Wextra
 INCLUDES	=	-I$(INC_DIR) -I$(MODELS_DIR)
