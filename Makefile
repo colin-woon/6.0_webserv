@@ -12,7 +12,7 @@
 # add back WFLAGS later to CFLAGS, removed cause it doesnt work for testing
 # Compiler and flags
 CXX			=	c++
-CFLAGS		=	$(INCLUDES) $(DEBUG) $(FSAN)
+CFLAGS		=	$(INCLUDES) $(FSAN)
 STANDARD	=	-Wpedantic -std=c++98
 WFLAGS		=	-Wall -Werror -Wextra
 INCLUDES	=	-I$(INC_DIR) -I$(MODELS_DIR)
@@ -81,14 +81,7 @@ SRCS_FILES		=	srcs/main.cpp
 # All source files combined
 ALL_SRCS		=	$(SRCS_FILES) $(MODEL_FILES)
 
-# OBJS_FILES		=	$(addprefix $(OBJS_DIR), $(notdir $(ALL_SRCS:.cpp=.o)))
-
-HTTP_OBJS = $(patsubst $(MODELS_DIR)/http/%.cpp,$(OBJS_DIR)http_%.o,$(HTTP_MODELS))
-NETWORKING_OBJS = $(patsubst $(MODELS_DIR)/networking/%.cpp,$(OBJS_DIR)net_%.o,$(NETWORKING_MODELS))
-PARSING_OBJS = $(patsubst $(MODELS_DIR)/parsing/%.cpp,$(OBJS_DIR)parse_%.o,$(PARSING_MODELS))
-MAIN_OBJS = $(patsubst $(SRCS_DIR)%.cpp,$(OBJS_DIR)srcs_%.o,$(SRCS_FILES))
-
-OBJS_FILES = $(HTTP_OBJS) $(NETWORKING_OBJS) $(PARSING_OBJS) $(MAIN_OBJS)
+OBJS_FILES		=	$(addprefix $(OBJS_DIR), $(notdir $(ALL_SRCS:.cpp=.o)))
 #------------------------------------------------------------------------------#
 #                                 TARGETS                                      #
 #------------------------------------------------------------------------------#
@@ -99,24 +92,9 @@ all: $(NAME)
 $(NAME): $(OBJS_FILES)
 	$(CXX) $(CFLAGS) $(OBJS_FILES) -o $(NAME)
 
-# # Rule to compile the object files
-# $(OBJS_DIR)%.o: %.cpp | $(OBJS_DIR)
-# 	mkdir -p $(dir $@)
-# 	$(CXX) $(CFLAGS) -c $< -o $@
-
-$(OBJS_DIR)http_%.o: $(MODELS_DIR)/http/%.cpp | $(OBJS_DIR)
-	$(CXX) $(CFLAGS) -c $< -o $@
-
-$(OBJS_DIR)net_%.o: $(MODELS_DIR)/networking/ServerLoop/%.cpp | $(OBJS_DIR)
-	$(CXX) $(CFLAGS) -c $< -o $@
-
-$(OBJS_DIR)net_%.o: $(MODELS_DIR)/networking/Sockets/%.cpp | $(OBJS_DIR)
-	$(CXX) $(CFLAGS) -c $< -o $@
-
-$(OBJS_DIR)parse_%.o: $(MODELS_DIR)/parsing/%.cpp | $(OBJS_DIR)
-	$(CXX) $(CFLAGS) -c $< -o $@
-
-$(OBJS_DIR)srcs_%.o: $(SRCS_DIR)%.cpp | $(OBJS_DIR)
+# Rule to compile the object files
+$(OBJS_DIR)%.o: %.cpp | $(OBJS_DIR)
+	mkdir -p $(dir $@)
 	$(CXX) $(CFLAGS) -c $< -o $@
 
 # Rule to create the object directory if it doesn't exist
