@@ -79,7 +79,7 @@ void readOnce(int fd, std::vector<struct pollfd> &pollFdList, std::map<int, size
 			{
 				HttpHandler::handleRequest(c.request, c.response, c.inBuff);
 				c.outBuff = c.response.toString();
-				std::cout << c.outBuff << std::endl;
+				// std::cout << c.outBuff << std::endl;
 				c.responseQueued = true;
 			}
 			modifyEvent(pollFdList, fdIndex, fd, (short)(POLLIN | POLLOUT));

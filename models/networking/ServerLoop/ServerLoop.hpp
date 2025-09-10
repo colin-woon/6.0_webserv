@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <climits>
+#include <stdint.h>
 
 #include "../../http/HttpRequest.hpp"
 #include "../../http/HttpResponse.hpp"
@@ -30,7 +31,7 @@ public:
 	const Server *owner;
 
 	int timeoutMs;
-	long long expiresAtMs;
+	uint64_t expiresAtMs;
 
 	HttpRequest request;
 	HttpResponse response;
