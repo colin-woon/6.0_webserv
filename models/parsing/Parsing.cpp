@@ -1,15 +1,15 @@
-#include "../../includes/Parsing.hpp"
+#include "Parsing.hpp"
 
 Parsing::Parsing(int argc, char **argv)
 {
 	if (argc != 2)
 		throw Parsing::ParsingSimpleException("Invalid Argument Count");
 
-	std::ifstream	inputStream(argv[1]);
+	std::ifstream inputStream(argv[1]);
 	if (!inputStream.is_open())
 		throw Parsing::ParsingSimpleException("Invalid File Path");
 
-	Lexer	lex(inputStream);
+	Lexer lex(inputStream);
 	lex.tokenise(this->tokens);
 	if (this->tokens.empty())
 		throw Parsing::ParsingSimpleException("Empty Config");
@@ -18,8 +18,10 @@ Parsing::Parsing(int argc, char **argv)
 Parsing::~Parsing() {}
 
 Parsing::ParsingSimpleException::ParsingSimpleException(const std::string message) : _message("Parsing Error: " + message) {}
-const char	*Parsing::ParsingSimpleException::what() const throw()
-{ return (this->_message.c_str()); }
+const char *Parsing::ParsingSimpleException::what() const throw()
+{
+	return (this->_message.c_str());
+}
 
 Parsing::ParsingSyntaxException::ParsingSyntaxException(Token &token, const std::string message)
 {
@@ -27,8 +29,10 @@ Parsing::ParsingSyntaxException::ParsingSyntaxException(Token &token, const std:
 	stream << token.line;
 	_message = "Parsing Error at line " + stream.str() + ": " + message;
 }
-const char	*Parsing::ParsingSyntaxException::what() const throw()
-{ return (this->_message.c_str()); }
+const char *Parsing::ParsingSyntaxException::what() const throw()
+{
+	return (this->_message.c_str());
+}
 
 Parsing::ParsingInvalidContextException::ParsingInvalidContextException(Token &token, const std::string message)
 {
@@ -36,10 +40,12 @@ Parsing::ParsingInvalidContextException::ParsingInvalidContextException(Token &t
 	stream << token.line;
 	_message = "Parsing Error at line " + stream.str() + ": " + message + " \"" + token.buffer + "\"";
 }
-const char	*Parsing::ParsingInvalidContextException::what() const throw()
-{ return (this->_message.c_str()); }
+const char *Parsing::ParsingInvalidContextException::what() const throw()
+{
+	return (this->_message.c_str());
+}
 
-void	Parsing::toggleContext(int &level)
+void Parsing::toggleContext(int &level)
 {
 	if (this->_Context.second->type == BlockStart)
 		level += 1;
@@ -47,7 +53,7 @@ void	Parsing::toggleContext(int &level)
 		level -= 1;
 }
 
-void	Parsing::setContext(void)
+void Parsing::setContext(void)
 {
 	int level = 0;
 
@@ -58,14 +64,14 @@ void	Parsing::setContext(void)
 	{
 		toggleContext(level);
 		if (!level)
-			break ;
+			break;
 		_Context.second++;
 	}
 	if (_Context.second == this->tokens.end() || _Context.second->type != BlockEnd)
 		throw Parsing::ParsingSyntaxException(*this->_Context.first, "Unclosed Context");
 }
 
-void	Parsing::parseNodes(void)
+void Parsing::parseNodes(void)
 {
 	_Context.first = this->tokens.begin();
 	_Context.second = this->tokens.begin();

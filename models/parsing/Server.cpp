@@ -1,24 +1,23 @@
-#include "../../includes/Server.hpp"
+#include "Server.hpp"
 
-std::map<std::string, Server::_directiveHandler>	Server::_directiveMap;
+std::map<std::string, Server::_directiveHandler> Server::_directiveMap;
 
-void	Server::stoiServer(const std::string& str, int& value)
+void Server::stoiServer(const std::string &str, int &value)
 {
-	char	*end = NULL;
+	char *end = NULL;
 	errno = 0;
 	long val = std::strtol(str.c_str(), &end, 10);
 
 	if (value != -1)
 		throw Server::ServerInvalidContextException(*(this->_Context.first - 1), "Duplicate Directive");
-	if (errno == ERANGE || val > std::numeric_limits<int>::max() || val < std::numeric_limits<int>::min()
-		|| *end != '\0')
+	if (errno == ERANGE || val > std::numeric_limits<int>::max() || val < std::numeric_limits<int>::min() || *end != '\0')
 		throw Server::ServerInvalidContextException(*this->_Context.first, "Invalid Number");
 	value = static_cast<int>(val);
 	if (value < 0)
 		throw Server::ServerInvalidContextException(*this->_Context.first, "Improper Negative Number");
 }
 
-void	Server::handlePort(Server& srv)
+void Server::handlePort(Server &srv)
 {
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
@@ -28,7 +27,7 @@ void	Server::handlePort(Server& srv)
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Invalid Port");
 }
 
-void	Server::handleBacklog(Server& srv)
+void Server::handleBacklog(Server &srv)
 {
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
@@ -38,7 +37,7 @@ void	Server::handleBacklog(Server& srv)
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Invalid Backlog");
 }
 
-void	Server::handleClient_timeout_sec(Server& srv)
+void Server::handleClient_timeout_sec(Server &srv)
 {
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
@@ -48,7 +47,7 @@ void	Server::handleClient_timeout_sec(Server& srv)
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Timeout too large");
 }
 
-void	Server::handleAutoindex(Server& srv)
+void Server::handleAutoindex(Server &srv)
 {
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
@@ -63,24 +62,24 @@ void	Server::handleAutoindex(Server& srv)
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Invalid Autoindex Setting");
 }
 
-void	Server::handleMax_body_size(Server& srv)
+void Server::handleMax_body_size(Server &srv)
 {
-	int	suffix = 1;
+	int suffix = 1;
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
-	char	last = srv._Context.first->buffer[srv._Context.first->buffer.size() - 1];
+	char last = srv._Context.first->buffer[srv._Context.first->buffer.size() - 1];
 	if (std::toupper(last) == 'K')
 		suffix = 1000;
 	else if (std::toupper(last) == 'M')
 		suffix = 1000000;
 	if (suffix != 1)
-		srv._Context.first->buffer.resize(srv._Context.first->buffer.size() - 1);	
+		srv._Context.first->buffer.resize(srv._Context.first->buffer.size() - 1);
 	srv.stoiServer(srv._Context.first->buffer, srv.max_body_size);
 	srv.max_body_size *= suffix;
 }
 
-void	Server::handleBody_ram_threshold(Server& srv)
+void Server::handleBody_ram_threshold(Server &srv)
 {
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
@@ -90,24 +89,24 @@ void	Server::handleBody_ram_threshold(Server& srv)
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Body_ram_threshold too high");
 }
 
-void	Server::handleHeader_cap(Server& srv)
+void Server::handleHeader_cap(Server &srv)
 {
-	int	suffix = 1;
+	int suffix = 1;
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
-	char	last = srv._Context.first->buffer[srv._Context.first->buffer.size() - 1];
+	char last = srv._Context.first->buffer[srv._Context.first->buffer.size() - 1];
 	if (std::toupper(last) == 'K')
 		suffix = 1000;
 	else if (std::toupper(last) == 'M')
 		suffix = 1000000;
 	if (suffix != 1)
-		srv._Context.first->buffer.resize(srv._Context.first->buffer.size() - 1);	
+		srv._Context.first->buffer.resize(srv._Context.first->buffer.size() - 1);
 	srv.stoiServer(srv._Context.first->buffer, srv.header_cap);
 	srv.header_cap *= suffix;
 }
 
-void	Server::handleHost(Server& srv)
+void Server::handleHost(Server &srv)
 {
 	if (!srv.host.empty())
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Duplicate Directive");
@@ -115,13 +114,13 @@ void	Server::handleHost(Server& srv)
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
 
-	std::string	substr = srv._Context.first->buffer;
-	std::string::iterator	delim = std::find(srv._Context.first->buffer.begin(), srv._Context.first->buffer.end(), ':');
+	std::string substr = srv._Context.first->buffer;
+	std::string::iterator delim = std::find(srv._Context.first->buffer.begin(), srv._Context.first->buffer.end(), ':');
 
 	if (delim != srv._Context.first->buffer.end())
 	{
 		std::string ip(srv._Context.first->buffer.begin(), delim);
-		std::string	portS(delim + 1, srv._Context.first->buffer.end());
+		std::string portS(delim + 1, srv._Context.first->buffer.end());
 
 		if (portS.empty())
 			throw Server::ServerInvalidContextException(*srv._Context.first, "Missing Port");
@@ -131,9 +130,9 @@ void	Server::handleHost(Server& srv)
 		srv.host = ip;
 	}
 
-	std::vector<std::string>	ipSplit;
-	std::stringstream	ss(srv.host);
-	int	octet;
+	std::vector<std::string> ipSplit;
+	std::stringstream ss(srv.host);
+	int octet;
 
 	while (ss.good())
 	{
@@ -155,7 +154,7 @@ void	Server::handleHost(Server& srv)
 	}
 }
 
-void	Server::handleRoot(Server& srv)
+void Server::handleRoot(Server &srv)
 {
 	if (!srv.root.empty())
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Duplicate Directive");
@@ -165,7 +164,7 @@ void	Server::handleRoot(Server& srv)
 	srv.root = srv._Context.first->buffer;
 }
 
-void	Server::handleIndex(Server& srv)
+void Server::handleIndex(Server &srv)
 {
 	if (!srv.index.empty())
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Duplicate Directive");
@@ -174,7 +173,7 @@ void	Server::handleIndex(Server& srv)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
 	srv.index = srv._Context.first->buffer;
 }
-void	Server::handleName(Server& srv)
+void Server::handleName(Server &srv)
 {
 	if (!srv.name.empty())
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Duplicate Directive");
@@ -182,7 +181,7 @@ void	Server::handleName(Server& srv)
 	{
 		srv._Context.first++;
 		if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
-			break ;
+			break;
 		srv.name.push_back(srv._Context.first->buffer);
 	}
 	srv._Context.first--;
@@ -190,9 +189,9 @@ void	Server::handleName(Server& srv)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
 }
 
-void	Server::handleError_page(Server& srv)
+void Server::handleError_page(Server &srv)
 {
-	std::vector<Token>::iterator	it;
+	std::vector<Token>::iterator it;
 
 	it = ++srv._Context.first;
 	while (it != srv._Context.second && it->type == Argument)
@@ -202,7 +201,7 @@ void	Server::handleError_page(Server& srv)
 	--it;
 	while (srv._Context.first != it)
 	{
-		std::pair<int, std::string>	error;
+		std::pair<int, std::string> error;
 
 		error.first = -1;
 		srv.stoiServer(srv._Context.first->buffer, error.first);
@@ -216,10 +215,10 @@ void	Server::handleError_page(Server& srv)
 	}
 }
 
-void	Server::handleLocation(Server& srv)
+void Server::handleLocation(Server &srv)
 {
-	std::vector<Token>::iterator	start;
-	std::string	path;
+	std::vector<Token>::iterator start;
+	std::string path;
 
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
@@ -232,20 +231,21 @@ void	Server::handleLocation(Server& srv)
 	while (srv._Context.first != srv._Context.second)
 	{
 		if (srv._Context.first->type == BlockEnd)
-			break ;
+			break;
 		srv._Context.first++;
 	}
 	if (srv._Context.first == srv._Context.second)
 		throw Server::ServerSyntaxException(*srv._Context.first, "Unclosed Location Context");
 	srv.location.push_back(Location(std::pair<std::vector<Token>::iterator,
-			std::vector<Token>::iterator>(start, srv._Context.first), path));
+											  std::vector<Token>::iterator>(start, srv._Context.first),
+									path));
 	srv._Context.first--;
 }
 
-void	Server::fillDirectiveMap(void)
+void Server::fillDirectiveMap(void)
 {
 	if (!_directiveMap.empty())
-		return ;
+		return;
 	_directiveMap["listen"] = &Server::handlePort;
 	_directiveMap["backlog"] = &Server::handleBacklog;
 	_directiveMap["autoindex"] = &Server::handleAutoindex;
@@ -263,7 +263,7 @@ void	Server::fillDirectiveMap(void)
 
 Server::Server(std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator> context)
 	: _Context(context), port(-1), backlog(-1), client_timeout_sec(-1),
-		max_body_size(-1), body_ram_threshold(-1), header_cap(-1), autoindex(false)
+	  max_body_size(-1), body_ram_threshold(-1), header_cap(-1), autoindex(false)
 {
 	fillDirectiveMap();
 	parseDirectives();
@@ -271,27 +271,31 @@ Server::Server(std::pair<std::vector<Token>::iterator, std::vector<Token>::itera
 
 Server::~Server() {}
 
-Server::ServerSyntaxException::ServerSyntaxException(Token& token, const std::string message)
+Server::ServerSyntaxException::ServerSyntaxException(Token &token, const std::string message)
 {
 	std::stringstream stream;
 	stream << token.line;
 	_message = "Server Error at line " + stream.str() + ": " + message;
 }
-const char	*Server::ServerSyntaxException::what() const throw()
-{ return (this->_message.c_str()); }
+const char *Server::ServerSyntaxException::what() const throw()
+{
+	return (this->_message.c_str());
+}
 
-Server::ServerInvalidContextException::ServerInvalidContextException(Token& token, const std::string message)
+Server::ServerInvalidContextException::ServerInvalidContextException(Token &token, const std::string message)
 {
 	std::stringstream stream;
 	stream << token.line;
 	_message = "Server Error at line " + stream.str() + ": " + message + " \"" + token.buffer + "\"";
 }
-const char	*Server::ServerInvalidContextException::what() const throw()
-{ return (this->_message.c_str()); }
-
-void	Server::parseDirectives(void)
+const char *Server::ServerInvalidContextException::what() const throw()
 {
-	std::map<std::string, _directiveHandler>::iterator	it;
+	return (this->_message.c_str());
+}
+
+void Server::parseDirectives(void)
+{
+	std::map<std::string, _directiveHandler>::iterator it;
 	while (this->_Context.first != this->_Context.second)
 	{
 		if (this->_Context.first->type == Key)

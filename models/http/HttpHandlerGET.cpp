@@ -17,13 +17,15 @@ HttpHandlerGET::~HttpHandlerGET() {}
 
 void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &response)
 {
-	std::string TEMP_root = "/home/joshua/42Core/webserv/srcs/http/var/www";
+	std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
 
 	std::string path = request.getPath();
 
 	if (path.compare("/") == 0)
 		path = "/index.html";
 	std::string fullPath = TEMP_root + path;
+	std::cout << fullPath << std::endl;
+
 	std::ifstream file(fullPath.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open())
 		throw Http404NotFoundException();

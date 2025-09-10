@@ -1,20 +1,20 @@
-#include "../../includes/Token.hpp"
+#include "Token.hpp"
 
-Token::Token(const std::string& str, TokenType typ, int level) : buffer(str), type(typ), line(level) {}
+Token::Token(const std::string &str, TokenType typ, int level) : buffer(str), type(typ), line(level) {}
 
 Token::~Token() {}
 
-Lexer::Lexer(std::ifstream &inputStream) :  _inputStream(inputStream), _line(0) {}
+Lexer::Lexer(std::ifstream &inputStream) : _inputStream(inputStream), _line(0) {}
 
 Lexer::~Lexer() {}
 
-void	Lexer::tokenAppend(std::vector<Token>&	tokens)
+void Lexer::tokenAppend(std::vector<Token> &tokens)
 {
-	TokenType	tpe;
+	TokenType tpe;
 
 	if (this->_start == this->_buffer.end())
 	{
-		std::string	buffer(1, *this->_pos);
+		std::string buffer(1, *this->_pos);
 		tpe = SimpleEnd;
 		if (*this->_pos == '{')
 			tpe = BlockStart;
@@ -24,10 +24,8 @@ void	Lexer::tokenAppend(std::vector<Token>&	tokens)
 	}
 	else
 	{
-		std::string	buffer(this->_start, this->_pos);
-		if (tokens.empty() || (tokens.back().type == BlockStart
-				|| tokens.back().type == BlockEnd
-				|| tokens.back().type == SimpleEnd))
+		std::string buffer(this->_start, this->_pos);
+		if (tokens.empty() || (tokens.back().type == BlockStart || tokens.back().type == BlockEnd || tokens.back().type == SimpleEnd))
 			tpe = Key;
 		else
 			tpe = Argument;
@@ -36,22 +34,21 @@ void	Lexer::tokenAppend(std::vector<Token>&	tokens)
 	this->_start = this->_buffer.end();
 }
 
-bool	Lexer::isComment(void)
+bool Lexer::isComment(void)
 {
 	if (*this->_pos == '#')
 		return true;
 	return false;
 }
 
-bool	Lexer::isDelimiter(void)
+bool Lexer::isDelimiter(void)
 {
-	if (*this->_pos == ';' || *this->_pos == '}' || *this->_pos == '{'
-		|| std::isspace(*this->_pos) || this->isComment())
+	if (*this->_pos == ';' || *this->_pos == '}' || *this->_pos == '{' || std::isspace(*this->_pos) || this->isComment())
 		return (true);
 	return (false);
 }
 
-void	Lexer::tokenise(std::vector<Token>&	tokens)
+void Lexer::tokenise(std::vector<Token> &tokens)
 {
 	while (std::getline(this->_inputStream, this->_buffer))
 	{
@@ -72,7 +69,7 @@ void	Lexer::tokenise(std::vector<Token>&	tokens)
 			else if (!std::isspace(*this->_pos))
 			{
 				if (isComment())
-					break ;
+					break;
 				tokenAppend(tokens);
 			}
 			this->_pos++;

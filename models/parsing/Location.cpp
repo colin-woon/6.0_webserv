@@ -1,25 +1,24 @@
-#include "../../includes/Location.hpp"
+#include "Location.hpp"
 
-std::map<std::string, Location::_directiveHandler>	Location::_directiveMap;
-std::vector<std::string>	Location::_totalMethods;
+std::map<std::string, Location::_directiveHandler> Location::_directiveMap;
+std::vector<std::string> Location::_totalMethods;
 
-void	Location::stoiLocation(const std::string& str, int& value)
+void Location::stoiLocation(const std::string &str, int &value)
 {
-	char	*end = NULL;
+	char *end = NULL;
 	errno = 0;
 	long val = std::strtol(str.c_str(), &end, 10);
 
 	if (value != -1)
 		throw Location::LocationInvalidContextException(*(this->_Context.first - 1), "Duplicate Directive");
-	if (errno == ERANGE || val > std::numeric_limits<int>::max() || val < std::numeric_limits<int>::min()
-		|| *end != '\0')
+	if (errno == ERANGE || val > std::numeric_limits<int>::max() || val < std::numeric_limits<int>::min() || *end != '\0')
 		throw Location::LocationInvalidContextException(*this->_Context.first, "Invalid Number");
 	value = static_cast<int>(val);
 	if (value < 0)
 		throw Location::LocationInvalidContextException(*this->_Context.first, "Improper Negative Number");
 }
 
-void	Location::handleAutoindex(Location& loc)
+void Location::handleAutoindex(Location &loc)
 {
 	loc._Context.first++;
 	if (loc._Context.first == loc._Context.second || loc._Context.first->type != Argument)
@@ -34,7 +33,7 @@ void	Location::handleAutoindex(Location& loc)
 		throw Location::LocationInvalidContextException(*loc._Context.first, "Invalid Autoindex Setting");
 }
 
-void	Location::handlePath(Location& loc)
+void Location::handlePath(Location &loc)
 {
 	if (!loc.path.empty())
 		throw Location::LocationInvalidContextException(*loc._Context.first, "Duplicate Directive");
@@ -44,7 +43,7 @@ void	Location::handlePath(Location& loc)
 	loc.path = loc._Context.first->buffer;
 }
 
-void	Location::handleRoot(Location& loc)
+void Location::handleRoot(Location &loc)
 {
 	if (!loc.root.empty())
 		throw Location::LocationInvalidContextException(*loc._Context.first, "Duplicate Directive");
@@ -54,7 +53,7 @@ void	Location::handleRoot(Location& loc)
 	loc.root = loc._Context.first->buffer;
 }
 
-void	Location::handleAlias(Location& loc)
+void Location::handleAlias(Location &loc)
 {
 	if (!loc.alias.empty())
 		throw Location::LocationInvalidContextException(*loc._Context.first, "Duplicate Directive");
@@ -64,7 +63,7 @@ void	Location::handleAlias(Location& loc)
 	loc.alias = loc._Context.first->buffer;
 }
 
-void	Location::handleIndex(Location& loc)
+void Location::handleIndex(Location &loc)
 {
 	if (!loc.index.empty())
 		throw Location::LocationInvalidContextException(*loc._Context.first, "Duplicate Directive");
@@ -74,7 +73,7 @@ void	Location::handleIndex(Location& loc)
 	loc.index = loc._Context.first->buffer;
 }
 
-void	Location::handleUpload_store(Location& loc)
+void Location::handleUpload_store(Location &loc)
 {
 	if (!loc.upload_store.empty())
 		throw Location::LocationInvalidContextException(*loc._Context.first, "Duplicate Directive");
@@ -84,7 +83,7 @@ void	Location::handleUpload_store(Location& loc)
 	loc.upload_store = loc._Context.first->buffer;
 }
 
-void	Location::handleRedirect(Location& loc)
+void Location::handleRedirect(Location &loc)
 {
 	if (loc.redirect.first != -1 || !loc.redirect.second.empty())
 		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Duplicate Directive");
@@ -92,8 +91,10 @@ void	Location::handleRedirect(Location& loc)
 	if (loc._Context.first == loc._Context.second || loc._Context.first->type != Argument)
 		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Missing Argument");
 	try
-	{ loc.stoiLocation(loc._Context.first->buffer, loc.redirect.first); }
-	catch(const std::exception& e)
+	{
+		loc.stoiLocation(loc._Context.first->buffer, loc.redirect.first);
+	}
+	catch (const std::exception &e)
 	{
 		loc._Context.first--;
 		loc.redirect.first = 302;
@@ -103,9 +104,9 @@ void	Location::handleRedirect(Location& loc)
 		loc.redirect.second = loc._Context.first->buffer;
 }
 
-void	Location::handleCgi(Location& loc)
+void Location::handleCgi(Location &loc)
 {
-	std::pair<std::string, std::string>	entry;
+	std::pair<std::string, std::string> entry;
 	loc._Context.first++;
 	if (loc._Context.first == loc._Context.second || loc._Context.first->type != Argument)
 		throw Location::LocationInvalidContextException(*(loc._Context.first), "Missing Argument");
@@ -118,7 +119,7 @@ void	Location::handleCgi(Location& loc)
 	loc.cgi.insert(entry);
 }
 
-void	Location::handleAllowedMethods(Location& loc)
+void Location::handleAllowedMethods(Location &loc)
 {
 	std::vector<Token>::iterator it = loc._Context.first;
 	if (!loc.allowedMethods.empty())
@@ -127,7 +128,7 @@ void	Location::handleAllowedMethods(Location& loc)
 	{
 		loc._Context.first++;
 		if (loc._Context.first == loc._Context.second || loc._Context.first->type != Argument)
-			break ;
+			break;
 		if (std::find(_totalMethods.begin(), _totalMethods.end(), loc._Context.first->buffer) == _totalMethods.end())
 			throw Location::LocationInvalidContextException(*loc._Context.first, "Unknown HTTP Method");
 		loc.allowedMethods.push_back(loc._Context.first->buffer);
@@ -137,9 +138,9 @@ void	Location::handleAllowedMethods(Location& loc)
 		throw Location::LocationInvalidContextException(*it, "Missing Argument");
 }
 
-void	Location::handleError_page(Location& loc)
+void Location::handleError_page(Location &loc)
 {
-	std::vector<Token>::iterator	it;
+	std::vector<Token>::iterator it;
 
 	it = ++loc._Context.first;
 	while (it != loc._Context.second && it->type == Argument)
@@ -149,7 +150,7 @@ void	Location::handleError_page(Location& loc)
 	--it;
 	while (loc._Context.first != it)
 	{
-		std::pair<int, std::string>	error;
+		std::pair<int, std::string> error;
 
 		error.first = -1;
 		loc.stoiLocation(loc._Context.first->buffer, error.first);
@@ -163,10 +164,10 @@ void	Location::handleError_page(Location& loc)
 	}
 }
 
-void	Location::fillDirectiveMap(void)
+void Location::fillDirectiveMap(void)
 {
 	if (!_directiveMap.empty())
-		return ;
+		return;
 	_directiveMap["autoindex"] = &Location::handleAutoindex;
 	_directiveMap["path"] = &Location::handlePath;
 	_directiveMap["root"] = &Location::handleRoot;
@@ -182,7 +183,7 @@ void	Location::fillDirectiveMap(void)
 	_totalMethods.push_back("DELETE");
 }
 
-Location::Location(std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator> Context, const std::string& pth)
+Location::Location(std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator> Context, const std::string &pth)
 	: _Context(Context), autoindex(false), path(pth), redirect(-1, "")
 {
 	fillDirectiveMap();
@@ -191,27 +192,31 @@ Location::Location(std::pair<std::vector<Token>::iterator, std::vector<Token>::i
 
 Location::~Location() {}
 
-Location::LocationSyntaxException::LocationSyntaxException(Token& token, const std::string message)
+Location::LocationSyntaxException::LocationSyntaxException(Token &token, const std::string message)
 {
 	std::stringstream stream;
 	stream << token.line;
 	_message = "Location Error at line " + stream.str() + ": " + message;
 }
-const char	*Location::LocationSyntaxException::what() const throw()
-{ return (this->_message.c_str()); }
+const char *Location::LocationSyntaxException::what() const throw()
+{
+	return (this->_message.c_str());
+}
 
-Location::LocationInvalidContextException::LocationInvalidContextException(Token& token, const std::string message)
+Location::LocationInvalidContextException::LocationInvalidContextException(Token &token, const std::string message)
 {
 	std::stringstream stream;
 	stream << token.line;
 	_message = "Location Error at line " + stream.str() + ": " + message + " \"" + token.buffer + "\"";
 }
-const char	*Location::LocationInvalidContextException::what() const throw()
-{ return (this->_message.c_str()); }
-
-void	Location::parseDirectives(void)
+const char *Location::LocationInvalidContextException::what() const throw()
 {
-	std::map<std::string, _directiveHandler>::iterator	it;
+	return (this->_message.c_str());
+}
+
+void Location::parseDirectives(void)
+{
+	std::map<std::string, _directiveHandler>::iterator it;
 	while (this->_Context.first != this->_Context.second)
 	{
 		if (this->_Context.first->type == Key)
@@ -221,7 +226,7 @@ void	Location::parseDirectives(void)
 				throw Location::LocationInvalidContextException(*this->_Context.first, "Unknown Directive");
 			else
 				it->second(*this);
-			
+
 			if ((++_Context.first)->type != SimpleEnd && _Context.first->type != BlockEnd)
 				throw Location::LocationSyntaxException(*this->_Context.first, "Missing ';'");
 		}

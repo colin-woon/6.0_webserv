@@ -1,6 +1,6 @@
 #include "networking/Sockets/Sockets.hpp"
 #include "networking/ServerLoop/ServerLoop.hpp"
-#include "../includes/Parsing.hpp"
+#include "../models/parsing/Parsing.hpp"
 
 // bool setNonBlocking(int fd){
 // 	int flags = fcntl (fd, F_GETFL, 0);
@@ -12,19 +12,20 @@
 int main(int argc, char **argv)
 {
 
-	try {
+	try
+	{
 		Parsing parse(argc, argv);
 		parse.parseNodes();
 		std::vector<int> listenerFdList;
 		listenerFdList = setupListenerSockets(parse.nodes);
-		mainServerLoop(listenerFdList, parse.nodes);	
+		mainServerLoop(listenerFdList, parse.nodes);
 		std::cout << "done" << std::endl;
 	}
-	catch (std::exception &e){
+	catch (std::exception &e)
+	{
 		std::cout << e.what() << std::endl;
 	}
 }
-
 
 // int main(){
 // 	const int PORT = 8080;

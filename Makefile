@@ -1,38 +1,135 @@
-NAME = webserv
-SRCS = srcs/main.cpp\
-	srcs/parsing/Parsing.cpp srcs/parsing/Token.cpp srcs/parsing/Server.cpp srcs/parsing/Location.cpp\
-	srcs/networking/Sockets/Sockets.cpp srcs/networking/ServerLoop/ServerLoop.cpp\
-	srcs/networking/ServerLoop/PollHelpers.cpp srcs/networking/ServerLoop/ServerHelpers.cpp srcs/networking/ServerLoop/Timeout.cpp\
-	srcs/http/models/HttpRequest.cpp srcs/http/models/HttpResponse.cpp srcs/http/models/HttpHandlerGET.cpp\
-	srcs/http/models/HttpHandler.cpp srcs/http/models/HttpUtils.cpp srcs/http/models/HttpExceptions.cpp
-OBJS = $(SRCS:.cpp=.o)
+#------------------------------------------------------------------------------#
+#                                  GENERICS                                    #
+#------------------------------------------------------------------------------#
 
-CXX = c++
-CXXFLAGS = -std=c++98 -Wall -Wextra -Werror
-RM = rm -rf
+.PHONY: all clean fclean re
+# .SILENT:
 
-GREEN = \033[0;32m
-RED = \033[0;31m
-RESET = \033[0m
+#------------------------------------------------------------------------------#
+#                                VARIABLES                                     #
+#------------------------------------------------------------------------------#
 
-%.o: %.cpp
-		@$(CXX) $(CXXFLAGS) -c $< -o $@
-		@echo "$(GREEN)creating object files....$(RESET)"
+# add back WFLAGS later to CFLAGS, removed cause it doesnt work for testing
+# Compiler and flags
+CXX			=	c++
+CFLAGS		=	$(INCLUDES) $(DEBUG) $(FSAN)
+STANDARD	=	-Wpedantic -std=c++98
+WFLAGS		=	-Wall -Werror -Wextra
+INCLUDES	=	-I$(INC_DIR) -I$(MODELS_DIR)
+DEBUG		=	-g3 -O0 -fstandalone-debug
+FSAN		=	-fsanitize=address,leak
+RM			=	rm -rf
+
+# Output file name
+NAME	=	webserv
+
+# Directories
+INC_DIR			=	includes/
+MODELS_DIR		=	models/
+SRCS_DIR		=	srcs/
+OBJS_DIR		=	bin/
+
+# Set search path for source files
+VPATH			=	$(SRCS_DIR):$(MODELS_DIR)/http:$(MODELS_DIR)/networking/ServerLoop:$(MODELS_DIR)/networking/Sockets:$(MODELS_DIR)/parsing
+
+
+PARSING_HEADERS =	models/parsing/Header.hpp \
+					models/parsing/Location.hpp \
+					models/parsing/Parsing.hpp \
+					models/parsing/Server.hpp \
+					models/parsing/Token.hpp \
+					models/parsing/Webserv.hpp \
+
+PARSING_MODELS =	models/parsing/Location.cpp \
+					models/parsing/Parsing.cpp \
+					models/parsing/Server.cpp \
+					models/parsing/Token.cpp \
+
+
+NETWORKING_HEADERS =	models/networking/ServerLoop/PollHelpers.hpp \
+						models/networking/ServerLoop/ServerHelpers.hpp \
+						models/networking/ServerLoop/ServerLoop.hpp \
+						models/networking/ServerLoop/Timeout.hpp \
+						models/networking/Sockets/Sockets.hpp \
+
+NETWORKING_MODELS = 	models/networking/ServerLoop/ServerHelpers.cpp \
+						models/networking/ServerLoop/ServerLoop.cpp \
+						models/networking/ServerLoop/Timeout.cpp \
+						models/networking/Sockets/Sockets.cpp \
+						models/networking/ServerLoop/PollHelpers.cpp \
+
+HTTP_HEADERS	=	models/http/HttpRequest.hpp \
+					models/http/HttpResponse.hpp \
+					models/http/HttpHandlerGET.hpp \
+					models/http/HttpHandler.hpp \
+					models/http/HttpUtils.hpp \
+					models/http/HttpExceptions.hpp \
+
+HTTP_MODELS		=	models/http/HttpRequest.cpp \
+					models/http/HttpResponse.cpp \
+					models/http/HttpHandlerGET.cpp \
+					models/http/HttpHandler.cpp \
+					models/http/HttpUtils.cpp \
+					models/http/HttpExceptions.cpp \
+
+MODEL_FILES		=	$(HTTP_MODELS) $(NETWORKING_MODELS) $(PARSING_MODELS)
+MODEL_HEADERS	=	$(HTTP_HEADERS) $(NETWORKING_HEADERS) $(PARSING_HEADERS)
+
+INC_FILES		=
+SRCS_FILES		=	srcs/main.cpp
+
+# All source files combined
+ALL_SRCS		=	$(SRCS_FILES) $(MODEL_FILES)
+
+# OBJS_FILES		=	$(addprefix $(OBJS_DIR), $(notdir $(ALL_SRCS:.cpp=.o)))
+
+HTTP_OBJS = $(patsubst $(MODELS_DIR)/http/%.cpp,$(OBJS_DIR)http_%.o,$(HTTP_MODELS))
+NETWORKING_OBJS = $(patsubst $(MODELS_DIR)/networking/%.cpp,$(OBJS_DIR)net_%.o,$(NETWORKING_MODELS))
+PARSING_OBJS = $(patsubst $(MODELS_DIR)/parsing/%.cpp,$(OBJS_DIR)parse_%.o,$(PARSING_MODELS))
+MAIN_OBJS = $(patsubst $(SRCS_DIR)%.cpp,$(OBJS_DIR)srcs_%.o,$(SRCS_FILES))
+
+OBJS_FILES = $(HTTP_OBJS) $(NETWORKING_OBJS) $(PARSING_OBJS) $(MAIN_OBJS)
+#------------------------------------------------------------------------------#
+#                                 TARGETS                                      #
+#------------------------------------------------------------------------------#
 
 all: $(NAME)
 
-$(NAME): $(OBJS)
-		@$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
-		@echo "$(GREEN)$(NAME) created$(RESET)"
+# Generates output file
+$(NAME): $(OBJS_FILES)
+	$(CXX) $(CFLAGS) $(OBJS_FILES) -o $(NAME)
 
+# # Rule to compile the object files
+# $(OBJS_DIR)%.o: %.cpp | $(OBJS_DIR)
+# 	mkdir -p $(dir $@)
+# 	$(CXX) $(CFLAGS) -c $< -o $@
+
+$(OBJS_DIR)http_%.o: $(MODELS_DIR)/http/%.cpp | $(OBJS_DIR)
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+$(OBJS_DIR)net_%.o: $(MODELS_DIR)/networking/ServerLoop/%.cpp | $(OBJS_DIR)
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+$(OBJS_DIR)net_%.o: $(MODELS_DIR)/networking/Sockets/%.cpp | $(OBJS_DIR)
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+$(OBJS_DIR)parse_%.o: $(MODELS_DIR)/parsing/%.cpp | $(OBJS_DIR)
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+$(OBJS_DIR)srcs_%.o: $(SRCS_DIR)%.cpp | $(OBJS_DIR)
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+# Rule to create the object directory if it doesn't exist
+$(OBJS_DIR):
+	mkdir -p $(OBJS_DIR)
+
+# Removes objects
 clean:
-		@rm -rf $(OBJS) > /dev/null 2>&1
-		@echo "$(RED)object files were deleted$(RESET)"
+	$(RM) $(OBJS_DIR)
 
+# Removes objects and executables
 fclean: clean
-		@rm -rf $(NAME) > /dev/null 2>&1
-		@echo "$(RED)$(NAME) was deleted$(RESET)"
+	$(RM) $(NAME)
 
+# Removes objects and executables and remakes
 re: fclean all
-
-.PHONY: all clean fclean re
