@@ -14,10 +14,9 @@
 
 #include "../../http/HttpRequest.hpp"
 #include "../../http/HttpResponse.hpp"
-#include "../../http/HttpExceptions.hpp"
-#include "../../http/HttpUtils.hpp"
-#include "../../http/HttpHandlerGET.hpp"
-#include "../../http/HttpHandler.hpp"
+// #include "../../http/HttpExceptions.hpp"
+// #include "../../http/HttpUtils.hpp"
+// #include "../../http/HttpHandlerGET.hpp"
 
 class Client
 {
@@ -28,7 +27,7 @@ public:
 	std::string inBuff;
 	std::string outBuff;
 	bool closeFlag;
-	const Server *owner;
+	const Server *serverConfig;
 
 	int timeoutMs;
 	uint64_t expiresAtMs;

@@ -1,5 +1,6 @@
 #include "ServerHelpers.hpp"
 #include "Timeout.hpp"
+#include "../../http/HttpHandler.hpp"
 
 void buildSimpleResponse(Client &c)
 {
@@ -77,9 +78,9 @@ void readOnce(int fd, std::vector<struct pollfd> &pollFdList, std::map<int, size
 			// buildSimpleResponse(c);
 			if (c.responseQueued == false)
 			{
-				HttpHandler::handleRequest(c.request, c.response, c.inBuff);
+				HttpHandler::handleRequest(c);
 				c.outBuff = c.response.toString();
-				// std::cout << c.outBuff << std::endl;
+				std::cout << c.outBuff << std::endl;
 				c.responseQueued = true;
 			}
 			modifyEvent(pollFdList, fdIndex, fd, (short)(POLLIN | POLLOUT));
