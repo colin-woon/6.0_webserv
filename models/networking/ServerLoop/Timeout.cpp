@@ -1,11 +1,11 @@
 #include "Timeout.hpp"
 
-long long nowMs()
+uint64_t nowMs()
 {
 	struct timeval tv;
 	gettimeofday(&tv, 0);
-	long long ms = (long long)tv.tv_sec * 1000;
-	ms += (long long)(tv.tv_usec / 1000);
+	uint64_t ms = (uint64_t)tv.tv_sec * 1000;
+	ms += (uint64_t)(tv.tv_usec / 1000);
 	return (ms);
 }
 
@@ -20,7 +20,7 @@ void buildTimeoutList(std::vector<int> &listenerFdList, std::vector<Server> &ser
 		int ms = 0;
 		if (serverList[i].client_timeout_sec > 0)
 		{
-			long long tmp = (long long)serverList[i].client_timeout_sec * 1000;
+			uint64_t tmp = (uint64_t)serverList[i].client_timeout_sec * 1000;
 			if (tmp > INT_MAX)
 				ms = INT_MAX;
 			else
@@ -40,20 +40,20 @@ void setClientTimeout(int listenerFd, Client &c, std::map<int, int> &listenerTim
 	{
 		c.timeoutMs = it->second;
 		if (c.timeoutMs > 0)
-			c.expiresAtMs = nowMs() + (long long)c.timeoutMs;
+			c.expiresAtMs = nowMs() + (uint64_t)c.timeoutMs;
 	}
 }
 
 void resetClientTimeout(Client &c)
 {
 	if (c.timeoutMs > 0)
-		c.expiresAtMs = nowMs() + (long long)c.timeoutMs;
+		c.expiresAtMs = nowMs() + (uint64_t)c.timeoutMs;
 }
 
 int calcNextTimeout(std::map<int, Client> &clients, int fallbackMs)
 {
-	long long now = nowMs();
-	long long earliest = 0;
+	uint64_t now = nowMs();
+	uint64_t earliest = 0;
 
 	std::map<int, Client>::iterator it = clients.begin();
 	while (it != clients.end())
@@ -70,7 +70,7 @@ int calcNextTimeout(std::map<int, Client> &clients, int fallbackMs)
 	}
 	if (earliest == 0)
 		return fallbackMs;
-	long long delta = earliest - now;
+	uint64_t delta = earliest - now;
 	if (delta <= 0)
 		return 0;
 	if (delta > INT_MAX)
@@ -82,7 +82,7 @@ void closeExpiredClients(std::vector<struct pollfd> &pollFdList, std::map<int, s
 {
 	if (clientList.empty())
 		return;
-	long long now = nowMs();
+	uint64_t now = nowMs();
 	std::vector<int> toClose;
 	std::map<int, Client>::const_iterator it = clientList.begin();
 	while (it != clientList.end())
