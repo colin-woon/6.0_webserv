@@ -80,6 +80,7 @@ std::vector<int> setupListenerSockets(std::vector<Server> serverList){
 	std::vector<int> listenerFdList;
 	for (size_t i = 0; i < serverList.size(); i++){
 		sockaddr_in socketAddr;
+		std::cout << serverList[i].host << std::endl;
 		if (toSockAddr(serverList[i].host, serverList[i].port, socketAddr) == false){
 			throw (std::runtime_error("HOST/PORT invalid error!"));
 		}

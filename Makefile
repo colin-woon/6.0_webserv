@@ -1,5 +1,8 @@
 NAME = webserv
-SRCS = main.cpp Parsing.cpp Token.cpp Server.cpp Location.cpp
+SRCS = srcs/main.cpp\
+	srcs/parsing/Parsing.cpp srcs/parsing/Token.cpp srcs/parsing/Server.cpp srcs/parsing/Location.cpp\
+	srcs/networking/Sockets/Sockets.cpp srcs/networking/ServerLoop/ServerLoop.cpp\
+	srcs/networking/ServerLoop/PollHelpers.cpp srcs/networking/ServerLoop/ServerHelpers.cpp srcs/networking/ServerLoop/Timeout.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 CXX = c++

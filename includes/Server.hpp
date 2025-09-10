@@ -30,6 +30,7 @@ class Server
 
 		void	stoiServer(const std::string& str, int& value);
 	public:
+		int	port;
 		int	backlog;
 		int	client_timeout_sec;
 		int	max_body_size;
@@ -39,7 +40,6 @@ class Server
 		std::string	host;
 		std::string root;
 		std::string index;
-		std::vector<int>	port;
 		std::vector<std::string>	name;
 		std::map<int, std::string>	error_pages;
 		std::vector<Location>	location;

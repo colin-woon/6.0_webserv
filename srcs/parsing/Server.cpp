@@ -23,11 +23,9 @@ void	Server::handlePort(Server& srv)
 	srv._Context.first++;
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
-	int	port = -1;
-	srv.stoiServer(srv._Context.first->buffer, port);
-	if (port > 65535)
+	srv.stoiServer(srv._Context.first->buffer, srv.port);
+	if (srv.port > 65535)
 		throw Server::ServerInvalidContextException(*srv._Context.first, "Invalid Port");
-	srv.port.push_back(port);
 }
 
 void	Server::handleBacklog(Server& srv)
@@ -124,19 +122,17 @@ void	Server::handleHost(Server& srv)
 	{
 		std::string ip(srv._Context.first->buffer.begin(), delim);
 		std::string	portS(delim + 1, srv._Context.first->buffer.end());
-		int	port = -1;
 
 		if (portS.empty())
 			throw Server::ServerInvalidContextException(*srv._Context.first, "Missing Port");
-		srv.stoiServer(portS, port);
-		if (port > 65535)
+		srv.stoiServer(portS, srv.port);
+		if (srv.port > 65535)
 			throw Server::ServerInvalidContextException(*srv._Context.first, "Invalid Port");
-		srv.port.push_back(port);
-		substr = ip;
+		srv.host = ip;
 	}
 
 	std::vector<std::string>	ipSplit;
-	std::stringstream	ss(substr);
+	std::stringstream	ss(srv.host);
 	int	octet;
 
 	while (ss.good())
@@ -157,7 +153,6 @@ void	Server::handleHost(Server& srv)
 		if (octet > 255)
 			throw Server::ServerInvalidContextException(*srv._Context.first, "Octet exceeds 255");
 	}
-	srv.host = srv._Context.first->buffer;
 }
 
 void	Server::handleRoot(Server& srv)
@@ -267,7 +262,7 @@ void	Server::fillDirectiveMap(void)
 }
 
 Server::Server(std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator> context)
-	: _Context(context), backlog(-1), client_timeout_sec(-1),
+	: _Context(context), port(-1), backlog(-1), client_timeout_sec(-1),
 		max_body_size(-1), body_ram_threshold(-1), header_cap(-1), autoindex(false)
 {
 	fillDirectiveMap();

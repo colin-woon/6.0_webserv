@@ -1,13 +1,6 @@
-#include "Sockets/Sockets.hpp"
-#include "ServerLoop/ServerLoop.hpp"
-
-Server::Server(){}
-
-Server::~Server(){}
-
-location::location(){}
-
-location::~location(){}
+#include "networking/Sockets/Sockets.hpp"
+#include "networking/ServerLoop/ServerLoop.hpp"
+#include "../includes/Parsing.hpp"
 
 // bool setNonBlocking(int fd){
 // 	int flags = fcntl (fd, F_GETFL, 0);
@@ -16,27 +9,15 @@ location::~location(){}
 // 	return (fcntl(fd, F_GETFL, flags | O_NONBLOCK) != -1);
 // }
 
-int main(){
-	Server bumServer;
-	Server bomServer;
-
-	bumServer.host = "127.0.0.1";
-	bumServer.port = 8080;
-	bumServer.backlog = 64;
-	bumServer.client_timeout_sec = 10;
-	bomServer.host = "10.48.0.69";
-	bomServer.port = 6969;
-	bomServer.client_timeout_sec = 20;
-	bomServer.backlog = 128;
-
-	std::vector<Server> serverList;
-	serverList.push_back(bumServer);
-	serverList.push_back((bomServer));
+int main(int argc, char **argv)
+{
 
 	try {
+		Parsing parse(argc, argv);
+		parse.parseNodes();
 		std::vector<int> listenerFdList;
-		listenerFdList = setupListenerSockets(serverList);
-		mainServerLoop(listenerFdList, serverList);	
+		listenerFdList = setupListenerSockets(parse.nodes);
+		mainServerLoop(listenerFdList, parse.nodes);	
 		std::cout << "done" << std::endl;
 	}
 	catch (std::exception &e){

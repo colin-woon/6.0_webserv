@@ -1,7 +1,7 @@
 #ifndef SOCKETS_HPP
 #define SOCKETS_HPP
 
-#include "../../../includes/server.hpp"
+#include "../../../includes/Server.hpp"
 
 std::vector<int> setupListenerSockets(std::vector<Server> serverList);
 bool setNonBlocking(int listenerFd);

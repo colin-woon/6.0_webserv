@@ -1,7 +1,7 @@
 #ifndef SERVERLOOP_HPP
 #define SERVERLOOP_HPP
 
-#include "../../../includes/server.hpp"
+#include "../../../includes/Server.hpp"
 #include "../Sockets/Sockets.hpp"
 #include <ostream>
 #include <stdexcept>
