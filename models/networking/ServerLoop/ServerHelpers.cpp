@@ -114,12 +114,11 @@ void writeOnce(int fd, std::vector<struct pollfd> &pollFdList, std::map<int, siz
 				std::cout << "closing, 2nd loop with no content" << std::endl;
 				closeClient(fd, pollFdList, fdIndex, clients);
 			}
-		}
-		else
-		{
-			c.inBuff.clear();
-			c.responseQueued = false;
-			c.closeFlag = false;
+			else{
+				c.inBuff.clear();
+				c.responseQueued = false;
+				c.closeFlag = false;
+			}
 		}
 		return;
 	}

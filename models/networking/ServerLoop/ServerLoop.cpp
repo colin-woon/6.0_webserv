@@ -65,8 +65,9 @@ void mainServerLoop(std::vector<int> &listenerFdList, std::vector<Server> &serve
 					readyReaders.push_back(p.fd);
 			}
 		}
-		for (size_t i = 0; i < errFds.size(); ++i)
+		for (size_t i = 0; i < errFds.size(); ++i){
 			closeClient(errFds[i], pollFdList, fdIndex, clientList);
+		}
 		for (size_t i = 0; i < readyListeners.size(); ++i)
 			acceptClients(readyListeners[i], pollFdList, fdIndex, clientList, timeoutList);
 		for (size_t i = 0; i < readyWriters.size(); ++i)
