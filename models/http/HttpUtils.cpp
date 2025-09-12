@@ -54,49 +54,81 @@ static void parseQueryParams(HttpRequest &request, const std::string &queryStrin
 	parseQueryParam(request, queryString.substr(start));
 }
 
+static void skipEmptyLines(std::istringstream &requestStream, std::string &line)
+{
+	while (std::getline(requestStream, line))
+	{
+		if (line.size() == 1 || line.size() == 0)
+			continue;
+		break;
+	}
+}
+
 static void parseRequestLine(HttpRequest &request, std::istringstream &requestStream, std::string &line)
 {
-	if (std::getline(requestStream, line))
+	skipEmptyLines(requestStream, line);
+	size_t crPos = line.find('\r');
+	if (crPos != std::string::npos)
 	{
-		if (!line.empty() && line[line.size() - 1] == '\r')
-			line.erase(line.size() - 1);
+		if (crPos != line.size() - 1)
+			throw Http400BadRequestException();
+	}
+	if (!line.empty() && line[line.size() - 1] == '\r')
+		line.erase(line.size() - 1);
 
-		// Extract method, target, and version, >> is overloaded by istringstream, space is default delimeter
-		std::istringstream lineStream(line);
-		std::string method, target, version;
-		lineStream >> method >> target >> version;
+	// Extract method, target, and version, >> is overloaded by istringstream, space is default delimeter
+	std::istringstream lineStream(line);
+	std::string method, target, version;
+	lineStream >> method >> target >> version;
 
-		request.setMethod(method);
-		request.setTarget(target);
-		request.setVersion(version);
+	request.setMethod(method);
+	request.setTarget(target);
+	request.setVersion(version);
 
-		// Parse the path and query parameters from target
-		// query params start after "?"
-		std::string rawTarget = request.getTarget();
-		size_t questionPos = rawTarget.find('?');
-		if (questionPos != std::string::npos)
-		{
-			request.setPath(rawTarget.substr(0, questionPos));
-			parseQueryParams(request, rawTarget.substr(questionPos + 1));
-		}
-		else
-		{
-			request.setPath(rawTarget);
-		}
+	// Parse the path and query parameters from target
+	// query params start after "?"
+	std::string rawTarget = request.getTarget();
+	size_t questionPos = rawTarget.find('?');
+	if (questionPos != std::string::npos)
+	{
+		request.setPath(rawTarget.substr(0, questionPos));
+		parseQueryParams(request, rawTarget.substr(questionPos + 1));
+	}
+	else
+	{
+		request.setPath(rawTarget);
 	}
 }
 
 static void parseHeaders(HttpRequest &request, std::istringstream &requestStream, std::string &line)
 {
-	while (std::getline(requestStream, line) && !line.empty() && line != "\r")
+	const std::map<std::string, std::string> &headers = request.getHeaders();
+
+	while (std::getline(requestStream, line))
 	{
-		// Remove carriage return if present
+		if (line.size() == 0 || (line.size() == 1 && line[0] == '\r'))
+		{
+			if (headers.empty())
+				throw Http400BadRequestException();
+			else if (headers.count("Host") != 1)
+				throw Http400BadRequestException();
+			else
+			{
+				std::string nextLine;
+				std::getline(requestStream, nextLine);
+				if (nextLine.size() == 0)
+					throw Http400BadRequestException();
+			}
+			return;
+		}
+		size_t crPos = line.find('\r');
+		if (crPos != std::string::npos)
+		{
+			if (crPos != line.size() - 1)
+				throw Http400BadRequestException();
+		}
 		if (!line.empty() && line[line.size() - 1] == '\r')
 			line.erase(line.size() - 1);
-
-		// Skip empty lines
-		if (line.empty())
-			continue;
 
 		// Find the colon separator
 		size_t colonPos = line.find(':');
@@ -110,8 +142,7 @@ static void parseHeaders(HttpRequest &request, std::istringstream &requestStream
 			else
 				key.clear(); // All whitespace, make empty
 
-			// Validate: No remaining \r should exist (indicates invalid CR not followed by LF)
-			if (line.find('\r') != std::string::npos)
+			if (headers.find("Host") != headers.end() && key.compare("Host") == 0)
 				throw Http400BadRequestException();
 
 			size_t valueStart = line.find_first_not_of(" \t", colonPos + 1);

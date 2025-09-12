@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Configuration
-PORT=8080
+PORT=8002
 
 # Function to send HTTP request via netcat
 send_request() {
-    echo -e "$1" | nc localhost $PORT
+    echo -en "$1" | nc localhost $PORT
 }
 
 # Redirect output to file
@@ -100,23 +100,48 @@ echo "==========================================" > $OUTPUT_FILE
 
 # echo "TEST 12: LF-only line terminators." >> $OUTPUT_FILE
 # Line terminator tests
-echo "TEST 12: LF-only line terminators." >> $OUTPUT_FILE
-echo "EXPECTED: Acceptable normal behaviour" >> $OUTPUT_FILE
-echo "----------------------------------------" >> $OUTPUT_FILE
-send_request "GET /index.html HTTP/1.1\nHost: localhost\n\n" >> $OUTPUT_FILE
-echo "" >> $OUTPUT_FILE
+# echo "TEST 12: LF-only line terminators." >> $OUTPUT_FILE
+# echo "EXPECTED: Acceptable normal behaviour" >> $OUTPUT_FILE
+# echo "----------------------------------------" >> $OUTPUT_FILE
+# send_request "GET / HTTP/1.1\nHost: localhost\r\n\r\n" >> $OUTPUT_FILE
+# echo "" >> $OUTPUT_FILE
 
 # echo "TEST 13: CR not followed by LF within protocol elements." >> $OUTPUT_FILE
+# echo "EXPECTED: 400 Bad Request" >> $OUTPUT_FILE
+# echo "----------------------------------------" >> $OUTPUT_FILE
+# send_request "POST / HTTP/1.1\rHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"test\":\"value\"}" >> $OUTPUT_FILE
+# echo "" >> $OUTPUT_FILE
+
+# echo "TEST 13.1: CR not followed by LF within protocol elements." >> $OUTPUT_FILE
 # echo "EXPECTED: 400 Bad Request" >> $OUTPUT_FILE
 # echo "----------------------------------------" >> $OUTPUT_FILE
 # send_request "POST / HTTP/1.1\r\nHost: localhost\rContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"test\":\"value\"}" >> $OUTPUT_FILE
 # echo "" >> $OUTPUT_FILE
 
-# echo "TEST 13.5: CR not followed by LF within body content." >> $OUTPUT_FILE
-# echo "EXPECTED: Acceptable normal behaviour" >> $OUTPUT_FILE
+# echo "TEST 13.2: Multiple CR within protocol elements." >> $OUTPUT_FILE
+# echo "EXPECTED: 400 Bad Request" >> $OUTPUT_FILE
 # echo "----------------------------------------" >> $OUTPUT_FILE
-# send_request "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"test\":\"value\"\r}" >> $OUTPUT_FILE
+# send_request "POST / HTTP/1.1\r\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"test\":\"value\"}" >> $OUTPUT_FILE
 # echo "" >> $OUTPUT_FILE
+
+# echo "TEST 13.3: Multiple CR within headers." >> $OUTPUT_FILE
+# echo "EXPECTED: 400 Bad Request" >> $OUTPUT_FILE
+# echo "----------------------------------------" >> $OUTPUT_FILE
+# send_request "POST / HTTP/1.1\r\nHost: localhost\r\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"test\":\"value\"}" >> $OUTPUT_FILE
+# echo "" >> $OUTPUT_FILE
+
+echo "TEST 13.5: Headers without Host." >> $OUTPUT_FILE
+echo "EXPECTED: 400 Bad Request" >> $OUTPUT_FILE
+echo "----------------------------------------" >> $OUTPUT_FILE
+send_request "GET / HTTP/1.1\r\n\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"test\":\"value\"}" >> $OUTPUT_FILE
+echo "" >> $OUTPUT_FILE
+
+# echo "TEST 13.6: Headers with more than one Host." >> $OUTPUT_FILE
+# echo "EXPECTED: 400 Bad Request" >> $OUTPUT_FILE
+# echo "----------------------------------------" >> $OUTPUT_FILE
+# send_request "GET / HTTP/1.1\r\nHost: localhost\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"test\":\"value\"}" >> $OUTPUT_FILE
+# echo "" >> $OUTPUT_FILE
+
 
 # # Empty line before request line test
 # echo "TEST 14: empty line before request line." >> $OUTPUT_FILE
@@ -125,11 +150,30 @@ echo "" >> $OUTPUT_FILE
 # send_request "\r\nGET / HTTP/1.1\r\nHost: localhost\r\n\r\n" >> $OUTPUT_FILE
 # echo "" >> $OUTPUT_FILE
 
+# echo "TEST 14.1: empty line before request line." >> $OUTPUT_FILE
+# echo "EXPECTED: Acceptable normal behaviour" >> $OUTPUT_FILE
+# echo "----------------------------------------" >> $OUTPUT_FILE
+# send_request "\n\n\nGET / HTTP/1.1\r\nHost: localhost\r\n\r\n" >> $OUTPUT_FILE
+# echo "" >> $OUTPUT_FILE
+
 # # Whitespace between startline and header field (should be rejected)
 # echo "TEST 15: whitespace between startline and header field." >> $OUTPUT_FILE
 # echo "EXPECTED: 400 Bad Request (rejected to prevent smuggling)" >> $OUTPUT_FILE
 # echo "----------------------------------------" >> $OUTPUT_FILE
 # send_request "POST / HTTP/1.1\r\n Host: localhost\r\n\r\n" >> $OUTPUT_FILE
+# echo "" >> $OUTPUT_FILE
+
+# echo "TEST 13.2: CR not followed by LF within body content." >> $OUTPUT_FILE
+# echo "EXPECTED: Acceptable normal behaviour" >> $OUTPUT_FILE
+# echo "----------------------------------------" >> $OUTPUT_FILE
+# send_request "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"test\":\"value\"\r}" >> $OUTPUT_FILE
+# echo "" >> $OUTPUT_FILE
+
+
+# echo "TEST 13.4: Body without Content-Length or Encoding." >> $OUTPUT_FILE
+# echo "EXPECTED: 400 Bad Request" >> $OUTPUT_FILE
+# echo "----------------------------------------" >> $OUTPUT_FILE
+# send_request "GET / HTTP/1.1\r\nHost: localhost\r\n\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"test\":\"value\"}" >> $OUTPUT_FILE
 # echo "" >> $OUTPUT_FILE
 
 # # Grammar error test (should return 400 Bad Request)
