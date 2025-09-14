@@ -19,9 +19,25 @@ HttpUtils::~HttpUtils() {}
 
 static void parseBody(HttpRequest &request, std::istringstream &requestStream, std::string &line)
 {
+	const std::map<std::string, std::string> &headers = request.getHeaders();
 	std::string body;
+
 	while (std::getline(requestStream, line))
 	{
+		if (!line.empty() && headers.find("Content-Length") == headers.end() && headers.find("Transfer-Encoding") == headers.end())
+			throw Http400BadRequestException();
+		else if (headers.find("Content-Length") != headers.end() && headers.find("Transfer-Encoding") != headers.end())
+			throw Http400BadRequestException();
+
+		size_t crPos = std::string::npos;
+		while (true)
+		{
+			crPos = line.find('\r');
+			if (crPos == std::string::npos)
+				break;
+			else
+				line[crPos] = ' ';
+		}
 		body += line;
 		if (!requestStream.eof())
 			body += "\n";
@@ -58,7 +74,7 @@ static void skipEmptyLines(std::istringstream &requestStream, std::string &line)
 {
 	while (std::getline(requestStream, line))
 	{
-		if (line.size() == 1 || line.size() == 0)
+		if (line.size() == 1 && line[0] == '\r' || line.size() == 0)
 			continue;
 		break;
 	}
@@ -115,8 +131,14 @@ static void parseHeaders(HttpRequest &request, std::istringstream &requestStream
 			else
 			{
 				std::string nextLine;
-				std::getline(requestStream, nextLine);
-				if (nextLine.size() == 0)
+				std::streampos pos = requestStream.tellg();
+				std::istringstream requestStreamCopy(requestStream.str());
+				if (pos != static_cast<std::streampos>(-1))
+					requestStreamCopy.seekg(pos);
+				std::getline(requestStreamCopy, nextLine);
+				int nextCharInRequestStream = requestStream.peek();
+
+				if ((nextLine.size() == 0 && nextCharInRequestStream != EOF) || (nextLine.size() == 1 && nextLine[0] == '\r' && nextCharInRequestStream != EOF))
 					throw Http400BadRequestException();
 			}
 			return;
@@ -129,6 +151,11 @@ static void parseHeaders(HttpRequest &request, std::istringstream &requestStream
 		}
 		if (!line.empty() && line[line.size() - 1] == '\r')
 			line.erase(line.size() - 1);
+
+		size_t whitespacePos = line.find_first_of(" \t");
+		size_t headerFieldPos = line.find_first_not_of(" \t");
+		if (whitespacePos < headerFieldPos)
+			throw Http400BadRequestException();
 
 		// Find the colon separator
 		size_t colonPos = line.find(':');
