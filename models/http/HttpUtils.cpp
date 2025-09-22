@@ -101,6 +101,8 @@ static void parseRequestLine(HttpRequest &request, std::istringstream &requestSt
 	request.setTarget(target);
 	request.setVersion(version);
 
+	if (target.size() > HttpUtils::MAX_URI_LENGTH)
+		throw Http414UriTooLongException();
 	// Parse the path and query parameters from target
 	// query params start after "?"
 	std::string rawTarget = request.getTarget();

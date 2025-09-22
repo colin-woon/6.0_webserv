@@ -13,6 +13,8 @@ std::string HttpException::statusCodeToString(int statusCode)
 		return "404";
 	case HTTP_405_METHOD_NOT_ALLOWED:
 		return "405";
+	case HTTP_414_URI_TOO_LONG:
+		return "414";
 	case HTTP_500_INTERNAL_SERVER_ERROR:
 		return "500";
 	case HTTP_501_NOT_IMPLEMENTED:
@@ -35,6 +37,11 @@ const char *Http404NotFoundException::what() const throw()
 const char *Http405MethodNotAllowedException::what() const throw()
 {
 	return "Method Not Allowed";
+}
+
+const char *Http414UriTooLongException::what() const throw()
+{
+	return "URI Too Long";
 }
 
 const char *Http500InternalServerErrorException::what() const throw()

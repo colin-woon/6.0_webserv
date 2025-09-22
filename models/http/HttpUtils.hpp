@@ -17,6 +17,7 @@ private:
 	~HttpUtils();
 
 public:
+	static const size_t MAX_URI_LENGTH = 8000;
 	static void parseRawRequest(HttpRequest &request, const std::string &rawRequestBytes);
 };
 

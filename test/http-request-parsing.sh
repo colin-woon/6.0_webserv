@@ -199,12 +199,20 @@ send_request() {
 # send_request "GEEEEEEEEEEEEET / HTTP/1.2\r\nHost: localhost\r\n\r\n"
 # echo ""
 
-# Grammar error test (should return 400 Bad Request)
-echo "TEST 16.2: grammar error lowercase"
-echo "EXPECTED: 400 Bad Request, Connection: closed"
+# # Grammar error test (should return 400 Bad Request)
+# echo "TEST 16.2: grammar error lowercase"
+# echo "EXPECTED: 400 Bad Request, Connection: closed"
+# echo "----------------------------------------"
+# send_request "PzSOTW / HTTP/1.2\r\nHost: localhost\r\n\r\n"
+# # echo ""
+
+echo "TEST 16.3: URI Too Long"
+echo "EXPECTED: 414 URI Too Long"
 echo "----------------------------------------"
-send_request "PzSOTW / HTTP/1.2\r\nHost: localhost\r\n\r\n"
-# echo ""
+# Generate a long URI by repeating '/' 8001 times (exceeding MAX_URI_LENGTH of 8000)
+long_uri=$(printf '/%.0s' $(seq 1 8001))
+send_request "GET $long_uri HTTP/1.1\r\nHost: localhost\r\n\r\n"
+echo ""
 
 # # Grammar error test (should return 400 Bad Request)
 # echo "TEST 16.3: grammar error - DELETE"
