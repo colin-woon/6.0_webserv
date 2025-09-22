@@ -27,4 +27,11 @@ void HttpHandler::handleRequest(Client &client)
 								request.getHeaders(),
 								request.getBody());
 	}
+	catch (const Http405MethodNotAllowedException &e)
+	{
+		response.createResponse(e.statusCodeToString(HTTP_405_METHOD_NOT_ALLOWED),
+								e.what(),
+								request.getHeaders(),
+								request.getBody());
+	}
 }

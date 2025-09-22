@@ -2,6 +2,7 @@
 #define HTTPUTILS_HPP
 
 #include <string>
+#include <set>
 
 class HttpRequest;
 class HttpHandler;

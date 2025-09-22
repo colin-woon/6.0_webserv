@@ -97,6 +97,10 @@ static void parseRequestLine(HttpRequest &request, std::istringstream &requestSt
 	std::string method, target, version;
 	lineStream >> method >> target >> version;
 
+	std::set<std::string> implementedMethods = {"GET", "POST", "DELETE"};
+	if (implementedMethods.find(method) == implementedMethods.end())
+		throw Http405MethodNotAllowedException();
+
 	request.setMethod(method);
 	request.setTarget(target);
 	request.setVersion(version);
