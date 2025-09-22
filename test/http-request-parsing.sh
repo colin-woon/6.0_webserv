@@ -186,12 +186,12 @@ send_request() {
 # send_request "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 22\r\n\r\n{\"test\":\"value\rwithCR\"}"
 # echo ""
 
-# Grammar error test (should return 400 Bad Request)
-echo "TEST 16.0: grammar error - GET"
-echo "EXPECTED: 501 Not Implemented"
-echo "----------------------------------------"
-send_request "GTE / HTTP/1.2\r\nHost: localhost\r\n\r\n"
-echo ""
+# # Grammar error test (should return 400 Bad Request)
+# echo "TEST 16.0: grammar error - GET"
+# echo "EXPECTED: 501 Not Implemented"
+# echo "----------------------------------------"
+# send_request "GTE / HTTP/1.2\r\nHost: localhost\r\n\r\n"
+# echo ""
 
 # echo "TEST 16.1: grammar error, method longer than 10"
 # echo "EXPECTED: 501 Not Implemented"
@@ -259,13 +259,25 @@ echo ""
 # echo "TEST 23.1: Request with a header value that is LF"
 # echo "EXPECTED: 400 Bad Request"
 # echo "----------------------------------------"
-# send_request "GET / HTTP/1.1\r\nHost: localhost\r\nCustom-Header: \n\r\n\r\n"
+# send_request "GET / HTTP/1.1\r\nHost: \n\nCustom-Header: \r\n\r\n"
 # echo ""
 
-# echo "TEST 23.2: Request with a header value that is NUL."
+# echo "TEST 23.2a: Request with a header value that is NUL."
 # echo "EXPECTED: 400 Bad Request"
 # echo "----------------------------------------"
-# send_request "GET / HTTP/1.1\r\nHost: localhost\r\nCustom-Header: \x00\r\n\r\n"
+# send_request "GET / HTTP/1.1\r\nHost: localhost\r\nCustom-Header: \x00\x00\x00\r\n\r\n"
+# echo ""
+
+# echo "TEST 23.2b: Request with a header value that contains NUL."
+# echo "EXPECTED: 400 Bad Request"
+# echo "----------------------------------------"
+# send_request "GET / HTTP/1.1\r\nHost: loc\x00alhost\r\nCustom-Header: \r\n\r\n"
+# echo ""
+
+# echo "TEST 23.2c: Request line with NUL."
+# echo "EXPECTED: 400 Bad Request"
+# echo "----------------------------------------"
+# send_request "GET / HTTP/1.1\x00\r\nHost: localhost\r\nCustom-Header: \r\n\r\n"
 # echo ""
 
 # echo "TEST 24.0: Request with a header value that has trailing and leading whitespaces SPACE."

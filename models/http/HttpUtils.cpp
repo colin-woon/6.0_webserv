@@ -91,6 +91,9 @@ static void parseQueryParams(HttpRequest &request, const std::string &queryStrin
 static void parseRequestLine(HttpRequest &request, std::istringstream &requestStream, std::string &line)
 {
 	skipEmptyLines(requestStream, line);
+	size_t nulPos = line.find('\0');
+	if (nulPos != std::string::npos)
+		throw Http400BadRequestException();
 	size_t crPos = line.find('\r');
 	if (crPos != std::string::npos)
 	{
@@ -135,6 +138,10 @@ static void parseHeaders(HttpRequest &request, std::istringstream &requestStream
 
 	while (std::getline(requestStream, line))
 	{
+		size_t nulPos = line.find('\0');
+		if (nulPos != std::string::npos)
+			throw Http400BadRequestException();
+
 		if (line.size() == 0 || (line.size() == 1 && line[0] == '\r'))
 		{
 			if (headers.empty())
