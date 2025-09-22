@@ -18,7 +18,8 @@ int main(int argc, char **argv)
 		parse.parseNodes();
 		std::vector<int> listenerFdList;
 		listenerFdList = setupListenerSockets(parse.nodes);
-		mainServerLoop(listenerFdList, parse.nodes);
+		ServerLoop headacheServer(listenerFdList, parse.nodes);
+		headacheServer.run();
 		std::cout << "done" << std::endl;
 	}
 	catch (std::exception &e)
