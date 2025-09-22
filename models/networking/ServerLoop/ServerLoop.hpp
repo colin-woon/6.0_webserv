@@ -51,10 +51,12 @@ public:
 	void run();
 	void sweepExpiredClients();
 
-	std::vector<struct pollfd>	pollFdList_;
-	std::map<int, size_t>		fdIndex_;
-	std::map<int, Client>		clientList_;
-	std::map<int, int>			listenerTimeoutMs_; // listener fd -> timeout ms
+	std::vector<struct pollfd>		pollFdList_;
+	std::vector<Server>				servers_;
+	std::map<int, size_t>			fdIndex_;
+	std::map<int, Client>			clientList_;
+	std::map<int, int>				listenerTimeoutMs_; // listener fd -> timeout ms
+	std::map<int, const Server*>	listenerOwner_; 
 
 	void closeClient_(int fd);
 	void acceptClients_(int lfd);

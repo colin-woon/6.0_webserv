@@ -9,9 +9,11 @@ Client::Client():fd(-1), closeFlag(false), serverConfig(NULL), timeoutMs(0), exp
 
 Client::~Client(){}
 
-ServerLoop::ServerLoop(const std::vector<int>& listenerFdList, const std::vector<Server>& serverList):listenerFdList_(listenerFdList)
+ServerLoop::ServerLoop(const std::vector<int>& listenerFdList, const std::vector<Server>& serverList):listenerFdList_(listenerFdList), servers_(serverList)
 {
 	buildTimeoutList(listenerFdList_, const_cast<std::vector<Server>&>(serverList), listenerTimeoutMs_);
+	for (size_t i = 0; i < listenerFdList_.size(); ++i)
+		listenerOwner_[listenerFdList[i]] = &servers_[i];
 	for (size_t i = 0; i < listenerFdList_.size(); ++i)
 		addPollFd(pollFdList_, fdIndex_, listenerFdList_[i], POLLIN);
 }
