@@ -188,16 +188,22 @@ send_request() {
 
 # # Grammar error test (should return 400 Bad Request)
 # echo "TEST 16.0: grammar error - GET"
-# echo "EXPECTED: 400 Bad Request, Connection: closed"
+# echo "EXPECTED: 501 Not Implemented"
 # echo "----------------------------------------"
 # send_request "GTE / HTTP/1.2\r\nHost: localhost\r\n\r\n"
 # echo ""
 
-# # Grammar error test (should return 400 Bad Request)
-# echo "TEST 16.1: grammar error - POST"
-# echo "EXPECTED: 400 Bad Request, Connection: closed"
+# echo "TEST 16.1: grammar error, longer than 10"
+# echo "EXPECTED: 501 Not Implemented"
 # echo "----------------------------------------"
-# send_request "PSOTW / HTTP/1.2\r\nHost: localhost\r\n\r\n"
+# send_request "GEEEEEEEEEEEEET / HTTP/1.2\r\nHost: localhost\r\n\r\n"
+# echo ""
+
+# Grammar error test (should return 400 Bad Request)
+echo "TEST 16.2: grammar error lowercase"
+echo "EXPECTED: 400 Bad Request, Connection: closed"
+echo "----------------------------------------"
+send_request "PzSOTW / HTTP/1.2\r\nHost: localhost\r\n\r\n"
 # echo ""
 
 # # Grammar error test (should return 400 Bad Request)

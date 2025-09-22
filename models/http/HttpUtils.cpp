@@ -97,10 +97,6 @@ static void parseRequestLine(HttpRequest &request, std::istringstream &requestSt
 	std::string method, target, version;
 	lineStream >> method >> target >> version;
 
-	std::set<std::string> implementedMethods = {"GET", "POST", "DELETE"};
-	if (implementedMethods.find(method) == implementedMethods.end())
-		throw Http405MethodNotAllowedException();
-
 	request.setMethod(method);
 	request.setTarget(target);
 	request.setVersion(version);
@@ -186,6 +182,21 @@ static void parseHeaders(HttpRequest &request, std::istringstream &requestStream
 	}
 }
 
+static void postParseMethod(HttpRequest &request)
+{
+	const int maxMethodSize = 10;
+	std::set<std::string> implementedMethods = {"GET", "POST", "DELETE"};
+	char uppercaseLetters[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+	if (request.getMethod().find_first_not_of(uppercaseLetters) != std::string::npos)
+	{
+		request.addHeader("Connection", "close");
+		throw Http400BadRequestException();
+	}
+	if (implementedMethods.find(request.getMethod()) == implementedMethods.end() || request.getMethod().size() > maxMethodSize)
+		throw Http501NotImplementedException();
+}
+
 // Visualization https://chat.qwen.ai/s/c6b79ac1-d473-48b4-a34e-394bb622a11f?fev=0.0.201
 // Use a string stream to process the request line by line
 // Parse the request line (first line)
@@ -198,4 +209,5 @@ void HttpUtils::parseRawRequest(HttpRequest &request, const std::string &rawRequ
 	parseRequestLine(request, requestStream, line);
 	parseHeaders(request, requestStream, line);
 	parseBody(request, requestStream, line);
+	postParseMethod(request);
 }

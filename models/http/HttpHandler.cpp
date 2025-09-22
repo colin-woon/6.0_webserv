@@ -34,4 +34,11 @@ void HttpHandler::handleRequest(Client &client)
 								request.getHeaders(),
 								request.getBody());
 	}
+	catch (const Http501NotImplementedException &e)
+	{
+		response.createResponse(e.statusCodeToString(HTTP_501_NOT_IMPLEMENTED),
+								e.what(),
+								request.getHeaders(),
+								request.getBody());
+	}
 }
