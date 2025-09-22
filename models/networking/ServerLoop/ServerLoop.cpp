@@ -4,7 +4,8 @@
 #include "Timeout.hpp"
 #include "../../http/HttpHandler.hpp"
 
-Client::Client() : fd(-1), closeFlag(false), timeoutMs(0), expiresAtMs(0), responseQueued(false) {}
+Client::Client():fd(-1), closeFlag(false), serverConfig(NULL), timeoutMs(0), expiresAtMs(0), responseQueued(false), headersDone(false),
+  headerEndPos(0), isChunked(false), contentLength(0), parsePos(0), chunkRemain(0), chunkStage(0), consumedBytes(0){}
 
 Client::~Client() {}
 

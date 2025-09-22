@@ -1,5 +1,5 @@
-#include "networking/Sockets/Sockets.hpp"
-#include "networking/ServerLoop/ServerLoop.hpp"
+#include "../models/networking/Sockets/Sockets.hpp"
+#include "../models/networking/ServerLoop/ServerLoop.hpp"
 #include "../models/parsing/Parsing.hpp"
 
 // bool setNonBlocking(int fd){
