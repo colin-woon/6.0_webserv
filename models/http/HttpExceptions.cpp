@@ -19,6 +19,8 @@ std::string HttpException::statusCodeToString(int statusCode)
 		return "500";
 	case HTTP_501_NOT_IMPLEMENTED:
 		return "501";
+	case HTTP_505_HTTP_VERSION_NOT_SUPPORTED:
+		return "505";
 	default:
 		return "503";
 	}
@@ -52,4 +54,9 @@ const char *Http500InternalServerErrorException::what() const throw()
 const char *Http501NotImplementedException::what() const throw()
 {
 	return "Not Implemented";
+}
+
+const char *Http505HttpVersionNotSupportedException::what() const throw()
+{
+	return "Http Version Not Supported";
 }

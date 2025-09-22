@@ -15,6 +15,7 @@ void HttpHandler::handleRequest(Client &client)
 	}
 	catch (const Http400BadRequestException &e)
 	{
+		request.addHeader("Connection", "close");
 		response.createResponse(e.statusCodeToString(HTTP_400_BAD_REQUEST),
 								e.what(),
 								request.getHeaders(),
@@ -44,6 +45,13 @@ void HttpHandler::handleRequest(Client &client)
 	catch (const Http501NotImplementedException &e)
 	{
 		response.createResponse(e.statusCodeToString(HTTP_501_NOT_IMPLEMENTED),
+								e.what(),
+								request.getHeaders(),
+								request.getBody());
+	}
+	catch (const Http505HttpVersionNotSupportedException &e)
+	{
+		response.createResponse(e.statusCodeToString(HTTP_505_HTTP_VERSION_NOT_SUPPORTED),
 								e.what(),
 								request.getHeaders(),
 								request.getBody());

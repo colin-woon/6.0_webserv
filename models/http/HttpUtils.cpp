@@ -17,11 +17,29 @@ HttpUtils &HttpUtils::operator=(const HttpUtils &other)
 
 HttpUtils::~HttpUtils() {}
 
+static void skipEmptyLines(std::istringstream &requestStream, std::string &line)
+{
+	while (std::getline(requestStream, line))
+	{
+		if (line.size() == 1 && line[0] == '\r' || line.size() == 0)
+			continue;
+		break;
+	}
+}
+
 static void parseBody(HttpRequest &request, std::istringstream &requestStream, std::string &line)
 {
 	const std::map<std::string, std::string> &headers = request.getHeaders();
 	std::string body;
 
+	if (request.getMethod().compare("GET") == 0)
+	{
+		skipEmptyLines(requestStream, line);
+		if (!requestStream.eof())
+			throw Http400BadRequestException();
+		else
+			return;
+	}
 	while (std::getline(requestStream, line))
 	{
 		if (!line.empty() && headers.find("Content-Length") == headers.end() && headers.find("Transfer-Encoding") == headers.end())
@@ -70,16 +88,6 @@ static void parseQueryParams(HttpRequest &request, const std::string &queryStrin
 	parseQueryParam(request, queryString.substr(start));
 }
 
-static void skipEmptyLines(std::istringstream &requestStream, std::string &line)
-{
-	while (std::getline(requestStream, line))
-	{
-		if (line.size() == 1 && line[0] == '\r' || line.size() == 0)
-			continue;
-		break;
-	}
-}
-
 static void parseRequestLine(HttpRequest &request, std::istringstream &requestStream, std::string &line)
 {
 	skipEmptyLines(requestStream, line);
@@ -96,6 +104,9 @@ static void parseRequestLine(HttpRequest &request, std::istringstream &requestSt
 	std::istringstream lineStream(line);
 	std::string method, target, version;
 	lineStream >> method >> target >> version;
+
+	if (!lineStream.eof())
+		throw Http400BadRequestException();
 
 	request.setMethod(method);
 	request.setTarget(target);
@@ -138,10 +149,13 @@ static void parseHeaders(HttpRequest &request, std::istringstream &requestStream
 				if (pos != static_cast<std::streampos>(-1))
 					requestStreamCopy.seekg(pos);
 				std::getline(requestStreamCopy, nextLine);
-				int nextCharInRequestStream = requestStream.peek();
+				char nextCharInRequestStream = requestStream.peek();
 
-				if ((nextLine.size() == 0 && nextCharInRequestStream != EOF) || (nextLine.size() == 1 && nextLine[0] == '\r' && nextCharInRequestStream != EOF))
-					throw Http400BadRequestException();
+				if (request.getMethod().compare("GET"))
+				{
+					if ((nextLine.size() == 0 && nextCharInRequestStream != EOF) || (nextLine.size() == 1 && nextLine[0] == '\r' && nextCharInRequestStream != EOF))
+						throw Http400BadRequestException();
+				}
 			}
 			return;
 		}
@@ -164,6 +178,8 @@ static void parseHeaders(HttpRequest &request, std::istringstream &requestStream
 		if (colonPos != std::string::npos)
 		{
 			std::string key = line.substr(0, colonPos);
+			if (whitespacePos < colonPos)
+				throw Http400BadRequestException();
 			// Trim leading whitespace from key (C++98 compatible)
 			size_t start = key.find_first_not_of(" \t");
 			if (start != std::string::npos)
@@ -184,19 +200,23 @@ static void parseHeaders(HttpRequest &request, std::istringstream &requestStream
 	}
 }
 
-static void postParseMethod(HttpRequest &request)
+static void postParsingValidation(HttpRequest &request)
 {
 	const int maxMethodSize = 10;
 	std::set<std::string> implementedMethods = {"GET", "POST", "DELETE"};
 	char uppercaseLetters[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 	if (request.getMethod().find_first_not_of(uppercaseLetters) != std::string::npos)
-	{
-		request.addHeader("Connection", "close");
 		throw Http400BadRequestException();
-	}
-	if (implementedMethods.find(request.getMethod()) == implementedMethods.end() || request.getMethod().size() > maxMethodSize)
+	if (request.getMethod().empty() ||
+		request.getTarget().empty() ||
+		request.getVersion().empty())
+		throw Http400BadRequestException();
+	if (implementedMethods.find(request.getMethod()) == implementedMethods.end() ||
+		request.getMethod().size() > maxMethodSize)
 		throw Http501NotImplementedException();
+	if (request.getVersion().compare("HTTP/1.1"))
+		throw Http505HttpVersionNotSupportedException();
 }
 
 // Visualization https://chat.qwen.ai/s/c6b79ac1-d473-48b4-a34e-394bb622a11f?fev=0.0.201
@@ -211,5 +231,5 @@ void HttpUtils::parseRawRequest(HttpRequest &request, const std::string &rawRequ
 	parseRequestLine(request, requestStream, line);
 	parseHeaders(request, requestStream, line);
 	parseBody(request, requestStream, line);
-	postParseMethod(request);
+	postParsingValidation(request);
 }
