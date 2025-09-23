@@ -12,7 +12,7 @@
 # add back WFLAGS later to CFLAGS, removed cause it doesnt work for testing
 # Compiler and flags
 CXX			=	c++
-CFLAGS		=	$(INCLUDES) $(FSAN) $(WFLAGS)
+CFLAGS		=	$(INCLUDES) $(DEBUG) $(FSAN)
 STANDARD	=	-Wpedantic -std=c++98
 WFLAGS		=	-Wall -Werror -Wextra
 INCLUDES	=	-I$(INC_DIR) -I$(MODELS_DIR)
@@ -61,15 +61,19 @@ NETWORKING_MODELS = 	models/networking/ServerLoop/ServerHelpers.cpp \
 HTTP_HEADERS	=	models/http/HttpRequest.hpp \
 					models/http/HttpResponse.hpp \
 					models/http/HttpHandlerGET.hpp \
+					models/http/HttpHandlerPOST.hpp \
 					models/http/HttpHandler.hpp \
-					models/http/HttpUtils.hpp \
+					models/http/HttpRequestParser.hpp \
 					models/http/HttpExceptions.hpp \
+					models/http/HttpUtils.hpp \
 
 HTTP_MODELS		=	models/http/HttpRequest.cpp \
 					models/http/HttpResponse.cpp \
 					models/http/HttpHandlerGET.cpp \
+					models/http/HttpHandlerPOST.cpp \
 					models/http/HttpHandler.cpp \
 					models/http/HttpUtils.cpp \
+					models/http/HttpRequestParser.cpp \
 					models/http/HttpExceptions.cpp \
 
 MODEL_FILES		=	$(HTTP_MODELS) $(NETWORKING_MODELS) $(PARSING_MODELS)

@@ -6,7 +6,7 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
-#include "HttpUtils.hpp"
+#include "HttpRequestParser.hpp"
 
 class HttpRequest
 {

@@ -3,6 +3,9 @@
 
 #include <string>
 #include <set>
+#include <iostream>
+#include <sstream>
+#include "HttpExceptions.hpp"
 
 class HttpRequest;
 class HttpHandler;
@@ -18,7 +21,14 @@ private:
 
 public:
 	static const size_t MAX_URI_LENGTH = 8000;
-	static void parseRawRequest(HttpRequest &request, const std::string &rawRequestBytes);
+	static void skipEmptyLines(std::istringstream &requestStream, std::string &line);
+	static void checkForNUL(std::string &line);
+	static void processCarriageReturn(std::string &line);
+	static void getMethodTargetVersion(HttpRequest &request, std::string &line);
+	static void parseTarget(HttpRequest &request);
+	static void handleEndOfHeaders(HttpRequest &request, std::istringstream &requestStream);
+	static void validateWhitespaceBeforeHeaderField(std::string &line);
+	static void parseHeaderKeyValuePair(std::string &line, HttpRequest &request);
 };
 
 #endif

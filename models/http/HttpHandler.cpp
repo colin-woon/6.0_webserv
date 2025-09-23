@@ -7,11 +7,13 @@ void HttpHandler::handleRequest(Client &client)
 	HttpResponse &response = client.response;
 	try
 	{
-		HttpUtils::parseRawRequest(request, rawRequestBytes);
+		HttpRequestParser::parseRawRequest(request, rawRequestBytes);
 		// std::cout << std::endl;
 		// std::cout << request << std::endl;
 		if (request.getMethod().compare("GET") == 0)
 			return HttpHandlerGET::handleGetRequest(request, response);
+		if (request.getMethod().compare("POST") == 0)
+			return HttpHandlerPOST::handlePostRequest(request, response);
 	}
 	catch (const Http400BadRequestException &e)
 	{

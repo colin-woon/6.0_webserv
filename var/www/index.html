@@ -43,6 +43,32 @@
 			color: #006600;
 			font-weight: bold;
 		}
+
+		.upload-form {
+			margin-top: 1rem;
+		}
+
+		.upload-form input[type="file"] {
+			margin-bottom: 0.5rem;
+		}
+
+		.upload-form button {
+			padding: 0.5rem 1rem;
+			background-color: #4CAF50;
+			color: white;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+		}
+
+		.upload-form button:hover {
+			background-color: #45a049;
+		}
+
+		#upload-status {
+			margin-top: 1rem;
+			color: #d32f2f;
+		}
 	</style>
 </head>
 
@@ -51,7 +77,34 @@
 		<h1>Webserver Test</h1>
 		<p>If this box looks neat and centered, your server is serving HTML and CSS just fine.</p>
 		<div class="status">Status: OK ✅</div>
-	</div>
+		<div class="upload-form">
+			<form id="uploadForm">
+				<input type="file" name="file" required>
+				<button type="submit">Upload File</button>
+			</form>
+			<div id="upload-status"></div>
+		</div>
+		</script>
+		<script>
+			document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+				event.preventDefault();
+
+				const formData = new FormData(event.target);
+				const response = await fetch('/upload', {
+					method: 'POST',
+					body: formData
+				});
+
+				const statusDiv = document.getElementById('upload-status');
+				if (response.ok) {
+					statusDiv.textContent = 'Upload successful! Status: ' + response.status;
+					statusDiv.style.color = '#006600';
+				} else {
+					statusDiv.textContent = 'Upload failed! Status: ' + response.status;
+					statusDiv.style.color = '#d32f2f';
+				}
+			});
+		</script>
 </body>
 
 </html>
