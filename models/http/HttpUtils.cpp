@@ -1,6 +1,5 @@
 #include "HttpUtils.hpp"
 #include "HttpRequest.hpp"
-#include "HttpExceptions.hpp"
 
 HttpUtils::HttpUtils() {}
 
@@ -17,16 +16,33 @@ HttpUtils &HttpUtils::operator=(const HttpUtils &other)
 
 HttpUtils::~HttpUtils() {}
 
-static void parseBody(HttpRequest &request, std::istringstream &requestStream, std::string &line)
+void HttpUtils::skipEmptyLines(std::istringstream &requestStream, std::string &line)
 {
-	std::string body;
 	while (std::getline(requestStream, line))
 	{
-		body += line;
-		if (!requestStream.eof())
-			body += "\n";
+		if (line.size() == 1 && line[0] == '\r' || line.size() == 0)
+			continue;
+		break;
 	}
-	request.setBody(body);
+}
+
+void HttpUtils::checkForNUL(std::string &line)
+{
+	size_t nulPos = line.find('\0');
+	if (nulPos != std::string::npos)
+		throw Http400BadRequestException();
+}
+
+void HttpUtils::processCarriageReturn(std::string &line)
+{
+	size_t crPos = line.find('\r');
+	if (crPos != std::string::npos)
+	{
+		if (crPos != line.size() - 1)
+			throw Http400BadRequestException();
+	}
+	if (!line.empty() && line[line.size() - 1] == '\r')
+		line.erase(line.size() - 1);
 }
 
 static void parseQueryParam(HttpRequest &request, const std::string &param)
@@ -54,86 +70,96 @@ static void parseQueryParams(HttpRequest &request, const std::string &queryStrin
 	parseQueryParam(request, queryString.substr(start));
 }
 
-static void parseRequestLine(HttpRequest &request, std::istringstream &requestStream, std::string &line)
+void HttpUtils::getMethodTargetVersion(HttpRequest &request, std::string &line)
 {
-	if (std::getline(requestStream, line))
-	{
-		if (!line.empty() && line[line.size() - 1] == '\r')
-			line.erase(line.size() - 1);
+	// Extract method, target, and version, >> is overloaded by istringstream, space is default delimeter
+	std::istringstream lineStream(line);
+	std::string method, target, version;
+	lineStream >> method >> target >> version;
 
-		// Extract method, target, and version, >> is overloaded by istringstream, space is default delimeter
-		std::istringstream lineStream(line);
-		std::string method, target, version;
-		lineStream >> method >> target >> version;
+	if (!lineStream.eof())
+		throw Http400BadRequestException();
 
-		request.setMethod(method);
-		request.setTarget(target);
-		request.setVersion(version);
-
-		// Parse the path and query parameters from target
-		// query params start after "?"
-		std::string rawTarget = request.getTarget();
-		size_t questionPos = rawTarget.find('?');
-		if (questionPos != std::string::npos)
-		{
-			request.setPath(rawTarget.substr(0, questionPos));
-			parseQueryParams(request, rawTarget.substr(questionPos + 1));
-		}
-		else
-		{
-			request.setPath(rawTarget);
-		}
-	}
+	request.setMethod(method);
+	request.setTarget(target);
+	request.setVersion(version);
 }
 
-static void parseHeaders(HttpRequest &request, std::istringstream &requestStream, std::string &line)
+void HttpUtils::parseTarget(HttpRequest &request)
 {
-	while (std::getline(requestStream, line) && !line.empty() && line != "\r")
+	if (request.getTarget().size() > HttpUtils::MAX_URI_LENGTH)
+		throw Http414UriTooLongException();
+
+	// Parse the path and query parameters from target
+	// query params start after "?"
+	std::string rawTarget = request.getTarget();
+	size_t questionPos = rawTarget.find('?');
+	if (questionPos != std::string::npos)
 	{
-		// Remove carriage return if present
-		if (!line.empty() && line[line.size() - 1] == '\r')
-			line.erase(line.size() - 1);
+		request.setPath(rawTarget.substr(0, questionPos));
+		parseQueryParams(request, rawTarget.substr(questionPos + 1));
+	}
+	else
+		request.setPath(rawTarget);
+}
 
-		// Skip empty lines
-		if (line.empty())
-			continue;
+void HttpUtils::handleEndOfHeaders(HttpRequest &request, std::istringstream &requestStream)
+{
+	const std::map<std::string, std::string> &headers = request.getHeaders();
 
-		// Find the colon separator
-		size_t colonPos = line.find(':');
-		if (colonPos != std::string::npos)
+	if (headers.empty())
+		throw Http400BadRequestException();
+	else if (headers.count("Host") != 1)
+		throw Http400BadRequestException();
+	else
+	{
+		std::string nextLine;
+		std::streampos pos = requestStream.tellg();
+		std::istringstream requestStreamCopy(requestStream.str());
+		if (pos != static_cast<std::streampos>(-1))
+			requestStreamCopy.seekg(pos);
+		std::getline(requestStreamCopy, nextLine);
+		char nextCharInRequestStream = requestStream.peek();
+
+		if (request.getMethod().compare("GET"))
 		{
-			std::string key = line.substr(0, colonPos);
-			// Trim leading whitespace from key (C++98 compatible)
-			size_t start = key.find_first_not_of(" \t");
-			if (start != std::string::npos)
-				key = key.substr(start);
-			else
-				key.clear(); // All whitespace, make empty
-
-			// Validate: No remaining \r should exist (indicates invalid CR not followed by LF)
-			if (line.find('\r') != std::string::npos)
+			if ((nextLine.size() == 0 && nextCharInRequestStream != EOF) || (nextLine.size() == 1 && nextLine[0] == '\r' && nextCharInRequestStream != EOF))
 				throw Http400BadRequestException();
-
-			size_t valueStart = line.find_first_not_of(" \t", colonPos + 1);
-			if (valueStart != std::string::npos)
-			{
-				std::string value = line.substr(valueStart);
-				request.addHeader(key, value);
-			}
 		}
 	}
 }
 
-// Visualization https://chat.qwen.ai/s/c6b79ac1-d473-48b4-a34e-394bb622a11f?fev=0.0.201
-// Use a string stream to process the request line by line
-// Parse the request line (first line)
-// Remove carriage return if present
-void HttpUtils::parseRawRequest(HttpRequest &request, const std::string &rawRequestBytes)
+void HttpUtils::parseHeaderKeyValuePair(std::string &line, HttpRequest &request)
 {
-	std::istringstream requestStream(rawRequestBytes);
-	std::string line;
+	const std::map<std::string, std::string> &headers = request.getHeaders();
 
-	parseRequestLine(request, requestStream, line);
-	parseHeaders(request, requestStream, line);
-	parseBody(request, requestStream, line);
+	size_t whitespacePos = line.find_first_of(" \t");
+	size_t headerFieldPos = line.find_first_not_of(" \t");
+	if (whitespacePos < headerFieldPos)
+		throw Http400BadRequestException();
+
+	// Find the colon separator
+	size_t colonPos = line.find(':');
+	if (colonPos != std::string::npos)
+	{
+		std::string key = line.substr(0, colonPos);
+		if (whitespacePos < colonPos)
+			throw Http400BadRequestException();
+		// Trim leading whitespace from key (C++98 compatible)
+		size_t start = key.find_first_not_of(" \t");
+		if (start != std::string::npos)
+			key = key.substr(start);
+		else
+			key.clear(); // All whitespace, make empty
+
+		if (headers.find("Host") != headers.end() && key.compare("Host") == 0)
+			throw Http400BadRequestException();
+
+		size_t valueStart = line.find_first_not_of(" \t", colonPos + 1);
+		if (valueStart != std::string::npos)
+		{
+			std::string value = line.substr(valueStart);
+			request.addHeader(key, value);
+		}
+	}
 }

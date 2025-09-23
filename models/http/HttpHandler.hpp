@@ -4,11 +4,12 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "HttpExceptions.hpp"
-#include "HttpUtils.hpp"
+#include "HttpRequestParser.hpp"
 #include "HttpHandlerGET.hpp"
+#include "HttpHandlerPOST.hpp"
 #include "../networking/ServerLoop/ServerLoop.hpp"
 
-class HttpHandler : public HttpHandlerGET
+class HttpHandler : public HttpHandlerGET, public HttpHandlerPOST
 {
 public:
 	static void handleRequest(Client &client);

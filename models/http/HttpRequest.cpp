@@ -108,7 +108,7 @@ HttpRequest::HttpRequest(const std::string &request) : _method(""),
 													   _headers(),
 													   _body("")
 {
-	HttpUtils::parseRawRequest(*this, request);
+	HttpRequestParser::parseRawRequest(*this, request);
 }
 
 std::ostream &operator<<(std::ostream &out, const HttpRequest &request)
