@@ -67,66 +67,45 @@ void ServerLoop::readOnce_(int fd) {
 
 	char buf[4096];
 	ssize_t n = recv(fd, buf, sizeof(buf), 0);
+	if (n < 0)
+		return;
 
-	if (n > 0) {
-		c.inBuff.append(buf, (size_t)n);
-		resetClientTimeout(c);
-		if (c.responseQueued)
+	c.inBuff.append(buf, (size_t)n);
+	resetClientTimeout(c);
+	if (c.responseQueued)
+		return;
+
+    if (!c.headersDone){
+		if (!findHeadersEndAndMark_(c))
 			return;
-		if (!c.headersDone) {
-			if (!findHeadersEndAndMark_(c))
-				return;
-			detectBodyFraming_(c);
-		}
+		detectBodyFraming_(c);
+    }
 
-		bool ready = false;
-		if (c.isChunked) {
-			int r = unchunkStep_(c, 0);
-			if (r > 0) {
-				std::cout << "[CHUNKED] COMPLETE: consumedBytes=" << c.consumedBytes << " bodyBuf.size=" << c.bodyBuf.size() << "\n"; //test print
-				HttpHandler::handleRequest(c);
-				c.outBuff = c.response.toString();
-				c.responseQueued = true;
-				modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
-				return;
-			}
-			if (r < 0) {
-				std::cout << "[CHUNKED] NEED-MORE: stage=" << c.chunkStage << " parsePos=" << c.parsePos << " inBuff.size=" << c.inBuff.size() << "\n"; //test print
-				HttpHandler::handleRequest(c);
-				c.outBuff = c.response.toString();
-				std::cout << c.outBuff << std::endl;
-				c.responseQueued = true;
-				c.closeFlag = true;
-				modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
-				return;
-			}
-			return;
-		} else {
-			std::cout << "[CHUNKED][ERROR] decoder error. stage=" << c.chunkStage << " parsePos=" << c.parsePos << "\n";
-			if (c.contentLength == 0) {
-				c.consumedBytes = c.headerEndPos + 4;
-				ready = true;
-			} else {
-				size_t have = 0;
-				if (c.inBuff.size() > c.headerEndPos + 4)
-					have = c.inBuff.size() - (c.headerEndPos + 4);
-				if (have >= c.contentLength) {
-					c.consumedBytes = c.headerEndPos + 4 + c.contentLength;
-					ready = true;
-				}
-			}
-		}
-
-		if (ready) {
-			std::cout << "[HTTP] enqueue response: closeFlag=" << (c.closeFlag ? 1 : 0) << " keep-alive-reset-after-send\n"; //test print
+	if (c.isChunked) {
+		int r = unchunkStep_(c, 0);
+		if (r > 0) {
 			HttpHandler::handleRequest(c);
 			c.outBuff = c.response.toString();
 			c.responseQueued = true;
 			modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
+			return;
+		}
+		else if (r < 0) {
+			HttpHandler::handleRequest(c);
+			c.outBuff = c.response.toString();
+			std::cout << c.outBuff << std::endl;
+			c.responseQueued = true;
+			c.closeFlag = true;
+			modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
 		}
 		return;
 	}
-	closeClient_(fd);
+
+	c.consumedBytes = c.inBuff.size();
+	HttpHandler::handleRequest(c);
+	c.outBuff = c.response.toString();
+	c.responseQueued = true;
+	modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
 }
 
 void ServerLoop::writeOnce_(int fd) {
@@ -206,20 +185,6 @@ void ServerLoop::detectBodyFraming_(Client& c) {
 	const std::string raw = c.inBuff.substr(0, c.headerEndPos + 4);
 	std::string lower = toLowerCopy_(raw);
 
-	const std::string kCL = "content-length:";
-	std::string::size_type q = lower.find(kCL);
-	if (q != std::string::npos) {
-		q += kCL.size();
-		while (q < lower.size() && (lower[q] == ' ' || lower[q] == '\t')) ++q;
-		size_t start = q;
-		while (q < lower.size() && std::isdigit((unsigned char)lower[q])) ++q;
-		if (q > start) {
-			std::istringstream iss(lower.substr(start, q - start));
-			size_t v = 0;
-			if (iss >> v) c.contentLength = v;
-		}
-	}
-
 	const std::string kTE = "transfer-encoding:";
 	std::string::size_type t = lower.find(kTE);
 	if (t != std::string::npos) {
@@ -227,7 +192,6 @@ void ServerLoop::detectBodyFraming_(Client& c) {
 		std::string teval = lower.substr(t, lower.find("\r\n", t) - t);
 		if (teval.find("chunked") != std::string::npos)
 			c.isChunked = true;
-		std::cout << "[CHUNKED] Detected Transfer-Encoding: chunked. headerEndPos=" << c.headerEndPos << "\n"; //test print
 	}
 }
 

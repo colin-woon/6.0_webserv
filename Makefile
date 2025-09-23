@@ -16,7 +16,7 @@ CFLAGS		=	$(INCLUDES) $(DEBUG) $(FSAN)
 STANDARD	=	-Wpedantic -std=c++98
 WFLAGS		=	-Wall -Werror -Wextra
 INCLUDES	=	-I$(INC_DIR) -I$(MODELS_DIR)
-DEBUG		=	-g3 -O0 -fstandalone-debug
+DEBUG		=	-g3 -O0 #-fstandalone-debug
 FSAN		=	-fsanitize=address,leak
 RM			=	rm -rf
 
