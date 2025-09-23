@@ -1,5 +1,5 @@
-#include "networking/Sockets/Sockets.hpp"
-#include "networking/ServerLoop/ServerLoop.hpp"
+#include "../models/networking/Sockets/Sockets.hpp"
+#include "../models/networking/ServerLoop/ServerLoop.hpp"
 #include "../models/parsing/Parsing.hpp"
 
 // bool setNonBlocking(int fd){
@@ -18,7 +18,8 @@ int main(int argc, char **argv)
 		parse.parseNodes();
 		std::vector<int> listenerFdList;
 		listenerFdList = setupListenerSockets(parse.nodes);
-		mainServerLoop(listenerFdList, parse.nodes);
+		ServerLoop headacheServer(listenerFdList, parse.nodes);
+		headacheServer.run();
 		std::cout << "done" << std::endl;
 	}
 	catch (std::exception &e)

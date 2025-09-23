@@ -77,24 +77,3 @@ int calcNextTimeout(std::map<int, Client> &clients, int fallbackMs)
 		return (INT_MAX);
 	return (int)delta;
 }
-
-void closeExpiredClients(std::vector<struct pollfd> &pollFdList, std::map<int, size_t> &fdIndex, std::map<int, Client> &clientList)
-{
-	if (clientList.empty())
-		return;
-	uint64_t now = nowMs();
-	std::vector<int> toClose;
-	std::map<int, Client>::const_iterator it = clientList.begin();
-	while (it != clientList.end())
-	{
-		const Client &c = it->second;
-		if (c.timeoutMs > 0 && c.expiresAtMs > 0)
-		{
-			if (now >= c.expiresAtMs)
-				toClose.push_back(it->first);
-		}
-		++it;
-	}
-	for (size_t i = 0; i < toClose.size(); ++i)
-		closeClient(toClose[i], pollFdList, fdIndex, clientList);
-}
