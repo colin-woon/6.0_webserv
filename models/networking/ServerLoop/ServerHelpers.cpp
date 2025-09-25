@@ -34,7 +34,7 @@ void ServerLoop::acceptClients_(int lfd) {
 		int clientFd = accept(lfd, 0, 0);
 		if (clientFd == -1) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) break;
-			std::cerr << "accept error\n";
+			perror("accept error");
 			break;
 		}
 		if (!setNonBlocking(clientFd)) {
@@ -67,6 +67,11 @@ void ServerLoop::readOnce_(int fd) {
 
 	char buf[4096];
 	ssize_t n = recv(fd, buf, sizeof(buf), 0);
+	if (n == 0){
+		closeClient_(fd);
+		return;
+	}
+
 	if (n < 0)
 		return;
 
@@ -86,7 +91,7 @@ void ServerLoop::readOnce_(int fd) {
 		if (r > 0) {
 			// c.request._header.assign(c.inBuff, 0, c.headerEndPos + 4); //implement? or no?
 			c.request.setBody(c.bodyBuf);
-			std::cout << c.request.getBody() << std::endl; //simple print to test chunked intake
+			// std::cout << c.request.getBody() << std::endl; //simple print to test chunked intake
 			HttpHandler::handleRequest(c);
 			c.outBuff = c.response.toString();
 			c.responseQueued = true;
@@ -129,6 +134,7 @@ void ServerLoop::writeOnce_(int fd) {
 		return;
 	}
 
+	// std::cout <<c.outBuff.data() << std::endl;
 	ssize_t n = send(fd, c.outBuff.data(), c.outBuff.size(), 0);
 	if (n > 0) {
 		c.outBuff.erase(0, (size_t)n);
