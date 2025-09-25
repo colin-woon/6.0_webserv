@@ -70,7 +70,7 @@ public:
 	static int	parseChunkSizeHex_(const std::string& s, size_t start, size_t end, size_t& outSz);
 	static int	stepReadSizeLine_(Client& c);
 	static int	stepCopyChunkData_(Client& c, size_t maxBody);
-	static int	stepExpectDataCRLF_(Client& c);
+	static int	stepCheckLineCRLF_(Client& c);
 	static int	stepConsumeTrailers_(Client& c);
 	static int	unchunkStep_(Client& c, size_t maxBody);
 
