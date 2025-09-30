@@ -15,6 +15,23 @@ HttpHandlerPOST &HttpHandlerPOST::operator=(const HttpHandlerPOST &other)
 
 HttpHandlerPOST::~HttpHandlerPOST() {}
 
+static unsigned long djb2Hash(const std::string &str)
+{
+	unsigned long hash = 5381;
+	for (size_t i = 0; i < str.size(); ++i)
+	{
+		hash = ((hash << 5) + hash) + str[i]; // hash * 33 + c
+	}
+	return hash;
+}
+
+static std::string toHexString(unsigned long num)
+{
+	std::stringstream ss;
+	ss << std::hex << num;
+	return ss.str();
+}
+
 static void parseFileHeaderKeyValuePair(std::string &line, std::map<std::string, std::string> fileHeaders)
 {
 	size_t whitespacePos = line.find_first_of(" \t");
@@ -88,14 +105,47 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 {
 	std::map<std::string, std::string> headers = request.getHeaders();
 	std::map<std::string, std::string> fileHeaders;
-	std::istringstream bodyStream(request.getBody());
+	std::string body = request.getBody();
+
+	std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
 
 	try
 	{
 		std::string &contentType = headers.at("Content-Type");
 		size_t equalPos = contentType.find("=");
 		std::string boundary = contentType.substr(equalPos + 1);
-		parseFileHeaders(fileHeaders, request, bodyStream);
+
+		size_t headerMetadataEnd = body.find(" \n \n");
+		size_t dataContentEnd = body.find(" \n--" + boundary + "--");
+
+		std::string headerMetadata = body.substr(0, headerMetadataEnd);
+		std::istringstream headerStream(headerMetadata);
+		parseFileHeaders(fileHeaders, request, headerStream);
+		std::string dataContent = body.substr(headerMetadataEnd + 4, dataContentEnd - headerMetadataEnd + 4);
+		std::cout << dataContent << std::endl;
+
+		const std::string filenameKey = "filename=";
+		std::string contentDisposition = fileHeaders.at("Content-Disposition");
+		size_t startPos = contentDisposition.find(filenameKey);
+		size_t filenameStart = startPos + filenameKey.size() + 1;
+		size_t filenameLength = contentDisposition.size() - filenameStart - 1;
+		std::string filenameValue = contentDisposition.substr(filenameStart, filenameLength);
+
+		size_t lastPeriodPos = filenameValue.find_last_of(".");
+		std::string fileExtension = filenameValue.substr(lastPeriodPos);
+
+		unsigned long hashed = djb2Hash(filenameValue);
+		std::string hashedFilename = toHexString(hashed) + fileExtension;
+		std::cout << hashedFilename << std::endl;
+
+		std::ofstream out(TEMP_root + "/uploads/" + hashedFilename, std::ios::binary);
+		out.write(dataContent.c_str(), dataContent.size());
+		out.close();
+
+		// std::cout << filenameValue << std::endl;
+		// std::cout << fileExtension << std::endl;
+		// std::cout << headerMetadata << std::endl;
+		// size_t endPos = bodyStream.(" \n" + "--" + boundary);
 		// std::cout << boundary << std::endl;
 	}
 	catch (std::out_of_range)
