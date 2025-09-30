@@ -15,7 +15,95 @@ HttpHandlerPOST &HttpHandlerPOST::operator=(const HttpHandlerPOST &other)
 
 HttpHandlerPOST::~HttpHandlerPOST() {}
 
+static void parseFileHeaderKeyValuePair(std::string &line, std::map<std::string, std::string> fileHeaders)
+{
+	size_t whitespacePos = line.find_first_of(" \t");
+	size_t headerFieldPos = line.find_first_not_of(" \t");
+	if (whitespacePos < headerFieldPos)
+		throw Http400BadRequestException();
+
+	// Find the colon separator
+	size_t colonPos = line.find(':');
+	if (colonPos != std::string::npos)
+	{
+		std::string key = line.substr(0, colonPos);
+		if (whitespacePos < colonPos)
+			throw Http400BadRequestException();
+		// Trim leading whitespace from key (C++98 compatible)
+		size_t start = key.find_first_not_of(" \t");
+		if (start != std::string::npos)
+			key = key.substr(start);
+		else
+			key.clear(); // All whitespace, make empty
+
+		size_t valueStart = line.find_first_not_of(" \t", colonPos + 1);
+		if (valueStart != std::string::npos)
+		{
+			std::string value = line.substr(valueStart);
+			fileHeaders[key] = value;
+		}
+	}
+}
+
+static void parseFileHeaders(std::map<std::string, std::string> &fileHeaders, HttpRequest &request, std::istringstream &bodyStream)
+{
+	std::string line;
+
+	while (std::getline(bodyStream, line))
+	{
+		if (!line.empty() && line[line.size() - 1] == ' ')
+			line.erase(line.size() - 1);
+		if (line.empty())
+			return;
+		std::cout << line << std::endl;
+		size_t colonPos = line.find(':');
+		if (colonPos != std::string::npos)
+		{
+			std::string key = line.substr(0, colonPos);
+			// size_t start = key.find_first_not_of(" \t");
+			// if (start != std::string::npos)
+			// 	key = key.substr(start);
+			// else
+			// 	key.clear();
+
+			size_t valueStart = line.find_first_not_of(" \t", colonPos + 1);
+			if (valueStart != std::string::npos)
+			{
+				std::string value = line.substr(valueStart);
+				fileHeaders[key] = value;
+			}
+		}
+		// HttpUtils::checkForNUL(line);
+		// if (line.size() == 0 || (line.size() == 1 && line[0] == '\r'))
+		// {
+		// 	HttpUtils::handleEndOfHeaders(request, bodyStream);
+		// 	return;
+		// }
+		// HttpUtils::processCarriageReturn(line);
+		// parseFileHeaderKeyValuePair(line, fileHeaders);
+	}
+}
+
 void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &response)
 {
-	printf("Hello FROM POST\n");
+	std::map<std::string, std::string> headers = request.getHeaders();
+	std::map<std::string, std::string> fileHeaders;
+	std::istringstream bodyStream(request.getBody());
+
+	try
+	{
+		std::string &contentType = headers.at("Content-Type");
+		size_t equalPos = contentType.find("=");
+		std::string boundary = contentType.substr(equalPos + 1);
+		parseFileHeaders(fileHeaders, request, bodyStream);
+		// std::cout << boundary << std::endl;
+	}
+	catch (std::out_of_range)
+	{
+	}
 }
+
+// {
+// _M_p:
+// 	"------WebKitFormBoundaryjCmBlkofnsaOsXrw \nContent-Disposition: form-data; name=\"file\"; filename=\"Hackathon – Participant Rules & Guidelines.pdf\" \nContent-Type: application/pdf \n \n%PDF-1.7 \n%\xb5\xb5\xb5\xb5 \n1 0 obj \n<</Type/Catalog/Pages 2 0 R/Lang(en) /StructTreeRoot 34 0 R/MarkInfo<</Marked true>>/Metadata 222 0 R/ViewerPreferences 223 0 R>> \nendobj \n2 0 obj \n<</Type/Pages/Count 3/Kids[ 4 0 R 30 0 R 32 0 R] >> \nendobj \n3 0 obj \n<</MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_Enabled(true) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_SetDate(2025-09-12T09:03:13Z) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_Method(Standard) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_Name(UST Internal) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_SiteId(a4431f4b-c207-4733-9530-34c08a9b2b8d) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_ActionId(47a2c451-15b0-4ce9-b6e2-4803cd19f2ff) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_ContentBits(0) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_Tag(10, 3, 0, 1) /" ...
+// }
