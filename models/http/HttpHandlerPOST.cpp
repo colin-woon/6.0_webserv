@@ -115,20 +115,28 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 		size_t equalPos = contentType.find("=");
 		std::string boundary = contentType.substr(equalPos + 1);
 
-		size_t headerMetadataEnd = body.find(" \n \n");
-		size_t dataContentEnd = body.find(" \n--" + boundary + "--");
-
+		size_t headerMetadataEnd = body.find("\r\n\r\n");
 		std::string headerMetadata = body.substr(0, headerMetadataEnd);
 		std::istringstream headerStream(headerMetadata);
 		parseFileHeaders(fileHeaders, request, headerStream);
-		std::string dataContent = body.substr(headerMetadataEnd + 4, dataContentEnd - headerMetadataEnd + 4);
-		std::cout << dataContent << std::endl;
+
+		std::string closingBoundary = "--" + boundary + "--";
+		size_t closingPos = body.find(closingBoundary);
+		if (closingPos == std::string::npos)
+		{
+			std::cout << "ntohign" << std::endl;
+			return;
+		}
+		size_t dataStart = headerMetadataEnd + 4;
+		std::string dataContent = body.substr(dataStart, closingPos - dataStart);
+		// dataContent.erase(dataContent.size() - closingBoundary.size() - 1);
+		// std::cout << dataContent << std::endl;
 
 		const std::string filenameKey = "filename=";
 		std::string contentDisposition = fileHeaders.at("Content-Disposition");
 		size_t startPos = contentDisposition.find(filenameKey);
 		size_t filenameStart = startPos + filenameKey.size() + 1;
-		size_t filenameLength = contentDisposition.size() - filenameStart - 1;
+		size_t filenameLength = contentDisposition.size() - filenameStart - 2;
 		std::string filenameValue = contentDisposition.substr(filenameStart, filenameLength);
 
 		size_t lastPeriodPos = filenameValue.find_last_of(".");
