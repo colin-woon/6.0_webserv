@@ -4,6 +4,7 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "HttpExceptions.hpp"
+#include <fstream>
 
 class HttpHandlerPOST
 {

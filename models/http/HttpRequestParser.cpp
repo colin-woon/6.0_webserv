@@ -1,13 +1,14 @@
 #include "HttpRequestParser.hpp"
 #include "HttpRequest.hpp"
 #include "HttpExceptions.hpp"
+#include <cstdlib>
 
 static void parseBody(HttpRequest &request, std::istringstream &requestStream, std::string &line)
 {
 	const std::map<std::string, std::string> &headers = request.getHeaders();
 	std::string body;
 
-	if (request.getMethod().compare("GET") == 0)
+	if (request.getMethod().compare("GET") == 0 || request.getMethod().compare("DELETE") == 0)
 	{
 		HttpUtils::skipEmptyLines(requestStream, line);
 		if (!requestStream.eof())
@@ -15,25 +16,38 @@ static void parseBody(HttpRequest &request, std::istringstream &requestStream, s
 		else
 			return;
 	}
-	while (std::getline(requestStream, line))
+
+	if (headers.find("Content-Length") != headers.end() && headers.find("Transfer-Encoding") != headers.end())
+		throw Http400BadRequestException();
+
+	std::map<std::string, std::string>::const_iterator it = headers.find("Content-Length");
+	if (it != headers.end())
 	{
-		if (!line.empty() && headers.find("Content-Length") == headers.end() && headers.find("Transfer-Encoding") == headers.end())
-			throw Http400BadRequestException();
-		else if (headers.find("Content-Length") != headers.end() && headers.find("Transfer-Encoding") != headers.end())
+		const std::string &contentLengthStr = it->second;
+		char *endptr;
+		long contentLength = std::strtol(contentLengthStr.c_str(), &endptr, 10);
+
+		if (*endptr != '\0' || contentLength < 0)
 			throw Http400BadRequestException();
 
-		size_t crPos = std::string::npos;
-		while (true)
+		body.resize(contentLength);
+		if (contentLength > 0)
 		{
-			crPos = line.find('\r');
-			if (crPos == std::string::npos)
-				break;
-			else
-				line[crPos] = ' ';
+			requestStream.read(&body[0], contentLength);
+			std::cout << "Expected Content-Length: " << contentLength << std::endl;
+			std::cout << "Bytes actually read (gcount): " << requestStream.gcount() << std::endl;
+			if (requestStream.gcount() != contentLength)
+				throw Http400BadRequestException();
 		}
-		body += line;
-		if (!requestStream.eof())
-			body += "\n";
+	}
+	else if (headers.find("Transfer-Encoding") != headers.end())
+	{
+		if (headers.find("Transfer-Encoding")->second == "chunked")
+			throw Http501NotImplementedException();
+	}
+	else if (request.getMethod().compare("POST") == 0)
+	{
+		throw Http400BadRequestException();
 	}
 	request.setBody(body);
 }
@@ -67,7 +81,10 @@ static void parseHeaders(HttpRequest &request, std::istringstream &requestStream
 static void postParsingValidation(HttpRequest &request)
 {
 	const int maxMethodSize = 10;
-	std::set<std::string> implementedMethods = {"GET", "POST", "DELETE"};
+	std::set<std::string> implementedMethods;
+	implementedMethods.insert("GET");
+	implementedMethods.insert("POST");
+	implementedMethods.insert("DELETE");
 	char uppercaseLetters[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 	if (request.getMethod().find_first_not_of(uppercaseLetters) != std::string::npos)
