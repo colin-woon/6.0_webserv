@@ -1,4 +1,3 @@
-
 #include "ServerLoop.hpp"
 #include "PollHelpers.hpp"
 #include "ServerHelpers.hpp"
@@ -14,10 +13,10 @@
 #include <sys/socket.h>
 
 static std::string preview(const std::string& s, size_t pos, size_t n) {
-    if (pos >= s.size()) return "";
-    size_t take = s.size() - pos;
-    if (take > n) take = n;
-    return s.substr(pos, take);
+	if (pos >= s.size()) return "";
+	size_t take = s.size() - pos;
+	if (take > n) take = n;
+	return s.substr(pos, take);
 }
 
 void ServerLoop::closeClient_(int fd) {
@@ -33,7 +32,8 @@ void ServerLoop::acceptClients_(int lfd) {
 	while (1){
 		int clientFd = accept(lfd, 0, 0);
 		if (clientFd == -1) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) break;
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				break;
 			std::cerr << "accept error\n";
 			break;
 		}
@@ -50,9 +50,6 @@ void ServerLoop::acceptClients_(int lfd) {
 			c.serverConfig = it->second;
 		else
 			c.serverConfig = NULL;
-		
-		std::cout << c.serverConfig->location[1].path << std::endl;;
-
 		setClientTimeout(lfd, c, listenerTimeoutMs_);
 		clientList_[clientFd] = c;
 		std::cout << "accepted " << clientFd << "\n";
@@ -75,11 +72,11 @@ void ServerLoop::readOnce_(int fd) {
 	if (c.responseQueued)
 		return;
 
-    if (!c.headersDone){
+	if (!c.headersDone){
 		if (!findHeadersEndAndMark_(c))
 			return;
 		detectBodyFraming_(c);
-    }
+	}
 
 	if (c.isChunked) {
 		int r = unchunkStep_(c, 0);
@@ -93,15 +90,25 @@ void ServerLoop::readOnce_(int fd) {
 		else if (r < 0) {
 			HttpHandler::handleRequest(c);
 			c.outBuff = c.response.toString();
-			std::cout << c.outBuff << std::endl;
 			c.responseQueued = true;
 			c.closeFlag = true;
 			modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
 		}
 		return;
 	}
-
-	c.consumedBytes = c.inBuff.size();
+	if (c.contentLength > 0){
+		size_t bodyAvail;
+		if (c.inBuff.size() >= c.parsePos)
+			bodyAvail = c.inBuff.size() - c.parsePos;
+		else
+			bodyAvail = 0;
+		if (bodyAvail < c.contentLength) //body not complete, go to next recv
+			return;
+		c.bodyBuf.assign(c.inBuff, c.parsePos, c.contentLength);
+		c.consumedBytes = c.parsePos + c.contentLength;
+	}
+	else
+		c.consumedBytes = c.parsePos;
 	HttpHandler::handleRequest(c);
 	c.outBuff = c.response.toString();
 	c.responseQueued = true;
@@ -110,7 +117,8 @@ void ServerLoop::readOnce_(int fd) {
 
 void ServerLoop::writeOnce_(int fd) {
 	std::map<int, Client>::iterator it = clientList_.find(fd);
-	if (it == clientList_.end()) return;
+	if (it == clientList_.end())
+	return;
 	Client &c = it->second;
 
 	if (c.outBuff.empty()) {
@@ -118,10 +126,8 @@ void ServerLoop::writeOnce_(int fd) {
 		if (c.closeFlag) {
 			std::cout << "closing, 2nd loop with no content" << std::endl;
 			closeClient_(fd);
-		} else {
+		} else
 			resetKeepAlive_(c);
-			std::cout << "[KEEP-ALIVE] reset: inBuff.size=" << c.inBuff.size() << " headersDone=" << c.headersDone << " isChunked=" << c.isChunked << "\n"; // test print
-		}
 		return;
 	}
 
@@ -193,6 +199,46 @@ void ServerLoop::detectBodyFraming_(Client& c) {
 		if (teval.find("chunked") != std::string::npos)
 			c.isChunked = true;
 	}
+
+	const std::string kCL = "content-length:";
+	std::string::size_type p = lower.find(kCL);
+	if (p != std::string::npos) {
+		p += kCL.size();
+		while (p < lower.size() && (lower[p] == ' ' || lower[p] == '\t'))
+			++p;
+		std::string::size_type eol = lower.find("\r\n", p);
+		if (eol == std::string::npos)
+			eol = lower.size();
+		std::string::size_type end = eol;
+		while (end > p && (lower[end - 1] == ' ' || lower[end - 1] == '\t'))
+			--end;
+		size_t cl = 0;
+		if (parseContentLength_(lower, p, end, cl)) {
+			c.contentLength = cl;
+		}
+		else
+			// bad contentlength,treat as no body? maybe set 400 bad request?
+			c.contentLength = 0;
+	}
+}
+
+int ServerLoop::parseContentLength_(const std::string& s, size_t start, size_t end, size_t& out){
+	if (start >= end)
+		return 0;
+	std::string tmp = s.substr(start, end - start);
+	if (tmp.empty())
+		return 0;
+
+	for (size_t i = 0; i < tmp.size(); i++)
+		if(tmp[i] < '0' || tmp[i] > '9')
+			return 0;
+	errno = 0;
+	char *endptr = 0;
+	unsigned long value = std::strtoul(tmp.c_str(), &endptr, 10);
+	if (errno == ERANGE || endptr == tmp.c_str() || *endptr != '\0')
+		return 0;
+	out = static_cast<size_t>(value);
+	return 1;
 }
 
 int ServerLoop::parseChunkSizeHex_(const std::string& s, size_t start, size_t end, size_t& outSz) {
@@ -236,7 +282,6 @@ int ServerLoop::stepReadSizeLine_(Client& c) {
 
 	c.chunkRemain = sz;
 	c.parsePos = eol + 2;
-	std::cout << "[CHUNKED] size-line: size=" << c.chunkRemain << " parsePos=" << c.parsePos << " nextStage=" << (c.chunkRemain == 0 ? 3 : 1) << "\n"; //test print
 	if (sz == 0)
 		c.chunkStage = 3;
 	else
@@ -255,14 +300,8 @@ int ServerLoop::stepCopyChunkData_(Client& c, size_t maxBody) {
 		c.bodyBuf.append(c.inBuff, c.parsePos, take);
 		c.parsePos += take;
 		c.chunkRemain -= take;
-	std::cout << "[CHUNKED] copy-data: take=" << take
-          << " remain=" << c.chunkRemain
-          << " parsePos(before) would be " << (c.parsePos - take) << " -> (after) " << c.parsePos
-          << " bodyBuf.size=" << c.bodyBuf.size()
-          << " preview='" << preview(c.inBuff, c.parsePos - take, take < 32 ? take : 32) << "'\n"; // test print
 		if (maxBody > 0) {
 			if (c.bodyBuf.size() > maxBody){
-				std::cout << "[CHUNKED][ERROR] body exceeds maxBody=" << maxBody << "\n"; // test print
 				return -1;
 			}
 		}
@@ -274,16 +313,11 @@ int ServerLoop::stepCopyChunkData_(Client& c, size_t maxBody) {
 	return 1;
 }
 
-int ServerLoop::stepExpectDataCRLF_(Client& c) {
-	if (c.parsePos + 2 > c.inBuff.size()){
-		std::cout << "[CHUNKED] wait-CRLF: need more bytes (parsePos=" << c.parsePos << ")\n"; // test print
+int ServerLoop::stepCheckLineCRLF_(Client& c){
+	if (c.parsePos + 2 > c.inBuff.size())
 		return 0;
-	}
-	if (c.inBuff[c.parsePos] != '\r' || c.inBuff[c.parsePos + 1] != '\n'){
-		std::cout << "[CHUNKED][ERROR] missing CRLF after data at parsePos=" << c.parsePos << "\n"; // test print
+	if (c.inBuff[c.parsePos] != '\r' || c.inBuff[c.parsePos + 1] != '\n')
 		return -1;
-	}
-	std::cout << "[CHUNKED] got-CRLF after data, nextStage=0\n"; // test print
 	c.parsePos += 2;
 	c.chunkStage = 0;
 	return 1;
@@ -292,19 +326,14 @@ int ServerLoop::stepExpectDataCRLF_(Client& c) {
 int ServerLoop::stepConsumeTrailers_(Client& c) {
 	if (c.parsePos + 2 <= c.inBuff.size()) {
 		if (c.inBuff[c.parsePos] == '\r' && c.inBuff[c.parsePos + 1] == '\n') {
-			std::cout << "[CHUNKED] blank-trailers, done. parsePos=" << (c.parsePos + 2) << "\n"; // test print
 			c.parsePos += 2;
 			c.chunkStage = 4;  // done
 			return 1;
 		}
 	}
 	std::string::size_type end = c.inBuff.find("\r\n\r\n", c.parsePos);
-	if (end == std::string::npos){
-		std::cout << "[CHUNKED] waiting trailers... parsePos=" << c.parsePos << "\n"; // test print
+	if (end == std::string::npos)
 		return 0;
-	}
-	std::cout << "[CHUNKED] trailers consumed up to " << (end + 4) << ", done.\n"; // test print
-	c.parsePos = end + 4;
 	c.chunkStage = 4;
 	return 1;
 }
@@ -320,7 +349,7 @@ int ServerLoop::unchunkStep_(Client& c, size_t maxBody) {
 			if (r <= 0)
 				return r;
 		} else if (c.chunkStage == 2) {
-			int r = stepExpectDataCRLF_(c);
+			int r = stepCheckLineCRLF_(c);
 			if (r <= 0)
 				return r;
 		} else if (c.chunkStage == 3) {
