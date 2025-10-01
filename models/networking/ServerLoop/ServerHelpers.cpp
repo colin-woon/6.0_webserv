@@ -1,4 +1,3 @@
-
 #include "ServerLoop.hpp"
 #include "PollHelpers.hpp"
 #include "ServerHelpers.hpp"
@@ -14,10 +13,10 @@
 #include <sys/socket.h>
 
 static std::string preview(const std::string& s, size_t pos, size_t n) {
-    if (pos >= s.size()) return "";
-    size_t takenBytes = s.size() - pos;
-    if (takenBytes > n) takenBytes = n;
-    return s.substr(pos, takenBytes);
+	if (pos >= s.size()) return "";
+	size_t take = s.size() - pos;
+	if (take > n) take = n;
+	return s.substr(pos, take);
 }
 
 void ServerLoop::closeClient_(int fd) {
@@ -33,8 +32,9 @@ void ServerLoop::acceptClients_(int lfd) {
 	while (1){
 		int clientFd = accept(lfd, 0, 0);
 		if (clientFd == -1) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) break;
-			perror("accept error");
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				break;
+			std::cerr << "accept error\n";
 			break;
 		}
 		if (!setNonBlocking(clientFd)) {
@@ -50,9 +50,6 @@ void ServerLoop::acceptClients_(int lfd) {
 			c.serverConfig = it->second;
 		else
 			c.serverConfig = NULL;
-		
-		std::cout << c.serverConfig->location[1].path << std::endl;;
-
 		setClientTimeout(lfd, c, listenerTimeoutMs_);
 		clientList_[clientFd] = c;
 		std::cout << "accepted " << clientFd << "\n";
@@ -67,11 +64,6 @@ void ServerLoop::readOnce_(int fd) {
 
 	char buf[4096];
 	ssize_t n = recv(fd, buf, sizeof(buf), 0);
-	if (n == 0){
-		closeClient_(fd);
-		return;
-	}
-
 	if (n < 0)
 		return;
 
@@ -80,18 +72,15 @@ void ServerLoop::readOnce_(int fd) {
 	if (c.responseQueued)
 		return;
 
-    if (!c.headersDone){
+	if (!c.headersDone){
 		if (!findHeadersEndAndMark_(c))
 			return;
 		detectBodyFraming_(c);
-    }
+	}
 
 	if (c.isChunked) {
 		int r = unchunkStep_(c, 0);
 		if (r > 0) {
-			// c.request._header.assign(c.inBuff, 0, c.headerEndPos + 4); //implement? or no?
-			c.request.setBody(c.bodyBuf);
-			// std::cout << c.request.getBody() << std::endl; //simple print to test chunked intake
 			HttpHandler::handleRequest(c);
 			c.outBuff = c.response.toString();
 			c.responseQueued = true;
@@ -101,16 +90,25 @@ void ServerLoop::readOnce_(int fd) {
 		else if (r < 0) {
 			HttpHandler::handleRequest(c);
 			c.outBuff = c.response.toString();
-			std::cout << c.outBuff << std::endl;
 			c.responseQueued = true;
 			c.closeFlag = true;
 			modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
 		}
 		return;
 	}
-
-	c.consumedBytes = c.inBuff.size();
-	// std::cout<<c.inBuff<<std::endl;
+	if (c.contentLength > 0){
+		size_t bodyAvail;
+		if (c.inBuff.size() >= c.parsePos)
+			bodyAvail = c.inBuff.size() - c.parsePos;
+		else
+			bodyAvail = 0;
+		if (bodyAvail < c.contentLength) //body not complete, go to next recv
+			return;
+		c.bodyBuf.assign(c.inBuff, c.parsePos, c.contentLength);
+		c.consumedBytes = c.parsePos + c.contentLength;
+	}
+	else
+		c.consumedBytes = c.parsePos;
 	HttpHandler::handleRequest(c);
 	c.outBuff = c.response.toString();
 	c.responseQueued = true;
@@ -119,7 +117,8 @@ void ServerLoop::readOnce_(int fd) {
 
 void ServerLoop::writeOnce_(int fd) {
 	std::map<int, Client>::iterator it = clientList_.find(fd);
-	if (it == clientList_.end()) return;
+	if (it == clientList_.end())
+	return;
 	Client &c = it->second;
 
 	if (c.outBuff.empty()) {
@@ -127,14 +126,11 @@ void ServerLoop::writeOnce_(int fd) {
 		if (c.closeFlag) {
 			std::cout << "closing, 2nd loop with no content" << std::endl;
 			closeClient_(fd);
-		} else {
+		} else
 			resetKeepAlive_(c);
-			std::cout << "[KEEP-ALIVE] reset: inBuff.size=" << c.inBuff.size() << " headersDone=" << c.headersDone << " isChunked=" << c.isChunked << "\n"; // test print
-		}
 		return;
 	}
 
-	// std::cout <<c.outBuff.data() << std::endl;
 	ssize_t n = send(fd, c.outBuff.data(), c.outBuff.size(), 0);
 	if (n > 0) {
 		c.outBuff.erase(0, (size_t)n);
@@ -203,6 +199,46 @@ void ServerLoop::detectBodyFraming_(Client& c) {
 		if (teval.find("chunked") != std::string::npos)
 			c.isChunked = true;
 	}
+
+	const std::string kCL = "content-length:";
+	std::string::size_type p = lower.find(kCL);
+	if (p != std::string::npos) {
+		p += kCL.size();
+		while (p < lower.size() && (lower[p] == ' ' || lower[p] == '\t'))
+			++p;
+		std::string::size_type eol = lower.find("\r\n", p);
+		if (eol == std::string::npos)
+			eol = lower.size();
+		std::string::size_type end = eol;
+		while (end > p && (lower[end - 1] == ' ' || lower[end - 1] == '\t'))
+			--end;
+		size_t cl = 0;
+		if (parseContentLength_(lower, p, end, cl)) {
+			c.contentLength = cl;
+		}
+		else
+			// bad contentlength,treat as no body? maybe set 400 bad request?
+			c.contentLength = 0;
+	}
+}
+
+int ServerLoop::parseContentLength_(const std::string& s, size_t start, size_t end, size_t& out){
+	if (start >= end)
+		return 0;
+	std::string tmp = s.substr(start, end - start);
+	if (tmp.empty())
+		return 0;
+
+	for (size_t i = 0; i < tmp.size(); i++)
+		if(tmp[i] < '0' || tmp[i] > '9')
+			return 0;
+	errno = 0;
+	char *endptr = 0;
+	unsigned long value = std::strtoul(tmp.c_str(), &endptr, 10);
+	if (errno == ERANGE || endptr == tmp.c_str() || *endptr != '\0')
+		return 0;
+	out = static_cast<size_t>(value);
+	return 1;
 }
 
 int ServerLoop::parseChunkSizeHex_(const std::string& s, size_t start, size_t end, size_t& outSz) {
@@ -212,13 +248,13 @@ int ServerLoop::parseChunkSizeHex_(const std::string& s, size_t start, size_t en
 		return 0;
 	while (i < end) {
 		char c = s[i];
-		unsigned int d;
+		unsigned d;
 		if (c >= '0' && c <= '9')
-			d = (unsigned int)(c - '0');
+			d = (unsigned)(c - '0');
 		else if (c >= 'a' && c <= 'f')
-			d = 10u + (unsigned int)(c - 'a');
+			d = 10u + (unsigned)(c - 'a');
 		else if (c >= 'A' && c <= 'F')
-			d = 10u + (unsigned int)(c - 'A');
+			d = 10u + (unsigned)(c - 'A');
 		else
 			break;
 		if (v > (SIZE_MAX - d) / 16u)
@@ -233,17 +269,19 @@ int ServerLoop::parseChunkSizeHex_(const std::string& s, size_t start, size_t en
 }
 
 int ServerLoop::stepReadSizeLine_(Client& c) {
-	int endofLine = c.inBuff.find("\r\n", c.parsePos);
-	if (endofLine == std::string::npos)
+	std::string::size_type eol = c.inBuff.find("\r\n", c.parsePos);
+	if (eol == std::string::npos)
 		return 0;
-	int sizeEnd = endofLine;
+	std::string::size_type semi = c.inBuff.find(';', c.parsePos);
+	std::string::size_type sizeEnd = eol;
+	if (semi != std::string::npos && semi < eol)
+		sizeEnd = semi;
 	size_t sz = 0;
 	if (!parseChunkSizeHex_(c.inBuff, c.parsePos, sizeEnd, sz))
 		return -1;
 
 	c.chunkRemain = sz;
-	c.parsePos = endofLine + 2; // move behind \r\n
-	std::cout << "[CHUNKED] size-line: size=" << c.chunkRemain << " parsePos=" << c.parsePos << " nextStage=" << (c.chunkRemain == 0 ? 3 : 1) << "\n"; //test print
+	c.parsePos = eol + 2;
 	if (sz == 0)
 		c.chunkStage = 3;
 	else
@@ -252,33 +290,33 @@ int ServerLoop::stepReadSizeLine_(Client& c) {
 }
 
 int ServerLoop::stepCopyChunkData_(Client& c, size_t maxBody) {
-	if (c.parsePos >= c.inBuff.size())
-		return 0;
+	if (c.parsePos >= c.inBuff.size()) return 0;
 
-	size_t availBytes = c.inBuff.size() - c.parsePos; //how many bytes available in the buffer
-	size_t takenBytes = c.chunkRemain; //how many bytes in the chunk as stated from the hexadecimal value check
-	if (takenBytes > availBytes) //if client sent incomplete content in the buffer, reduce takenbytes so i can poll again and get the remainder
-		takenBytes = availBytes;
+	size_t avail = c.inBuff.size() - c.parsePos;
+	size_t take = c.chunkRemain;
+	if (take > avail) take = avail;
 
-	if (takenBytes > 0) {
-		c.bodyBuf.append(c.inBuff, c.parsePos, takenBytes);
-		c.parsePos += takenBytes;
-		c.chunkRemain -= takenBytes;
-	if (maxBody > 0) {
-		if (c.bodyBuf.size() > maxBody)
-			return -1;
+	if (take > 0) {
+		c.bodyBuf.append(c.inBuff, c.parsePos, take);
+		c.parsePos += take;
+		c.chunkRemain -= take;
+		if (maxBody > 0) {
+			if (c.bodyBuf.size() > maxBody){
+				return -1;
+			}
+		}
 	}
-	}
-	if (c.chunkRemain > 0) // incomplete, wait for next poll loop to complete the chunk
+
+	if (c.chunkRemain > 0)
 		return 0;
-	c.chunkStage = 2; // complete chunk, go to next stage
+	c.chunkStage = 2;
 	return 1;
 }
 
-int ServerLoop::stepCheckLineCRLF_(Client& c) {
-	if (c.parsePos + 2 > c.inBuff.size()) //check if parsepos + 2 (\r\n) stays within bound of actual buffer
+int ServerLoop::stepCheckLineCRLF_(Client& c){
+	if (c.parsePos + 2 > c.inBuff.size())
 		return 0;
-	if (c.inBuff[c.parsePos] != '\r' || c.inBuff[c.parsePos + 1] != '\n') // check if \r\n is at the end of current line
+	if (c.inBuff[c.parsePos] != '\r' || c.inBuff[c.parsePos + 1] != '\n')
 		return -1;
 	c.parsePos += 2;
 	c.chunkStage = 0;
@@ -286,18 +324,16 @@ int ServerLoop::stepCheckLineCRLF_(Client& c) {
 }
 
 int ServerLoop::stepConsumeTrailers_(Client& c) {
-	if (c.parsePos + 2 <= c.inBuff.size()) { // check if only 2 bytes at the end in the case where client do not send trailer
+	if (c.parsePos + 2 <= c.inBuff.size()) {
 		if (c.inBuff[c.parsePos] == '\r' && c.inBuff[c.parsePos + 1] == '\n') {
 			c.parsePos += 2;
-			c.chunkStage = 4;// done
+			c.chunkStage = 4;  // done
 			return 1;
 		}
 	}
-	std::string::size_type end = c.inBuff.find("\r\n\r\n", c.parsePos); //client sends trailer
-	if (end == std::string::npos){
+	std::string::size_type end = c.inBuff.find("\r\n\r\n", c.parsePos);
+	if (end == std::string::npos)
 		return 0;
-	}
-	c.parsePos = end + 4;
 	c.chunkStage = 4;
 	return 1;
 }
@@ -305,7 +341,7 @@ int ServerLoop::stepConsumeTrailers_(Client& c) {
 int ServerLoop::unchunkStep_(Client& c, size_t maxBody) {
 	while (1) {
 		if (c.chunkStage == 0) {
-			int r = stepReadSizeLine_(c); //parses line size, moves pointer to eol (behind \r\n)
+			int r = stepReadSizeLine_(c);
 			if (r <= 0)
 				return r;
 		} else if (c.chunkStage == 1) {
@@ -324,7 +360,7 @@ int ServerLoop::unchunkStep_(Client& c, size_t maxBody) {
 			c.consumedBytes = c.parsePos; // end of request in inBuff
 			return 1;
 		} else
-			return -1;
+			return -1; // unknown stage
 	}
 }
 
