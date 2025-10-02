@@ -169,9 +169,16 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 		getFileNameAndExtension(fileHeaders, filenameValue, fileExtension);
 
 		uploadHashedFile(filenameValue, fileExtension, fileContent, fileHeaders);
+		
+		// Set successful response
+		response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+		response.addHeader("Content-Type", "text/plain");
+		response.addHeader("Content-Length", "18");
+		response.setBody("Upload successful\n");
 	}
 	catch (std::out_of_range)
 	{
+		throw Http400BadRequestException();
 	}
 }
 

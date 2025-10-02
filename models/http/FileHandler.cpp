@@ -22,6 +22,11 @@ std::map<std::string, std::string> &FileHandler::getFileMetaData(std::string &ha
 	return (_hashedFileNames[hashKey]);
 }
 
+std::map<std::string, std::map<std::string, std::string>> FileHandler::getAllFileMetaData()
+{
+	return _hashedFileNames;
+}
+
 void FileHandler::addNewFileMetaData(std::string &hashKey, std::map<std::string, std::string> &fileMetaData)
 {
 	_hashedFileNames[hashKey] = fileMetaData;
