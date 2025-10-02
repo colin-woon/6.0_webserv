@@ -66,6 +66,7 @@ HTTP_HEADERS	=	models/http/HttpRequest.hpp \
 					models/http/HttpRequestParser.hpp \
 					models/http/HttpExceptions.hpp \
 					models/http/HttpUtils.hpp \
+					models/http/FileHandler.hpp \
 
 HTTP_MODELS		=	models/http/HttpRequest.cpp \
 					models/http/HttpResponse.cpp \
@@ -75,6 +76,7 @@ HTTP_MODELS		=	models/http/HttpRequest.cpp \
 					models/http/HttpUtils.cpp \
 					models/http/HttpRequestParser.cpp \
 					models/http/HttpExceptions.cpp \
+					models/http/FileHandler.cpp \
 
 MODEL_FILES		=	$(HTTP_MODELS) $(NETWORKING_MODELS) $(PARSING_MODELS)
 MODEL_HEADERS	=	$(HTTP_HEADERS) $(NETWORKING_HEADERS) $(PARSING_HEADERS)

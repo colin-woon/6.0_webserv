@@ -101,60 +101,73 @@ static void parseFileHeaders(std::map<std::string, std::string> &fileHeaders, Ht
 	}
 }
 
+static void getBoundary(std::map<std::string, std::string> &headers, std::string &boundary)
+{
+	std::string &contentType = headers.at("Content-Type");
+	size_t equalPos = contentType.find("=");
+	boundary = contentType.substr(equalPos + 1);
+}
+
+static void getFileHeadersAndContent(std::string &body, std::map<std::string, std::string> &fileHeaders, HttpRequest &request, std::string &boundary, std::string &fileContent)
+{
+	size_t headerMetadataEnd = body.find("\r\n\r\n");
+	std::string headerMetadata = body.substr(0, headerMetadataEnd);
+	std::istringstream headerStream(headerMetadata);
+	parseFileHeaders(fileHeaders, request, headerStream);
+
+	std::string closingBoundary = "--" + boundary + "--";
+	size_t closingPos = body.find(closingBoundary);
+	if (closingPos == std::string::npos)
+	{
+		std::cout << "ntohign" << std::endl;
+		return;
+	}
+	size_t dataStart = headerMetadataEnd + 4;
+	fileContent = body.substr(dataStart, closingPos - dataStart);
+}
+
+static void getFileNameAndExtension(std::map<std::string, std::string> &fileHeaders, std::string &filenameValue, std::string &fileExtension)
+{
+	const std::string filenameKey = "filename=";
+	std::string contentDisposition = fileHeaders.at("Content-Disposition");
+	size_t startPos = contentDisposition.find(filenameKey);
+	size_t filenameStart = startPos + filenameKey.size() + 1;
+	size_t filenameLength = contentDisposition.size() - filenameStart - 2;
+	filenameValue = contentDisposition.substr(filenameStart, filenameLength);
+
+	size_t lastPeriodPos = filenameValue.find_last_of(".");
+	fileExtension = filenameValue.substr(lastPeriodPos);
+}
+
+static void uploadHashedFile(std::string &filenameValue, std::string &fileExtension, std::string &fileContent)
+{
+	unsigned long hashed = djb2Hash(filenameValue);
+	std::string hashedFilename = toHexString(hashed) + fileExtension;
+
+	FileHandler::addNewFileName(hashedFilename, filenameValue);
+	FileHandler::uploadFile(hashedFilename, fileContent);
+
+	std::cout << FileHandler::getRealFileName(hashedFilename) << std::endl;
+}
+
 void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &response)
 {
-	std::map<std::string, std::string> headers = request.getHeaders();
-	std::map<std::string, std::string> fileHeaders;
-	std::string body = request.getBody();
-
-	std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
-
 	try
 	{
-		std::string &contentType = headers.at("Content-Type");
-		size_t equalPos = contentType.find("=");
-		std::string boundary = contentType.substr(equalPos + 1);
+		std::map<std::string, std::string> headers = request.getHeaders();
+		std::string body = request.getBody();
+		std::string boundary;
+		std::map<std::string, std::string> fileHeaders;
+		std::string fileContent;
 
-		size_t headerMetadataEnd = body.find("\r\n\r\n");
-		std::string headerMetadata = body.substr(0, headerMetadataEnd);
-		std::istringstream headerStream(headerMetadata);
-		parseFileHeaders(fileHeaders, request, headerStream);
+		getBoundary(headers, boundary);
+		getFileHeadersAndContent(body, fileHeaders, request, boundary, fileContent);
 
-		std::string closingBoundary = "--" + boundary + "--";
-		size_t closingPos = body.find(closingBoundary);
-		if (closingPos == std::string::npos)
-		{
-			std::cout << "ntohign" << std::endl;
-			return;
-		}
-		size_t dataStart = headerMetadataEnd + 4;
-		std::string dataContent = body.substr(dataStart, closingPos - dataStart);
-		// dataContent.erase(dataContent.size() - closingBoundary.size() - 1);
-		// std::cout << dataContent << std::endl;
+		std::string filenameValue;
+		std::string fileExtension;
+		getFileNameAndExtension(fileHeaders, filenameValue, fileExtension);
 
-		const std::string filenameKey = "filename=";
-		std::string contentDisposition = fileHeaders.at("Content-Disposition");
-		size_t startPos = contentDisposition.find(filenameKey);
-		size_t filenameStart = startPos + filenameKey.size() + 1;
-		size_t filenameLength = contentDisposition.size() - filenameStart - 2;
-		std::string filenameValue = contentDisposition.substr(filenameStart, filenameLength);
-
-		size_t lastPeriodPos = filenameValue.find_last_of(".");
-		std::string fileExtension = filenameValue.substr(lastPeriodPos);
-
-		unsigned long hashed = djb2Hash(filenameValue);
-		std::string hashedFilename = toHexString(hashed) + fileExtension;
-		std::cout << hashedFilename << std::endl;
-
-		std::ofstream out(TEMP_root + "/uploads/" + hashedFilename, std::ios::binary);
-		out.write(dataContent.c_str(), dataContent.size());
-		out.close();
-
-		// std::cout << filenameValue << std::endl;
-		// std::cout << fileExtension << std::endl;
-		// std::cout << headerMetadata << std::endl;
-		// size_t endPos = bodyStream.(" \n" + "--" + boundary);
-		// std::cout << boundary << std::endl;
+		uploadHashedFile(filenameValue, fileExtension, fileContent);
 	}
 	catch (std::out_of_range)
 	{
