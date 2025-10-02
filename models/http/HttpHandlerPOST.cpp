@@ -139,15 +139,16 @@ static void getFileNameAndExtension(std::map<std::string, std::string> &fileHead
 	fileExtension = filenameValue.substr(lastPeriodPos);
 }
 
-static void uploadHashedFile(std::string &filenameValue, std::string &fileExtension, std::string &fileContent)
+static void uploadHashedFile(std::string &filenameValue, std::string &fileExtension, std::string &fileContent, std::map<std::string, std::string> &fileHeaders)
 {
 	unsigned long hashed = djb2Hash(filenameValue);
 	std::string hashedFilename = toHexString(hashed) + fileExtension;
 
-	FileHandler::addNewFileName(hashedFilename, filenameValue);
+	fileHeaders["original-file-name"] = filenameValue;
+	FileHandler::addNewFileMetaData(hashedFilename, fileHeaders);
 	FileHandler::uploadFile(hashedFilename, fileContent);
 
-	std::cout << FileHandler::getRealFileName(hashedFilename) << std::endl;
+	std::cout << FileHandler::getFileMetaData(hashedFilename)["Content-Disposition"] << std::endl;
 }
 
 void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &response)
@@ -167,7 +168,7 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 		std::string fileExtension;
 		getFileNameAndExtension(fileHeaders, filenameValue, fileExtension);
 
-		uploadHashedFile(filenameValue, fileExtension, fileContent);
+		uploadHashedFile(filenameValue, fileExtension, fileContent, fileHeaders);
 	}
 	catch (std::out_of_range)
 	{
