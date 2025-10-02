@@ -14,6 +14,8 @@ void HttpHandler::handleRequest(Client &client)
 			return HttpHandlerGET::handleGetRequest(request, response);
 		if (request.getMethod().compare("POST") == 0)
 			return HttpHandlerPOST::handlePostRequest(request, response);
+		if (request.getMethod().compare("DELETE") == 0)
+			return HttpHandlerDELETE::handleDeleteRequest(request, response);
 	}
 	catch (const Http400BadRequestException &e)
 	{
