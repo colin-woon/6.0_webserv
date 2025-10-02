@@ -62,19 +62,23 @@ HTTP_HEADERS	=	models/http/HttpRequest.hpp \
 					models/http/HttpResponse.hpp \
 					models/http/HttpHandlerGET.hpp \
 					models/http/HttpHandlerPOST.hpp \
+					models/http/HttpHandlerDELETE.hpp \
 					models/http/HttpHandler.hpp \
 					models/http/HttpRequestParser.hpp \
 					models/http/HttpExceptions.hpp \
 					models/http/HttpUtils.hpp \
+					models/http/FileHandler.hpp \
 
 HTTP_MODELS		=	models/http/HttpRequest.cpp \
 					models/http/HttpResponse.cpp \
 					models/http/HttpHandlerGET.cpp \
 					models/http/HttpHandlerPOST.cpp \
+					models/http/HttpHandlerDELETE.cpp \
 					models/http/HttpHandler.cpp \
 					models/http/HttpUtils.cpp \
 					models/http/HttpRequestParser.cpp \
 					models/http/HttpExceptions.cpp \
+					models/http/FileHandler.cpp \
 
 MODEL_FILES		=	$(HTTP_MODELS) $(NETWORKING_MODELS) $(PARSING_MODELS)
 MODEL_HEADERS	=	$(HTTP_HEADERS) $(NETWORKING_HEADERS) $(PARSING_HEADERS)

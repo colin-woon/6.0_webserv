@@ -34,14 +34,15 @@ static void parseBody(HttpRequest &request, std::istringstream &requestStream, s
 		if (contentLength > 0)
 		{
 			requestStream.read(&body[0], contentLength);
-			std::cout << "Expected Content-Length: " << contentLength << std::endl;
-			std::cout << "Bytes actually read (gcount): " << requestStream.gcount() << std::endl;
+			// std::cout << "Expected Content-Length: " << contentLength << std::endl;
+			// std::cout << "Bytes actually read (gcount): " << requestStream.gcount() << std::endl;
 			if (requestStream.gcount() != contentLength)
 				throw Http400BadRequestException();
 		}
 	}
 	else if (headers.find("Transfer-Encoding") != headers.end())
 	{
+		std::cout << "TEMP NOT YET IMPLEMENT TRANSFER ENCODING" << std::endl;
 		if (headers.find("Transfer-Encoding")->second == "chunked")
 			throw Http501NotImplementedException();
 	}

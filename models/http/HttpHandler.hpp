@@ -7,9 +7,10 @@
 #include "HttpRequestParser.hpp"
 #include "HttpHandlerGET.hpp"
 #include "HttpHandlerPOST.hpp"
+#include "HttpHandlerDELETE.hpp"
 #include "../networking/ServerLoop/ServerLoop.hpp"
 
-class HttpHandler : public HttpHandlerGET, public HttpHandlerPOST
+class HttpHandler : public HttpHandlerGET, public HttpHandlerPOST, public HttpHandlerDELETE
 {
 public:
 	static void handleRequest(Client &client);

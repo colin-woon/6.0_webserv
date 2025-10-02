@@ -7,6 +7,8 @@ std::string HttpException::statusCodeToString(int statusCode)
 	{
 	case HTTP_200_OK:
 		return "200";
+	case HTTP_204_NO_CONTENT:
+		return "204";
 	case HTTP_400_BAD_REQUEST:
 		return "400";
 	case HTTP_404_NOT_FOUND:
