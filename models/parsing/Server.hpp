@@ -9,6 +9,7 @@ class Server
 {
 	private:
 		std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator>	_Context;
+		std::vector<Spec> _locSpec;
 
 		typedef void	(*_directiveHandler)(Server&);
 		static std::map<std::string, _directiveHandler> _directiveMap;
@@ -46,7 +47,16 @@ class Server
 
 		Server(std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator> context);
 		~Server();
-
+		
+		class ServerSimpleException : public std::exception
+		{
+			private:
+				std::string	_message;
+			public:
+				ServerSimpleException(const std::string message);
+				~ServerSimpleException() throw() {}
+				const char	*what() const throw();
+		};
 		class ServerSyntaxException : public std::exception
 		{
 			private:
@@ -65,6 +75,7 @@ class Server
 				~ServerInvalidContextException() throw() {}
 				const char	*what() const throw();
 		};
+		void	checkDirectives(void);
 		void	parseDirectives(void);
 };
 

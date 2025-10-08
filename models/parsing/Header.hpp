@@ -25,5 +25,6 @@
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <sys/types.h>
+#include <poll.h>
 
 #endif

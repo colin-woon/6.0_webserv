@@ -33,14 +33,12 @@ void Location::handleAutoindex(Location &loc)
 		throw Location::LocationInvalidContextException(*loc._Context.first, "Invalid Autoindex Setting");
 }
 
-void Location::handlePath(Location &loc)
+void Location::handleCGI_timeout_sec(Location& loc)
 {
-	if (!loc.path.empty())
-		throw Location::LocationInvalidContextException(*loc._Context.first, "Duplicate Directive");
 	loc._Context.first++;
 	if (loc._Context.first == loc._Context.second || loc._Context.first->type != Argument)
 		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Missing Argument");
-	loc.path = loc._Context.first->buffer;
+	loc.stoiLocation(loc._Context.first->buffer, loc.cgi_timeout_sec);
 }
 
 void Location::handleRoot(Location &loc)
@@ -50,7 +48,11 @@ void Location::handleRoot(Location &loc)
 	loc._Context.first++;
 	if (loc._Context.first == loc._Context.second || loc._Context.first->type != Argument)
 		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Missing Argument");
+	if (!loc.alias.empty())
+		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Alias Predefined");
 	loc.root = loc._Context.first->buffer;
+	if (loc.root[0] != '/')
+		loc.root = loc._srvRoot + "/" + loc.root;
 }
 
 void Location::handleAlias(Location &loc)
@@ -60,7 +62,11 @@ void Location::handleAlias(Location &loc)
 	loc._Context.first++;
 	if (loc._Context.first == loc._Context.second || loc._Context.first->type != Argument)
 		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Missing Argument");
+	if (!loc.root.empty())
+		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Root Predefined");
 	loc.alias = loc._Context.first->buffer;
+	if (loc.alias[0] != '/')
+		loc.alias = loc._srvRoot + "/" + loc.alias;
 }
 
 void Location::handleIndex(Location &loc)
@@ -81,6 +87,8 @@ void Location::handleUpload_store(Location &loc)
 	if (loc._Context.first == loc._Context.second || loc._Context.first->type != Argument)
 		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Missing Argument");
 	loc.upload_store = loc._Context.first->buffer;
+	if (loc.upload_store[0] != '/')
+		loc.upload_store = loc._srvRoot + "/" + loc.upload_store;
 }
 
 void Location::handleRedirect(Location &loc)
@@ -116,6 +124,9 @@ void Location::handleCgi(Location &loc)
 	if (loc._Context.first == loc._Context.second || loc._Context.first->type != Argument)
 		throw Location::LocationInvalidContextException(*(loc._Context.first), "Missing Argument");
 	entry.second = loc._Context.first->buffer;
+	if (entry.second[0] != '/')
+		entry.second = loc._srvRoot + "/" + entry.second;
+
 	loc.cgi.insert(entry);
 }
 
@@ -159,6 +170,8 @@ void Location::handleError_page(Location &loc)
 		if (loc.error_pages.find(error.first) != loc.error_pages.end())
 			throw Location::LocationInvalidContextException(*loc._Context.first, "Duplicate Directive");
 		error.second = it->buffer;
+		if (error.second[0] != '/')
+			error.second = loc._srvRoot + "/" + error.second;
 		loc.error_pages.insert(error);
 		loc._Context.first++;
 	}
@@ -169,7 +182,7 @@ void Location::fillDirectiveMap(void)
 	if (!_directiveMap.empty())
 		return;
 	_directiveMap["autoindex"] = &Location::handleAutoindex;
-	_directiveMap["path"] = &Location::handlePath;
+	_directiveMap["cgi_timeout_sec"] = &Location::handleCGI_timeout_sec;
 	_directiveMap["root"] = &Location::handleRoot;
 	_directiveMap["alias"] = &Location::handleAlias;
 	_directiveMap["index"] = &Location::handleIndex;
@@ -183,14 +196,24 @@ void Location::fillDirectiveMap(void)
 	_totalMethods.push_back("DELETE");
 }
 
-Location::Location(std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator> Context, const std::string &pth)
-	: _Context(Context), autoindex(false), path(pth), redirect(-1, "")
+Location::Location(const Spec& spec, const std::string& srvRoot, const std::map<int, std::string>& srvError_pages)
+	: _Context(spec.Context), _srvRoot(srvRoot), _srvError_pages(srvError_pages),
+		autoindex(false), cgi_timeout_sec(-1), path(spec.path), redirect(-1, "")
 {
 	fillDirectiveMap();
 	parseDirectives();
 }
 
 Location::~Location() {}
+
+Location::LocationSimpleException::LocationSimpleException(const std::string message)
+{
+	_message = "Location Error " + message;
+}
+const char *Location::LocationSimpleException::what() const throw()
+{
+	return (this->_message.c_str());
+}
 
 Location::LocationSyntaxException::LocationSyntaxException(Token &token, const std::string message)
 {
@@ -214,6 +237,18 @@ const char *Location::LocationInvalidContextException::what() const throw()
 	return (this->_message.c_str());
 }
 
+void Location::checkDirectives(void)
+{
+	if (this->cgi_timeout_sec == -1)
+		this->cgi_timeout_sec = 60;
+	if (this->root.empty() && this->alias.empty())
+		this->root = this->_srvRoot;
+	if (this->index.empty())
+		this->index = "index.html";
+	if (this->error_pages.empty())
+		this->error_pages = this->_srvError_pages;
+}
+
 void Location::parseDirectives(void)
 {
 	std::map<std::string, _directiveHandler>::iterator it;
@@ -234,4 +269,5 @@ void Location::parseDirectives(void)
 			throw Location::LocationSyntaxException(*this->_Context.first, "Missing Key");
 		this->_Context.first++;
 	}
+	checkDirectives();
 }
