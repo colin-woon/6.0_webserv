@@ -189,7 +189,7 @@ void Location::fillDirectiveMap(void)
 	_directiveMap["upload_store"] = &Location::handleUpload_store;
 	_directiveMap["return"] = &Location::handleRedirect;
 	_directiveMap["cgi"] = &Location::handleCgi;
-	_directiveMap["allow_methods"] = &Location::handleAllowedMethods;
+	_directiveMap["allowed_methods"] = &Location::handleAllowedMethods;
 	_directiveMap["error_page"] = &Location::handleError_page;
 	_totalMethods.push_back("GET");
 	_totalMethods.push_back("POST");
