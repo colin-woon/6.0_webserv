@@ -104,6 +104,8 @@ void Server::handleHeader_cap(Server &srv)
 		srv._Context.first->buffer.resize(srv._Context.first->buffer.size() - 1);
 	srv.stoiServer(srv._Context.first->buffer, srv.header_cap);
 	srv.header_cap *= suffix;
+	if (srv.header_cap < 512)
+		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Below Minimal Safe Size");
 }
 
 void Server::handleHost(Server &srv)
@@ -114,12 +116,10 @@ void Server::handleHost(Server &srv)
 	if (srv._Context.first == srv._Context.second || srv._Context.first->type != Argument)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
 
-	std::string substr = srv._Context.first->buffer;
 	std::string::iterator delim = std::find(srv._Context.first->buffer.begin(), srv._Context.first->buffer.end(), ':');
-
+	std::string ip(srv._Context.first->buffer.begin(), delim);
 	if (delim != srv._Context.first->buffer.end())
 	{
-		std::string ip(srv._Context.first->buffer.begin(), delim);
 		std::string portS(delim + 1, srv._Context.first->buffer.end());
 
 		if (portS.empty())
@@ -127,11 +127,12 @@ void Server::handleHost(Server &srv)
 		srv.stoiServer(portS, srv.port);
 		if (srv.port > 65535)
 			throw Server::ServerInvalidContextException(*srv._Context.first, "Invalid Port");
-		srv.host = ip;
 	}
+	srv.host = ip;
 
 	std::vector<std::string> ipSplit;
 	std::stringstream ss(srv.host);
+	std::string substr;
 	int octet;
 
 	while (ss.good())
@@ -173,6 +174,7 @@ void Server::handleIndex(Server &srv)
 		throw Server::ServerInvalidContextException(*(srv._Context.first - 1), "Missing Argument");
 	srv.index = srv._Context.first->buffer;
 }
+
 void Server::handleName(Server &srv)
 {
 	if (!srv.name.empty())
@@ -226,7 +228,7 @@ void Server::handleLocation(Server &srv)
 	path = srv._Context.first->buffer;
 	start = ++srv._Context.first;
 	if (start == srv._Context.second || start->type != BlockStart)
-		throw Server::ServerSyntaxException(*srv._Context.first, "Missing Argument");
+		throw Server::ServerSyntaxException(*srv._Context.first, "Missing Location Context");
 	start++;
 	while (srv._Context.first != srv._Context.second)
 	{
@@ -236,9 +238,20 @@ void Server::handleLocation(Server &srv)
 	}
 	if (srv._Context.first == srv._Context.second)
 		throw Server::ServerSyntaxException(*srv._Context.first, "Unclosed Location Context");
-	srv.location.push_back(Location(std::pair<std::vector<Token>::iterator,
-											  std::vector<Token>::iterator>(start, srv._Context.first),
-									path));
+
+	bool	inserted = false;
+	for (size_t i = 0; i < srv._locSpec.size(); i++)
+	{
+		if (srv._locSpec[i] == path)
+			throw Server::ServerInvalidContextException(*(start - 2), "Duplicate Location Path");
+		if (srv._locSpec[i] > path && !inserted)
+		{
+			srv._locSpec.insert(srv._locSpec.begin() + i, Spec(path, start, srv._Context.first));
+			inserted = true;
+		}
+	}
+	if (!inserted)
+		srv._locSpec.push_back(Spec(path, start, srv._Context.first));
 	srv._Context.first--;
 }
 
@@ -271,6 +284,15 @@ Server::Server(std::pair<std::vector<Token>::iterator, std::vector<Token>::itera
 
 Server::~Server() {}
 
+Server::ServerSimpleException::ServerSimpleException(const std::string message)
+{
+	_message = "Server Error: " + message;
+}
+const char *Server::ServerSimpleException::what() const throw()
+{
+	return (this->_message.c_str());
+}
+
 Server::ServerSyntaxException::ServerSyntaxException(Token &token, const std::string message)
 {
 	std::stringstream stream;
@@ -293,9 +315,45 @@ const char *Server::ServerInvalidContextException::what() const throw()
 	return (this->_message.c_str());
 }
 
+void Server::checkDirectives(void)
+{
+	if (this->root.empty())
+		throw Server::ServerSimpleException("Missing Root");
+	if (this->port == -1)
+		throw Server::ServerSimpleException("Missing Port");
+	if (this->backlog == -1)
+		this->backlog = SOMAXCONN;
+	if (this->client_timeout_sec == -1)
+		this->client_timeout_sec = 60;
+	if (this->max_body_size == -1)
+		this->max_body_size = 100000;
+	if (this->body_ram_threshold == -1)
+		this->body_ram_threshold = 16000;
+	if (this->body_ram_threshold > this->max_body_size)
+		throw Server::ServerSimpleException("Body_ram_threshold Exceeds Max_body_size");
+	if (this->header_cap == -1)
+		this->header_cap = 8192;
+	if (this->host.empty())
+		this->host = "0.0.0.0";
+	if (this->index.empty())
+		this->index = "index.html";
+	if (this->name.empty())
+		throw Server::ServerSimpleException("Missing Server Name");
+	if (this->error_pages.empty())
+		throw Server::ServerSimpleException("Missing Error Pages");
+	for (std::map<int, std::string>::iterator it = error_pages.begin(); it != error_pages.end(); it++)
+		if (it->second[0] != '/')
+			it->second = this->root + "/" + it->second;
+	if (this->_locSpec.empty())
+		throw Server::ServerSimpleException("Missing Location Contexts");
+	for (size_t i = 0; i < _locSpec.size(); i++)
+		this->location.push_back(Location(_locSpec[i], this->root, this->error_pages));
+}
+
 void Server::parseDirectives(void)
 {
 	std::map<std::string, _directiveHandler>::iterator it;
+
 	while (this->_Context.first != this->_Context.second)
 	{
 		if (this->_Context.first->type == Key)
@@ -313,4 +371,5 @@ void Server::parseDirectives(void)
 			throw Server::ServerSyntaxException(*this->_Context.first, "Missing Key");
 		this->_Context.first++;
 	}
+	checkDirectives();
 }

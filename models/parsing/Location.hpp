@@ -4,17 +4,33 @@
 #include "./Header.hpp"
 #include "./Token.hpp"
 
+class Spec
+{
+	public:
+		std::string path;
+		std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator> Context;
+
+		Spec(const std::string& pth, std::vector<Token>::iterator Start, std::vector<Token>::iterator End)
+			: path(pth), Context({Start, End}) {}
+		~Spec() {}
+
+		bool	operator==(const std::string path) { return (path == this->path); }
+		bool	operator>(const std::string path) { return (path.size() > this->path.size()); }
+};
+
 class Location
 {
 	private:
 		std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator>	_Context;
+		std::string	_srvRoot;
+		std::map<int, std::string> _srvError_pages;
 
 		typedef void	(*_directiveHandler)(Location&);
 		static std::map<std::string, _directiveHandler>	_directiveMap;
 		static std::vector<std::string>	_totalMethods;
 
 		static void	handleAutoindex(Location& loc);
-		static void	handlePath(Location& loc);
+		static void	handleCGI_timeout_sec(Location& loc);
 		static void	handleRoot(Location& loc);
 		static void	handleAlias(Location& loc);
 		static void	handleIndex(Location& loc);
@@ -28,7 +44,8 @@ class Location
 		void	stoiLocation(const std::string& str, int& value);
 	public:
 		bool	autoindex;
-		std::string	path;
+		int	cgi_timeout_sec;
+		std::string path;
 		std::string	root;
 		std::string	alias;
 		std::string	index;
@@ -38,9 +55,18 @@ class Location
 		std::vector<std::string> allowedMethods;
 		std::map<int, std::string>	error_pages;
 
-		Location(std::pair<std::vector<Token>::iterator, std::vector<Token>::iterator> Context, const std::string& pth);
+		Location(const Spec& spec, const std::string& srvRoot, const std::map<int, std::string>& srvError_pages);
 		~Location();
-
+		
+		class LocationSimpleException : public std::exception
+		{
+			private:
+				std::string _message;
+			public:
+				LocationSimpleException(const std::string message);
+				~LocationSimpleException() throw() {}
+				const char	*what() const throw();
+		};
 		class LocationSyntaxException : public std::exception
 		{
 			private:
@@ -59,6 +85,7 @@ class Location
 				~LocationInvalidContextException() throw() {}
 				const char	*what() const throw();
 		};
+		void	checkDirectives(void);
 		void	parseDirectives(void);
 };
 
