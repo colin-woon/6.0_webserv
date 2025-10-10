@@ -15,11 +15,56 @@ HttpHandlerGET &HttpHandlerGET::operator=(const HttpHandlerGET &other)
 
 HttpHandlerGET::~HttpHandlerGET() {}
 
+static std::string generateFileListJson()
+{
+	std::map<std::string, std::map<std::string, std::string>> allFiles = FileHandler::getAllFileMetaData();
+	std::string json = "[";
+	bool first = true;
+
+	for (std::map<std::string, std::map<std::string, std::string>>::iterator it = allFiles.begin();
+		 it != allFiles.end(); ++it)
+	{
+		if (!first)
+			json += ",";
+		first = false;
+
+		std::string hash = it->first;
+		std::map<std::string, std::string> metadata = it->second;
+
+		// Check if original-file-name exists in metadata
+		std::map<std::string, std::string>::iterator nameIt = metadata.find("original-file-name");
+		std::string originalFilename = (nameIt != metadata.end()) ? nameIt->second : "unknown";
+
+		json += "{";
+		json += "\"hash\":\"" + hash + "\",";
+		json += "\"original_filename\":\"" + originalFilename + "\"";
+		json += "}";
+	}
+
+	json += "]";
+	return json;
+}
+
 void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &response)
 {
-	std::string TEMP_root = "/home/tjun-fan/Documents/repos/webserv/var/www";
+	std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
 
 	std::string path = request.getPath();
+
+	// Handle file list endpoint
+	if (path.compare("/files") == 0)
+	{
+		std::string jsonContent = generateFileListJson();
+
+		response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+		response.addHeader("Content-Type", "application/json");
+
+		std::stringstream contentLength;
+		contentLength << jsonContent.length();
+		response.addHeader("Content-Length", contentLength.str());
+		response.setBody(jsonContent);
+		return;
+	}
 
 	if (path.compare("/") == 0)
 		path = "/index.html";

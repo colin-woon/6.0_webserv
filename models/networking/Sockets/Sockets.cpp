@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 
 static bool convStrToIpv4(std::string host, uint32_t &ipv4Net){
-	if (host.empty() || host == "*" || host == "0.0.0.0"){
+	if (host.empty() || ipv4Net == INADDR_ANY || host == "*" || host == "0.0.0.0"){
 		ipv4Net = htonl(INADDR_ANY);
 		return true;
 	}

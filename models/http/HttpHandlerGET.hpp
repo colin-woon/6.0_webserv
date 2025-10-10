@@ -4,9 +4,11 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "HttpExceptions.hpp"
+#include "FileHandler.hpp"
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <map>
 
 class HttpHandlerGET
 {
