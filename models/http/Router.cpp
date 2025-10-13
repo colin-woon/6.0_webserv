@@ -38,7 +38,15 @@ void Router::getLocationConfig(HttpRequest &request, const Server &serverConfig)
 
 void Router::getResolvedPath(HttpRequest &request, const Server &serverConfig)
 {
-	resolvedPath = serverConfig.root + request.getPath();
+	if (locationConfig != NULL)
+	{
+		if (!locationConfig->root.empty())
+			resolvedPath = locationConfig->root + request.getPath();
+		else
+			resolvedPath = serverConfig.root + request.getPath();
+	}
+	else
+		resolvedPath = serverConfig.root + request.getPath();
 
 	struct stat path_stat;
 	stat(resolvedPath.c_str(), &path_stat);

@@ -5,6 +5,7 @@
 #include "../parsing/Location.hpp"
 #include "../parsing/Server.hpp"
 #include "HttpRequest.hpp"
+#include "HttpExceptions.hpp"
 
 class Router
 {
