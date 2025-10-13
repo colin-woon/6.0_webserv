@@ -14,11 +14,15 @@ int main(int argc, char **argv)
 
 	try
 	{
+		std::map<int, std::vector<const Server*> > listenerOwners;
+
 		Parsing parse(argc, argv);
 		parse.parseNodes();
-		std::vector<int> listenerFdList;
-		listenerFdList = setupListenerSockets(parse.nodes);
-		ServerLoop headacheServer(listenerFdList, parse.nodes);
+
+		std::vector<int> listenerFds = setupListenerSockets(parse.nodes, listenerOwners);
+
+		ServerLoop headacheServer(listenerFds, parse.nodes);
+		headacheServer.listenerOwner_ = listenerOwners;
 		headacheServer.run();
 		std::cout << "done" << std::endl;
 	}

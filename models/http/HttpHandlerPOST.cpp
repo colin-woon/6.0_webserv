@@ -107,7 +107,7 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 	std::map<std::string, std::string> fileHeaders;
 	std::string body = request.getBody();
 
-	std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
+	std::string TEMP_root = "/home/tjun-fan/webserv_main/var/www";
 
 	try
 	{

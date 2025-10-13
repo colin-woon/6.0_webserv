@@ -8,12 +8,12 @@ send_request() {
     echo -en "$1" | nc -N localhost $PORT
 }
 
-# # Redirect output to file
+# Redirect output to file
 # OUTPUT_FILE="http_results.txt"
 # echo "Saving results to $OUTPUT_FILE"
 # echo "==========================================" > $OUTPUT_FILE
 
-# Large request body example (uncomment to use)
+# # Large request body example (uncomment to use)
 # echo "TEST 19: large request body."
 # echo "EXPECTED: Large payload handling"
 # echo "----------------------------------------"
@@ -22,12 +22,12 @@ send_request() {
 # rm -rf large_file.txt
 # echo ""
 
-# # POST with form-urlencoded data
-# echo "TEST 1: POST with form-urlencoded data."
-# echo "EXPECTED: Normal POST request handling"
-# echo "----------------------------------------"
-# send_request "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 23\r\n\r\nusername=testuser&password=123456"
-# echo ""
+# POST with form-urlencoded data
+echo "TEST 1: POST with form-urlencoded data."
+echo "EXPECTED: Normal POST request handling"
+echo "----------------------------------------"
+send_request "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 23\r\n\r\nusername=testuser&password=123456"
+echo ""
 
 # # POST with JSON data
 # echo "TEST 2: POST with JSON data."
@@ -304,7 +304,7 @@ send_request() {
 # send_request "POST / HTTP/1.1\r\nHost: localhost\r\n\r\n{\"test\":\"value\"}"
 # echo ""
 
-echo "=========================================="
-echo "Test completed. Results saved to $OUTPUT_FILE"
+# echo "=========================================="
+# echo "Test completed. Results saved to $OUTPUT_FILE"
 
-echo "Results saved to $OUTPUT_FILE"
+# echo "Results saved to $OUTPUT_FILE"
