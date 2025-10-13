@@ -5,6 +5,7 @@
 #include "HttpResponse.hpp"
 #include "HttpExceptions.hpp"
 #include "FileHandler.hpp"
+#include "Router.hpp"
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -19,7 +20,7 @@ private:
 	~HttpHandlerGET();
 
 protected:
-	static void handleGetRequest(HttpRequest &request, HttpResponse &response);
+	static void handleGetRequest(HttpRequest &request, HttpResponse &response, Router &router);
 };
 
 #endif

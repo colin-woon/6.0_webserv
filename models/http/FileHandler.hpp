@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include "HttpExceptions.hpp"
 
+typedef std::map<std::string, std::string> Headers;
+
 class FileHandler
 {
 private:
@@ -16,12 +18,12 @@ private:
 	FileHandler &operator=(const FileHandler &other);
 	~FileHandler();
 
-	static std::map<std::string, std::map<std::string, std::string>> _hashedFileNames;
+	static std::map<std::string, Headers> _hashedFileNames;
 
 public:
-	static std::map<std::string, std::string> &getFileMetaData(std::string &hashKey);
-	static std::map<std::string, std::map<std::string, std::string>> getAllFileMetaData();
-	static void addNewFileMetaData(std::string &hashKey, std::map<std::string, std::string> &fileMetaData);
+	static Headers &getFileMetaData(std::string &hashKey);
+	static std::map<std::string, Headers> getAllFileMetaData();
+	static void addNewFileMetaData(std::string &hashKey, Headers &fileMetaData);
 	static void deleteFileMetaData(std::string &hashKey);
 	static void uploadFile(std::string &hashedFilename, std::string &fileContent);
 	static void deleteFile(std::string &hashedFilename);

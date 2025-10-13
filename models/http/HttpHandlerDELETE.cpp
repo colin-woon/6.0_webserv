@@ -16,7 +16,7 @@ HttpHandlerDELETE &HttpHandlerDELETE::operator=(const HttpHandlerDELETE &other)
 
 HttpHandlerDELETE::~HttpHandlerDELETE() {}
 
-void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &response)
+void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
 	std::string path = request.getPath();
 

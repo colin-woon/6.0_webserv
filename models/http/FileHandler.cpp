@@ -1,6 +1,6 @@
 #include "FileHandler.hpp"
 
-std::map<std::string, std::map<std::string, std::string>> FileHandler::_hashedFileNames;
+std::map<std::string, Headers> FileHandler::_hashedFileNames;
 
 FileHandler::FileHandler() {}
 
@@ -17,17 +17,17 @@ FileHandler &FileHandler::operator=(const FileHandler &other)
 
 FileHandler::~FileHandler() {}
 
-std::map<std::string, std::string> &FileHandler::getFileMetaData(std::string &hashKey)
+Headers &FileHandler::getFileMetaData(std::string &hashKey)
 {
 	return (_hashedFileNames[hashKey]);
 }
 
-std::map<std::string, std::map<std::string, std::string>> FileHandler::getAllFileMetaData()
+std::map<std::string, Headers> FileHandler::getAllFileMetaData()
 {
 	return _hashedFileNames;
 }
 
-void FileHandler::addNewFileMetaData(std::string &hashKey, std::map<std::string, std::string> &fileMetaData)
+void FileHandler::addNewFileMetaData(std::string &hashKey, Headers &fileMetaData)
 {
 	_hashedFileNames[hashKey] = fileMetaData;
 }
@@ -40,8 +40,9 @@ void FileHandler::deleteFileMetaData(std::string &hashKey)
 void FileHandler::uploadFile(std::string &hashedFilename, std::string &fileContent)
 {
 	std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
+	std::string filePath = TEMP_root + "/uploads/" + hashedFilename;
 
-	std::ofstream out(TEMP_root + "/uploads/" + hashedFilename, std::ios::binary);
+	std::ofstream out(filePath.c_str(), std::ios::binary);
 	out.write(fileContent.c_str(), fileContent.size());
 	out.close();
 }
