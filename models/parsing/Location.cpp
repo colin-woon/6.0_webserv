@@ -65,8 +65,8 @@ void Location::handleAlias(Location &loc)
 	if (!loc.root.empty())
 		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Root Predefined");
 	loc.alias = loc._Context.first->buffer;
-	if (loc.alias[0] != '/')
-		loc.alias = loc._srvRoot + "/" + loc.alias;
+	// if (loc.alias[0] != '/')
+	// 	loc.alias = loc._srvRoot + "/" + loc.alias;
 }
 
 void Location::handleIndex(Location &loc)

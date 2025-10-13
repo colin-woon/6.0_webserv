@@ -42,6 +42,10 @@ void Router::getResolvedPath(HttpRequest &request, const Server &serverConfig)
 	{
 		if (!locationConfig->root.empty())
 			resolvedPath = locationConfig->root + request.getPath();
+		else if (!locationConfig->alias.empty())
+		{
+			resolvedPath = locationConfig->alias + request.getPath().substr(locationConfig->path.size());
+		}
 		else
 			resolvedPath = serverConfig.root + request.getPath();
 	}
