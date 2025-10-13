@@ -151,7 +151,7 @@ static void uploadHashedFile(std::string &filenameValue, std::string &fileExtens
 	std::cout << FileHandler::getFileMetaData(hashedFilename)["Content-Disposition"] << std::endl;
 }
 
-void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &response)
+void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
 	try
 	{
@@ -169,7 +169,7 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 		getFileNameAndExtension(fileHeaders, filenameValue, fileExtension);
 
 		uploadHashedFile(filenameValue, fileExtension, fileContent, fileHeaders);
-		
+
 		// Set successful response
 		response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
 		response.addHeader("Content-Type", "text/plain");

@@ -5,17 +5,22 @@ void HttpHandler::handleRequest(Client &client)
 	std::string &rawRequestBytes = client.inBuff;
 	HttpRequest &request = client.request;
 	HttpResponse &response = client.response;
+	const Server &serverConfig = *client.serverConfig;
+	Router router;
+
 	try
 	{
 		HttpRequestParser::parseRawRequest(request, rawRequestBytes);
+		router.getLocationConfig(request, serverConfig);
+		router.getResolvedPath(request, serverConfig);
 		// std::cout << std::endl;
 		// std::cout << request << std::endl;
 		if (request.getMethod().compare("GET") == 0)
-			return HttpHandlerGET::handleGetRequest(request, response);
+			return HttpHandlerGET::handleGetRequest(request, response, router);
 		if (request.getMethod().compare("POST") == 0)
-			return HttpHandlerPOST::handlePostRequest(request, response);
+			return HttpHandlerPOST::handlePostRequest(request, response, router);
 		if (request.getMethod().compare("DELETE") == 0)
-			return HttpHandlerDELETE::handleDeleteRequest(request, response);
+			return HttpHandlerDELETE::handleDeleteRequest(request, response, router);
 	}
 	catch (const Http400BadRequestException &e)
 	{

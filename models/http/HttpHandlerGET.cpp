@@ -17,11 +17,11 @@ HttpHandlerGET::~HttpHandlerGET() {}
 
 static std::string generateFileListJson()
 {
-	std::map<std::string, std::map<std::string, std::string>> allFiles = FileHandler::getAllFileMetaData();
+	std::map<std::string, Headers> allFiles = FileHandler::getAllFileMetaData();
 	std::string json = "[";
 	bool first = true;
 
-	for (std::map<std::string, std::map<std::string, std::string>>::iterator it = allFiles.begin();
+	for (std::map<std::string, Headers>::iterator it = allFiles.begin();
 		 it != allFiles.end(); ++it)
 	{
 		if (!first)
@@ -45,31 +45,30 @@ static std::string generateFileListJson()
 	return json;
 }
 
-void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &response)
+void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
-	std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
+	// std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
 
-	std::string path = request.getPath();
+	// std::string path = request.getPath();
 
-	// Handle file list endpoint
-	if (path.compare("/files") == 0)
-	{
-		std::string jsonContent = generateFileListJson();
+	// // Handle file list endpoint
+	// if (path.compare("/files") == 0)
+	// {
+	// 	std::string jsonContent = generateFileListJson();
 
-		response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
-		response.addHeader("Content-Type", "application/json");
+	// 	response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+	// 	response.addHeader("Content-Type", "application/json");
 
-		std::stringstream contentLength;
-		contentLength << jsonContent.length();
-		response.addHeader("Content-Length", contentLength.str());
-		response.setBody(jsonContent);
-		return;
-	}
+	// 	std::stringstream contentLength;
+	// 	contentLength << jsonContent.length();
+	// 	response.addHeader("Content-Length", contentLength.str());
+	// 	response.setBody(jsonContent);
+	// 	return;
+	// }
 
-	if (path.compare("/") == 0)
-		path = "/index.html";
-	std::string fullPath = TEMP_root + path;
-	// std::cout << fullPath << std::endl;
+	// if (path.compare("/") == 0)
+	// 	path = "/index.html";
+	std::string fullPath = router.resolvedPath;
 
 	std::ifstream file(fullPath.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open())
