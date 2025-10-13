@@ -5,6 +5,7 @@ void HttpHandler::handleRequest(Client &client)
 	std::string &rawRequestBytes = client.inBuff;
 	HttpRequest &request = client.request;
 	HttpResponse &response = client.response;
+	const Server &serverConfig = *client.serverConfig;
 	try
 	{
 		HttpRequestParser::parseRawRequest(request, rawRequestBytes);

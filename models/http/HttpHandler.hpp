@@ -9,6 +9,7 @@
 #include "HttpHandlerPOST.hpp"
 #include "HttpHandlerDELETE.hpp"
 #include "../networking/ServerLoop/ServerLoop.hpp"
+#include "../parsing/Server.hpp"
 
 class HttpHandler : public HttpHandlerGET, public HttpHandlerPOST, public HttpHandlerDELETE
 {
