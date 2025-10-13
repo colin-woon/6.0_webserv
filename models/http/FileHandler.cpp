@@ -39,7 +39,7 @@ void FileHandler::deleteFileMetaData(std::string &hashKey)
 
 void FileHandler::uploadFile(std::string &hashedFilename, std::string &fileContent)
 {
-	std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
+	std::string TEMP_root = "var/www";
 	std::string filePath = TEMP_root + "/uploads/" + hashedFilename;
 
 	std::ofstream out(filePath.c_str(), std::ios::binary);
@@ -49,7 +49,7 @@ void FileHandler::uploadFile(std::string &hashedFilename, std::string &fileConte
 
 void FileHandler::deleteFile(std::string &hashedFilename)
 {
-	std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
+	std::string TEMP_root = "var/www";
 
 	std::string filePath = TEMP_root + "/uploads/" + hashedFilename;
 	struct stat fileStat;
