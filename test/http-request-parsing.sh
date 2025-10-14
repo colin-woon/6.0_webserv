@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-PORT=8002
+PORT=8080
 
 # Function to send HTTP request via netcat
 send_request() {
@@ -22,12 +22,12 @@ send_request() {
 # rm -rf large_file.txt
 # echo ""
 
-# POST with form-urlencoded data
-echo "TEST 1: POST with form-urlencoded data."
-echo "EXPECTED: Normal POST request handling"
-echo "----------------------------------------"
-send_request "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 23\r\n\r\nusername=testuser&password=123456"
-echo ""
+# # POST with form-urlencoded data
+# echo "TEST 1: POST with form-urlencoded data."
+# echo "EXPECTED: Normal POST request handling"
+# echo "----------------------------------------"
+# send_request "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 23\r\n\r\nusername=testuser&password=123456"
+# echo ""
 
 # # POST with JSON data
 # echo "TEST 2: POST with JSON data."
@@ -303,6 +303,13 @@ echo ""
 # echo "----------------------------------------"
 # send_request "POST / HTTP/1.1\r\nHost: localhost\r\n\r\n{\"test\":\"value\"}"
 # echo ""
+
+# DELETE Unallowed
+echo "TEST 27: Unallowed DELETE."
+echo "EXPECTED: 405 Method Not Allowed"
+echo "----------------------------------------"
+send_request "DELETE / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 0\r\n\r\n"
+echo ""
 
 # echo "=========================================="
 # echo "Test completed. Results saved to $OUTPUT_FILE"

@@ -1,5 +1,26 @@
 #include "HttpHandler.hpp"
 
+static void checkAllowedMethods(Router &router, HttpRequest &request)
+{
+	if (router.locationConfig)
+	{
+		if (!router.locationConfig->allowedMethods.empty())
+		{
+			bool methodFound = false;
+			for (int i = 0; i < router.locationConfig->allowedMethods.size(); i++)
+			{
+				if (router.locationConfig->allowedMethods[i].compare(request.getMethod()) == 0)
+				{
+					methodFound = true;
+					break;
+				}
+			}
+			if (!methodFound)
+				throw Http405MethodNotAllowedException();
+		}
+	}
+}
+
 void HttpHandler::handleRequest(Client &client)
 {
 	std::string &rawRequestBytes = client.inBuff;
@@ -13,6 +34,7 @@ void HttpHandler::handleRequest(Client &client)
 		HttpRequestParser::parseRawRequest(request, rawRequestBytes);
 		router.getLocationConfig(request, serverConfig);
 		router.getResolvedPath(request, serverConfig);
+		checkAllowedMethods(router, request);
 		// std::cout << std::endl;
 		// std::cout << request << std::endl;
 		if (request.getMethod().compare("GET") == 0)
