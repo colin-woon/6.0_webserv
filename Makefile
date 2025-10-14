@@ -50,6 +50,7 @@ NETWORKING_HEADERS =	models/networking/ServerLoop/PollHelpers.hpp \
 						models/networking/ServerLoop/ServerHelpers.hpp \
 						models/networking/ServerLoop/ServerLoop.hpp \
 						models/networking/ServerLoop/Timeout.hpp \
+						models/networking/ServerLoop/VhostHelpers.hpp \
 						models/networking/Sockets/Sockets.hpp \
 
 NETWORKING_MODELS = 	models/networking/ServerLoop/ServerHelpers.cpp \
@@ -57,6 +58,8 @@ NETWORKING_MODELS = 	models/networking/ServerLoop/ServerHelpers.cpp \
 						models/networking/ServerLoop/Timeout.cpp \
 						models/networking/Sockets/Sockets.cpp \
 						models/networking/ServerLoop/PollHelpers.cpp \
+						models/networking/ServerLoop/VhostHelpers.cpp \
+
 
 HTTP_HEADERS	=	models/http/HttpRequest.hpp \
 					models/http/HttpResponse.hpp \

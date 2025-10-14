@@ -3,7 +3,7 @@
 
 #include "../../parsing/Server.hpp"
 
-std::vector<int> setupListenerSockets(std::vector<Server> serverList);
+std::vector<int> setupListenerSockets(const std::vector<Server>& serverList, std::map<int, std::vector<const Server*> >& outListenerOwners);
 bool setNonBlocking(int listenerFd);
 
 #endif

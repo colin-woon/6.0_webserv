@@ -12,13 +12,6 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
-static std::string preview(const std::string& s, size_t pos, size_t n) {
-	if (pos >= s.size()) return "";
-	size_t take = s.size() - pos;
-	if (take > n) take = n;
-	return s.substr(pos, take);
-}
-
 void ServerLoop::closeClient_(int fd) {
 	delPollFd(pollFdList_, fdIndex_, fd);
 	std::map<int, Client>::iterator itr = clientList_.find(fd);
@@ -45,11 +38,10 @@ void ServerLoop::acceptClients_(int lfd) {
 		Client c;
 		c.fd = clientFd;
 
-		std::map<int,const Server*>::const_iterator it = listenerOwner_.find(lfd);
+		std::map<int,std::vector<const Server*> >::const_iterator it = listenerOwner_.find(lfd);
 		if (it != listenerOwner_.end())
-			c.serverConfig = it->second;
-		else
-			c.serverConfig = NULL;
+			 c.vhostCandidates = it->second;
+		c.serverConfig = NULL;
 		setClientTimeout(lfd, c, listenerTimeoutMs_);
 		clientList_[clientFd] = c;
 		std::cout << "accepted " << clientFd << "\n";
@@ -75,6 +67,17 @@ void ServerLoop::readOnce_(int fd) {
 	if (!c.headersDone){
 		if (!findHeadersEndAndMark_(c))
 			return;
+		if (c.serverConfig == NULL){
+			std::string rawHeaderBlock = c.inBuff.substr(0, c.headerEndPos + 4);
+			c.serverConfig = vhostPicker_(c.vhostCandidates, rawHeaderBlock);
+		}
+		// if (c.serverConfig != NULL) {
+		// 	const char* picked = (c.serverConfig->name.empty() ? "(unnamed)" : c.serverConfig->name[0].c_str());
+		// 	std::cout << "[VHOST] fd=" << c.fd << " picked=" << picked << " root=" << c.serverConfig->root << "\n";
+		// }
+		// else
+		// 	std::cout << "[VHOST] fd=" << c.fd << " picked=(NULL)\n";
+
 		detectBodyFraming_(c);
 	}
 
