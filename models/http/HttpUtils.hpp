@@ -5,6 +5,7 @@
 #include <set>
 #include <iostream>
 #include <sstream>
+#include <cstdio>
 #include "HttpExceptions.hpp"
 
 class HttpRequest;

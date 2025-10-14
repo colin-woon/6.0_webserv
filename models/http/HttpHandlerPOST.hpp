@@ -4,7 +4,8 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "HttpExceptions.hpp"
-#include <fstream>
+#include "FileHandler.hpp"
+#include "Router.hpp"
 
 class HttpHandlerPOST
 {
@@ -15,7 +16,7 @@ private:
 	~HttpHandlerPOST();
 
 protected:
-	static void handlePostRequest(HttpRequest &request, HttpResponse &response);
+	static void handlePostRequest(HttpRequest &request, HttpResponse &response, Router &router);
 };
 
 #endif
