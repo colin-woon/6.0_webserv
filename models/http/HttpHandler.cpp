@@ -31,7 +31,7 @@ void HttpHandler::handleRequest(Client &client)
 
 	try
 	{
-		HttpRequestParser::parseRawRequest(request, rawRequestBytes);
+		HttpRequestParser::parseRawRequest(request, rawRequestBytes, serverConfig);
 		router.getLocationConfig(request, serverConfig);
 		router.getResolvedPath(request, serverConfig);
 		checkAllowedMethods(router, request);
@@ -62,6 +62,13 @@ void HttpHandler::handleRequest(Client &client)
 	catch (const Http405MethodNotAllowedException &e)
 	{
 		response.createResponse(e.statusCodeToString(HTTP_405_METHOD_NOT_ALLOWED),
+								e.what(),
+								request.getHeaders(),
+								request.getBody());
+	}
+	catch (const Http413PayloadTooLargeException &e)
+	{
+		response.createResponse(e.statusCodeToString(HTTP_413_PAYLOAD_TOO_LARGE),
 								e.what(),
 								request.getHeaders(),
 								request.getBody());

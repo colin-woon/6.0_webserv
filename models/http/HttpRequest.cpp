@@ -100,16 +100,16 @@ void HttpRequest::setBody(const std::string &body)
 	_body = body;
 }
 
-HttpRequest::HttpRequest(const std::string &request) : _method(""),
-													   _target(""),
-													   _path(""),
-													   _queryParams(),
-													   _version(""),
-													   _headers(),
-													   _body("")
-{
-	HttpRequestParser::parseRawRequest(*this, request);
-}
+// HttpRequest::HttpRequest(const std::string &request) : _method(""),
+// 													   _target(""),
+// 													   _path(""),
+// 													   _queryParams(),
+// 													   _version(""),
+// 													   _headers(),
+// 													   _body("")
+// {
+// 	HttpRequestParser::parseRawRequest(*this, request);
+// }
 
 std::ostream &operator<<(std::ostream &out, const HttpRequest &request)
 {
@@ -142,4 +142,15 @@ std::ostream &operator<<(std::ostream &out, const HttpRequest &request)
 	}
 
 	return out;
+}
+
+void HttpRequest::clear()
+{
+	_method.clear();
+	_target.clear();
+	_path.clear();
+	_queryParams.clear();
+	_version.clear();
+	_headers.clear();
+	_body.clear();
 }

@@ -15,6 +15,7 @@ enum StatusCode
 	HTTP_403_FORBIDDEN = 403,
 	HTTP_404_NOT_FOUND = 404,
 	HTTP_405_METHOD_NOT_ALLOWED = 405,
+	HTTP_413_PAYLOAD_TOO_LARGE = 413,
 	HTTP_414_URI_TOO_LONG = 414,
 	HTTP_500_INTERNAL_SERVER_ERROR = 500,
 	HTTP_501_NOT_IMPLEMENTED = 501,
@@ -45,6 +46,12 @@ public:
 };
 
 class Http405MethodNotAllowedException : public HttpException
+{
+public:
+	const char *what() const throw();
+};
+
+class Http413PayloadTooLargeException : public HttpException
 {
 public:
 	const char *what() const throw();
