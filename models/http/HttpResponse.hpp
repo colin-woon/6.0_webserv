@@ -33,6 +33,8 @@ public:
 	std::string toString() const;
 	std::string statusToString(int status) const;
 
+	void clear();
+
 	void createResponse(std::string _statusCode,
 						std::string _statusText,
 						std::map<std::string, std::string> _headers,

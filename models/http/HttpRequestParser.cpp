@@ -3,7 +3,7 @@
 #include "HttpExceptions.hpp"
 #include <cstdlib>
 
-static void parseBody(HttpRequest &request, std::istringstream &requestStream, std::string &line)
+static void parseBody(HttpRequest &request, std::istringstream &requestStream, std::string &line, const Server &serverConfig)
 {
 	const std::map<std::string, std::string> &headers = request.getHeaders();
 	std::string body;
@@ -29,6 +29,9 @@ static void parseBody(HttpRequest &request, std::istringstream &requestStream, s
 
 		if (*endptr != '\0' || contentLength < 0)
 			throw Http400BadRequestException();
+
+		if (contentLength > serverConfig.max_body_size)
+			throw Http413PayloadTooLargeException();
 
 		body.resize(contentLength);
 		if (contentLength > 0)
@@ -105,13 +108,13 @@ static void postParsingValidation(HttpRequest &request)
 // Use a string stream to process the request line by line
 // Parse the request line (first line)
 // Remove carriage return if present
-void HttpRequestParser::parseRawRequest(HttpRequest &request, const std::string &rawRequestBytes)
+void HttpRequestParser::parseRawRequest(HttpRequest &request, const std::string &rawRequestBytes, const Server &serverConfig)
 {
 	std::istringstream requestStream(rawRequestBytes);
 	std::string line;
 
 	parseRequestLine(request, requestStream, line);
 	parseHeaders(request, requestStream, line);
-	parseBody(request, requestStream, line);
+	parseBody(request, requestStream, line, serverConfig);
 	postParsingValidation(request);
 }

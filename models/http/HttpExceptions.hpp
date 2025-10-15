@@ -15,9 +15,11 @@ enum StatusCode
 	HTTP_403_FORBIDDEN = 403,
 	HTTP_404_NOT_FOUND = 404,
 	HTTP_405_METHOD_NOT_ALLOWED = 405,
+	HTTP_413_PAYLOAD_TOO_LARGE = 413,
 	HTTP_414_URI_TOO_LONG = 414,
 	HTTP_500_INTERNAL_SERVER_ERROR = 500,
 	HTTP_501_NOT_IMPLEMENTED = 501,
+	HTTP_502_BAD_GATEWAY = 502,
 	HTTP_503_SERVICE_UNAVAILABLE = 503,
 	HTTP_505_HTTP_VERSION_NOT_SUPPORTED = 505,
 	UNKNOWN = 0
@@ -50,6 +52,12 @@ public:
 	const char *what() const throw();
 };
 
+class Http413PayloadTooLargeException : public HttpException
+{
+public:
+	const char *what() const throw();
+};
+
 class Http414UriTooLongException : public HttpException
 {
 public:
@@ -63,6 +71,12 @@ public:
 };
 
 class Http501NotImplementedException : public HttpException
+{
+public:
+	const char *what() const throw();
+};
+
+class Http502BadGatewayException : public HttpException
 {
 public:
 	const char *what() const throw();

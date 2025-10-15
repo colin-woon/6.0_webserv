@@ -42,6 +42,8 @@ public:
 	void setVersion(const std::string &version);
 	void setBody(const std::string &body);
 
+	void clear();
+
 	void addQueryParams(const std::string &key, const std::string &value);
 	void addHeader(const std::string &key, const std::string &value);
 
