@@ -30,8 +30,10 @@ SRCS_DIR		=	srcs/
 OBJS_DIR		=	bin/
 
 # Set search path for source files
-VPATH			=	$(SRCS_DIR):$(MODELS_DIR)/http:$(MODELS_DIR)/networking/ServerLoop:$(MODELS_DIR)/networking/Sockets:$(MODELS_DIR)/parsing
+VPATH			=	$(SRCS_DIR):$(MODELS_DIR)/http:$(MODELS_DIR)/networking/ServerLoop:$(MODELS_DIR)/networking/Sockets:$(MODELS_DIR)/parsing:$(MODELS_DIR)/cgi
 
+CGI_HEADER		=	models/cgi/CGI.hpp
+CGI_MODEL		=	models/cgi/CGI.cpp
 
 PARSING_HEADERS =	models/parsing/Header.hpp \
 					models/parsing/Location.hpp \
@@ -85,8 +87,8 @@ HTTP_MODELS		=	models/http/HttpRequest.cpp \
 					models/http/FileHandler.cpp \
 					models/http/Router.cpp \
 
-MODEL_FILES		=	$(HTTP_MODELS) $(NETWORKING_MODELS) $(PARSING_MODELS)
-MODEL_HEADERS	=	$(HTTP_HEADERS) $(NETWORKING_HEADERS) $(PARSING_HEADERS)
+MODEL_FILES		=	$(HTTP_MODELS) $(NETWORKING_MODELS) $(PARSING_MODELS) $(CGI_MODEL)
+MODEL_HEADERS	=	$(HTTP_HEADERS) $(NETWORKING_HEADERS) $(PARSING_HEADERS) $(CGI_HEADER)
 
 INC_FILES		=
 SRCS_FILES		=	srcs/main.cpp

@@ -23,6 +23,8 @@ std::string HttpException::statusCodeToString(int statusCode)
 		return "500";
 	case HTTP_501_NOT_IMPLEMENTED:
 		return "501";
+	case HTTP_502_BAD_GATEWAY:
+		return "502";
 	case HTTP_505_HTTP_VERSION_NOT_SUPPORTED:
 		return "505";
 	default:
@@ -63,6 +65,11 @@ const char *Http500InternalServerErrorException::what() const throw()
 const char *Http501NotImplementedException::what() const throw()
 {
 	return "Not Implemented";
+}
+
+const char *Http502BadGatewayException::what() const throw()
+{
+	return "Bad Getaway";
 }
 
 const char *Http505HttpVersionNotSupportedException::what() const throw()

@@ -37,6 +37,8 @@ void HttpHandler::handleRequest(Client &client)
 		checkAllowedMethods(router, request);
 		// std::cout << std::endl;
 		// std::cout << request << std::endl;
+		if (router.locationConfig->path.compare("/cgi-bin/") == 0)
+			return CGI::handleCGI(request, response, serverConfig, router);
 		if (request.getMethod().compare("GET") == 0)
 			return HttpHandlerGET::handleGetRequest(request, response, router);
 		if (request.getMethod().compare("POST") == 0)
@@ -83,6 +85,13 @@ void HttpHandler::handleRequest(Client &client)
 	catch (const Http501NotImplementedException &e)
 	{
 		response.createResponse(e.statusCodeToString(HTTP_501_NOT_IMPLEMENTED),
+								e.what(),
+								request.getHeaders(),
+								request.getBody());
+	}
+	catch (const Http502BadGatewayException &e)
+	{
+		response.createResponse(e.statusCodeToString(HTTP_502_BAD_GATEWAY),
 								e.what(),
 								request.getHeaders(),
 								request.getBody());
