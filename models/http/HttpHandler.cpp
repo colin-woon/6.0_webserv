@@ -132,5 +132,13 @@ void HttpHandler::handleRequest(Client &client)
 	catch (const HttpException &e)
 	{
 		handleHttpException(serverConfig, e, response);
+		const std::string &statusCode = response.getStatusCode();
+		if (statusCode == "400" || statusCode[0] == '5')
+		{
+			response.addHeader("Connection", "close");
+			client.closeFlag = true;
+		}
+		else
+			response.addHeader("Connection", "keep-alive");
 	}
 }

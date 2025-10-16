@@ -47,7 +47,6 @@ HttpHandlerGET::~HttpHandlerGET() {}
 
 void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
-	(void)request;
 	// std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
 
 	// std::string path = request.getPath();
@@ -88,5 +87,11 @@ void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &respon
 		contentLength << content.length();
 		response.addHeader("Content-Length", contentLength.str());
 		response.setBody(content);
+
+		std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Connection");
+		if (it != request.getHeaders().end() && it->second == "close")
+			response.addHeader("Connection", "close");
+		else
+			response.addHeader("Connection", "keep-alive");
 	}
 }

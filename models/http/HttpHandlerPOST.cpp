@@ -177,6 +177,11 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 		response.addHeader("Content-Type", "text/plain");
 		response.addHeader("Content-Length", "18");
 		response.setBody("Upload successful\n");
+		std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Connection");
+		if (it != request.getHeaders().end() && it->second == "close")
+			response.addHeader("Connection", "close");
+		else
+			response.addHeader("Connection", "keep-alive");
 	}
 	catch (std::out_of_range)
 	{
