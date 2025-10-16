@@ -6,6 +6,8 @@
 #include "../parsing/Server.hpp"
 #include "HttpRequest.hpp"
 #include "HttpExceptions.hpp"
+#include <sys/stat.h>
+#include <sys/types.h>
 
 class Router
 {

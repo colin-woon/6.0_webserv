@@ -32,38 +32,39 @@ static std::string toHexString(unsigned long num)
 	return ss.str();
 }
 
-static void parseFileHeaderKeyValuePair(std::string &line, std::map<std::string, std::string> fileHeaders)
-{
-	size_t whitespacePos = line.find_first_of(" \t");
-	size_t headerFieldPos = line.find_first_not_of(" \t");
-	if (whitespacePos < headerFieldPos)
-		throw Http400BadRequestException();
+// static void parseFileHeaderKeyValuePair(std::string &line, std::map<std::string, std::string> fileHeaders)
+// {
+// 	size_t whitespacePos = line.find_first_of(" \t");
+// 	size_t headerFieldPos = line.find_first_not_of(" \t");
+// 	if (whitespacePos < headerFieldPos)
+// 		throw Http400BadRequestException();
 
-	// Find the colon separator
-	size_t colonPos = line.find(':');
-	if (colonPos != std::string::npos)
-	{
-		std::string key = line.substr(0, colonPos);
-		if (whitespacePos < colonPos)
-			throw Http400BadRequestException();
-		// Trim leading whitespace from key (C++98 compatible)
-		size_t start = key.find_first_not_of(" \t");
-		if (start != std::string::npos)
-			key = key.substr(start);
-		else
-			key.clear(); // All whitespace, make empty
+// 	// Find the colon separator
+// 	size_t colonPos = line.find(':');
+// 	if (colonPos != std::string::npos)
+// 	{
+// 		std::string key = line.substr(0, colonPos);
+// 		if (whitespacePos < colonPos)
+// 			throw Http400BadRequestException();
+// 		// Trim leading whitespace from key (C++98 compatible)
+// 		size_t start = key.find_first_not_of(" \t");
+// 		if (start != std::string::npos)
+// 			key = key.substr(start);
+// 		else
+// 			key.clear(); // All whitespace, make empty
 
-		size_t valueStart = line.find_first_not_of(" \t", colonPos + 1);
-		if (valueStart != std::string::npos)
-		{
-			std::string value = line.substr(valueStart);
-			fileHeaders[key] = value;
-		}
-	}
-}
+// 		size_t valueStart = line.find_first_not_of(" \t", colonPos + 1);
+// 		if (valueStart != std::string::npos)
+// 		{
+// 			std::string value = line.substr(valueStart);
+// 			fileHeaders[key] = value;
+// 		}
+// 	}
+// }
 
 static void parseFileHeaders(std::map<std::string, std::string> &fileHeaders, HttpRequest &request, std::istringstream &bodyStream)
 {
+	(void)request;
 	std::string line;
 
 	while (std::getline(bodyStream, line))
@@ -153,6 +154,7 @@ static void uploadHashedFile(std::string &filenameValue, std::string &fileExtens
 
 void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
+	(void)router;
 	try
 	{
 		std::map<std::string, std::string> headers = request.getHeaders();

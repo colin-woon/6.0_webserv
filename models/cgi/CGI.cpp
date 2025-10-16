@@ -1,6 +1,6 @@
 #include "./CGI.hpp"
 
-CGI::CGI(const HttpRequest& request, const Server& srv) : _req(request)
+CGI::CGI(const HttpRequest &request, const Server &srv) : _req(request)
 {
 	this->createEnv(srv);
 }
@@ -13,9 +13,9 @@ const char *CGI::CGISimpleException::what() const throw()
 	return (this->_message.c_str());
 }
 
-std::string	CGI::execCGI(const Location& loc, const std::pair<std::string, std::string>& cgiEntry)
+std::string CGI::execCGI(const Location &loc, const std::pair<std::string, std::string> &cgiEntry)
 {
-	int	sp[2];
+	int sp[2];
 
 	if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, sp) == -1)
 		throw CGI::CGISimpleException("Socket Pair Failed");
@@ -39,31 +39,31 @@ std::string	CGI::execCGI(const Location& loc, const std::pair<std::string, std::
 		argv[1] = const_cast<char *>(cgiEntry.second.c_str());
 		argv[2] = NULL;
 
-		std::vector<char *>	envp;
+		std::vector<char *> envp;
 		for (size_t i = 0; i < this->_envp.size(); i++)
 			envp.push_back(const_cast<char *>(this->_envp[i].c_str()));
 		envp.push_back(NULL);
 
 		execve(argv[0], argv, envp.data());
 		perror("CGI Execve Failed");
-		exit (127);
+		exit(127);
 	}
 	else
 	{
 		close(sp[1]);
-		struct pollfd	pfd;
-		std::string	output;
-		int	pollret;
+		struct pollfd pfd;
+		std::string output;
+		int pollret;
 
 		pfd.fd = sp[0];
 		pfd.events = POLLIN | POLLOUT;
-		bool	sendDone = _req.getBody().empty();
-		bool	recvDone = false;
+		bool sendDone = _req.getBody().empty();
+		bool recvDone = false;
 
-		size_t	sent;
-		size_t	total = 0;
+		size_t sent;
+		size_t total = 0;
 		char buf[1024];
-		size_t	n;
+		size_t n;
 
 		while (!sendDone || !recvDone)
 		{
@@ -71,12 +71,12 @@ std::string	CGI::execCGI(const Location& loc, const std::pair<std::string, std::
 			if (pollret < 0)
 			{
 				perror("CGI Poll Failed");
-				break ;
+				break;
 			}
 			else if (!pollret)
 			{
 				perror("CGI Timeout");
-				break ;
+				break;
 			}
 
 			if ((pfd.revents & POLLOUT) && !sendDone)
@@ -114,15 +114,15 @@ std::string	CGI::execCGI(const Location& loc, const std::pair<std::string, std::
 	}
 }
 
-void	CGI::createEnv(const Server& srv)
+void CGI::createEnv(const Server &srv)
 {
-	std::stringstream	stream;
+	std::stringstream stream;
 
 	this->_envp.push_back("REQUEST_METHOD=" + this->_req.getMethod());
 	this->_envp.push_back("SCRIPT_NAME=" + this->_req.getPath());
 
-	std::string	query;
-	for (int i = 0; i < this->_req.getQueryParams().size(); i++)
+	std::string query;
+	for (size_t i = 0; i < this->_req.getQueryParams().size(); i++)
 	{
 		query.append(this->_req.getQueryParams().at(i).first);
 		query.append("=");
@@ -147,12 +147,12 @@ void	CGI::createEnv(const Server& srv)
 	this->_envp.push_back("SERVER_PORT=" + stream.str());
 	this->_envp.push_back("REMOTE_ADDR=" + srv.host);
 
-	std::string	key;
+	std::string key;
 	for (std::map<std::string, std::string>::const_iterator it = this->_req.getHeaders().begin();
-		it !=  this->_req.getHeaders().end(); it++)
+		 it != this->_req.getHeaders().end(); it++)
 	{
 		if (it->first == "Content-Length" || it->first == "Content-Type")
-			continue ;
+			continue;
 		key = it->first;
 
 		for (size_t i = 0; i < key.size(); i++)
@@ -163,65 +163,66 @@ void	CGI::createEnv(const Server& srv)
 
 void CGI::handleCGI(HttpRequest &request, HttpResponse &response, const Server &serverConfig, Router &router)
 {
-			CGI cgi(request, serverConfig);
+	CGI cgi(request, serverConfig);
 
-			const std::string &requestPath = request.getPath();
-			size_t dotPos = requestPath.find_last_of(".");
-			if (dotPos == std::string::npos)
-				throw Http404NotFoundException();
-			std::string cgiExtension = requestPath.substr(dotPos);
-			std::string cgiInterpreter;
-			try
+	const std::string &requestPath = request.getPath();
+	size_t dotPos = requestPath.find_last_of(".");
+	if (dotPos == std::string::npos)
+		throw Http404NotFoundException();
+	std::string cgiExtension = requestPath.substr(dotPos);
+	std::string cgiInterpreter;
+	try
+	{
+		cgiInterpreter = router.locationConfig->cgi.at(cgiExtension);
+	}
+	catch (const std::out_of_range &e)
+	{
+		throw Http502BadGatewayException();
+	}
+	const std::pair<std::string, std::string> cgiEntry = std::make_pair(router.resolvedPath, cgiInterpreter);
+
+	std::string cgiOutput = cgi.execCGI(*router.locationConfig, cgiEntry);
+	size_t separatorPos = cgiOutput.find("\r\n\r\n");
+
+	std::string cgiBody;
+	if (separatorPos != std::string::npos)
+	{
+		std::string cgiHeadersStr = cgiOutput.substr(0, separatorPos);
+		cgiBody = cgiOutput.substr(separatorPos + 4);
+
+		std::stringstream ss(cgiHeadersStr);
+		std::string headerLine;
+		while (std::getline(ss, headerLine) && !headerLine.empty() && headerLine != "\r")
+		{
+			size_t colonPos = headerLine.find(":");
+			if (colonPos != std::string::npos)
 			{
-				cgiInterpreter = router.locationConfig->cgi.at(cgiExtension);
-			}
-			catch(const std::out_of_range &e)
-			{
-				throw Http502BadGatewayException();
-			}
-			const std::pair<std::string, std::string> cgiEntry = std::make_pair(router.resolvedPath, cgiInterpreter);
-
-			std::string cgiOutput = cgi.execCGI(*router.locationConfig, cgiEntry);
-			size_t separatorPos = cgiOutput.find("\r\n\r\n");
-
-			std::string cgiBody;
-			if (separatorPos != std::string::npos)
-			{
-				std::string cgiHeadersStr = cgiOutput.substr(0, separatorPos);
-				cgiBody = cgiOutput.substr(separatorPos + 4);
-
-				std::stringstream ss(cgiHeadersStr);
-				std::string headerLine;
-				while (std::getline(ss, headerLine) && !headerLine.empty() && headerLine != "\r")
+				std::string key = headerLine.substr(0, colonPos);
+				std::string value = headerLine.substr(colonPos + 2); // Skip ": "
+				// Trim potential trailing '\r' from value
+				if (!value.empty() && value[value.size() - 1] == '\r')
 				{
-					size_t colonPos = headerLine.find(":");
-					if (colonPos != std::string::npos)
-					{
-						std::string key = headerLine.substr(0, colonPos);
-						std::string value = headerLine.substr(colonPos + 2); // Skip ": "
-						// Trim potential trailing '\r' from value
-						if (!value.empty() && value[value.size() - 1] == '\r') {
-							value.erase(value.size() - 1);
-						}
-						response.addHeader(key, value);
-					}
+					value.erase(value.size() - 1);
 				}
+				response.addHeader(key, value);
 			}
-			else
-			{
-				// No headers from CGI, treat entire output as body
-				cgiBody = cgiOutput;
-			}
+		}
+	}
+	else
+	{
+		// No headers from CGI, treat entire output as body
+		cgiBody = cgiOutput;
+	}
 
-			response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
-			response.setBody(cgiBody);
+	response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+	response.setBody(cgiBody);
 
-			// Set Content-Length based on the actual body size
-			if (response.getHeaders().find("Content-Length") == response.getHeaders().end())
-			{
-				std::stringstream contentLength;
-				contentLength << cgiBody.length();
-				response.addHeader("Content-Length", contentLength.str());
-			}
-			return ;
+	// Set Content-Length based on the actual body size
+	if (response.getHeaders().find("Content-Length") == response.getHeaders().end())
+	{
+		std::stringstream contentLength;
+		contentLength << cgiBody.length();
+		response.addHeader("Content-Length", contentLength.str());
+	}
+	return;
 }

@@ -53,8 +53,8 @@ void Router::getResolvedPath(HttpRequest &request, const Server &serverConfig)
 		resolvedPath = serverConfig.root + request.getPath();
 
 	struct stat path_stat;
-	stat(resolvedPath.c_str(), &path_stat);
-
+	if (stat(resolvedPath.c_str(), &path_stat) != 0)
+		throw Http404NotFoundException();
 	if (S_ISDIR(path_stat.st_mode))
 	{
 		std::string indexFile;

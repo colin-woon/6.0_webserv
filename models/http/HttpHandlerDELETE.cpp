@@ -18,6 +18,7 @@ HttpHandlerDELETE::~HttpHandlerDELETE() {}
 
 void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
+	(void)router;
 	std::string path = request.getPath();
 
 	// Check if path starts with /uploads/

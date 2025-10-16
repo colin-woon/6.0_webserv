@@ -20,7 +20,7 @@ void HttpUtils::skipEmptyLines(std::istringstream &requestStream, std::string &l
 {
 	while (std::getline(requestStream, line))
 	{
-		if (line.size() == 1 && line[0] == '\r' || line.size() == 0)
+		if ((line.size() == 1 && line[0] == '\r') || line.size() == 0)
 			continue;
 		break;
 	}

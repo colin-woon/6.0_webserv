@@ -7,7 +7,7 @@ static void checkAllowedMethods(Router &router, HttpRequest &request)
 		if (!router.locationConfig->allowedMethods.empty())
 		{
 			bool methodFound = false;
-			for (int i = 0; i < router.locationConfig->allowedMethods.size(); i++)
+			for (size_t i = 0; i < router.locationConfig->allowedMethods.size(); i++)
 			{
 				if (router.locationConfig->allowedMethods[i].compare(request.getMethod()) == 0)
 				{
