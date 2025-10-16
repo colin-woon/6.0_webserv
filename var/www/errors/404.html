@@ -1,1 +1,88 @@
-<h1>404 Not Found</h1>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>404 - Not Found</title>
+	<style>
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			margin: 0;
+			padding: 20px;
+			min-height: 100vh;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			text-align: center;
+		}
+
+		.container {
+			width: 100%;
+			max-width: 600px;
+		}
+
+		.card {
+			background: white;
+			padding: 2rem 3rem;
+			border-radius: 16px;
+			box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+		}
+
+		h1 {
+			color: #667eea;
+			margin: 0;
+			font-size: 8rem;
+			font-weight: 700;
+			line-height: 1;
+		}
+
+		h2 {
+			color: #555;
+			margin-top: 0.5rem;
+			margin-bottom: 1rem;
+			font-size: 1.75rem;
+		}
+
+		p {
+			color: #666;
+			line-height: 1.6;
+			margin-bottom: 2rem;
+		}
+
+		.home-btn {
+			padding: 0.75rem 2rem;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			border: none;
+			border-radius: 8px;
+			cursor: pointer;
+			font-size: 1rem;
+			font-weight: 600;
+			text-decoration: none;
+			display: inline-block;
+			transition: transform 0.2s, box-shadow 0.2s;
+		}
+
+		.home-btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div class="card">
+			<h1>404</h1>
+			<h2>🛰️ Page Not Found</h2>
+			<p>
+				Yikes. Looks like you've navigated into the void. The page you're looking for
+				might have been moved, deleted, or maybe it never existed in the first place.
+			</p>
+			<a href="/" class="home-btn">Return to Homebase</a>
+		</div>
+	</div>
+</body>
+
+</html>

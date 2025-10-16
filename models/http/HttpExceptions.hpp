@@ -30,6 +30,8 @@ class HttpException : public std::exception
 public:
 	virtual ~HttpException() throw() {};
 	virtual const char *what() const throw() = 0;
+	virtual const std::string getStatusCodeString() const = 0;
+	virtual const int getStatusCodeDigit() const = 0;
 	static std::string statusCodeToString(int statusCode);
 };
 
@@ -37,54 +39,72 @@ public:
 class Http400BadRequestException : public HttpException
 {
 public:
+	const std::string getStatusCodeString() const { return "400"; };
+	const int getStatusCodeDigit() const { return 400; };
 	const char *what() const throw();
 };
 
 class Http404NotFoundException : public HttpException
 {
 public:
+	const std::string getStatusCodeString() const { return "404"; };
+	const int getStatusCodeDigit() const { return 404; };
 	const char *what() const throw();
 };
 
 class Http405MethodNotAllowedException : public HttpException
 {
 public:
+	const std::string getStatusCodeString() const { return "405"; };
+	const int getStatusCodeDigit() const { return 405; };
 	const char *what() const throw();
 };
 
 class Http413PayloadTooLargeException : public HttpException
 {
 public:
+	const std::string getStatusCodeString() const { return "413"; };
+	const int getStatusCodeDigit() const { return 413; };
 	const char *what() const throw();
 };
 
 class Http414UriTooLongException : public HttpException
 {
 public:
+	const std::string getStatusCodeString() const { return "414"; };
+	const int getStatusCodeDigit() const { return 414; };
 	const char *what() const throw();
 };
 
 class Http500InternalServerErrorException : public HttpException
 {
 public:
+	const std::string getStatusCodeString() const { return "500"; };
+	const int getStatusCodeDigit() const { return 500; };
 	const char *what() const throw();
 };
 
 class Http501NotImplementedException : public HttpException
 {
 public:
+	const std::string getStatusCodeString() const { return "501"; };
+	const int getStatusCodeDigit() const { return 501; };
 	const char *what() const throw();
 };
 
 class Http502BadGatewayException : public HttpException
 {
 public:
+	const std::string getStatusCodeString() const { return "502"; };
+	const int getStatusCodeDigit() const { return 502; };
 	const char *what() const throw();
 };
 
 class Http505HttpVersionNotSupportedException : public HttpException
 {
 public:
+	const std::string getStatusCodeString() const { return "505"; };
+	const int getStatusCodeDigit() const { return 505; };
 	const char *what() const throw();
 };
 
