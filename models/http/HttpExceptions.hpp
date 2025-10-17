@@ -18,6 +18,8 @@ enum StatusCode
 	HTTP_405_METHOD_NOT_ALLOWED = 405,
 	HTTP_413_PAYLOAD_TOO_LARGE = 413,
 	HTTP_414_URI_TOO_LONG = 414,
+	// HTTP_415_UNSUPPORTED_MEDIA_TYPE = 415,
+	HTTP_431_REQUEST_HEADER_FIELDS_TOO_LARGE = 431,
 	HTTP_500_INTERNAL_SERVER_ERROR = 500,
 	HTTP_501_NOT_IMPLEMENTED = 501,
 	HTTP_502_BAD_GATEWAY = 502,
@@ -82,6 +84,22 @@ class Http414UriTooLongException : public HttpException
 public:
 	const std::string getStatusCodeString() const { return "414"; };
 	int getStatusCodeDigit() const { return 414; };
+	const char *what() const throw();
+};
+
+// class Http415UnsupportedMediaTypeException : public HttpException
+// {
+// public:
+// 	const std::string getStatusCodeString() const { return "415"; };
+// 	int getStatusCodeDigit() const { return 415; };
+// 	const char *what() const throw();
+// };
+
+class Http431RequestHeaderFieldsTooLargeException : public HttpException
+{
+public:
+	const std::string getStatusCodeString() const { return "431"; };
+	int getStatusCodeDigit() const { return 431; };
 	const char *what() const throw();
 };
 
