@@ -104,6 +104,15 @@ static void handleHttpException(const Server &serverConfig, const HttpException 
 	}
 }
 
+static void handleRedirection(HttpResponse &response, Router &router)
+{
+	response.setStatusCode(HttpException::statusCodeToString(router.locationConfig->redirect.first));
+	response.addHeader("Location", router.locationConfig->redirect.second);
+	response.addHeader("Content-Length", "0");
+	response.addHeader("Connection", "keep-alive");
+	return;
+}
+
 void HttpHandler::handleRequest(Client &client)
 {
 	std::string &rawRequestBytes = client.inBuff;
@@ -116,10 +125,10 @@ void HttpHandler::handleRequest(Client &client)
 	{
 		HttpRequestParser::parseRawRequest(request, rawRequestBytes, serverConfig);
 		router.getLocationConfig(request, serverConfig);
+		if (router.locationConfig && !router.locationConfig->redirect.second.empty())
+			return handleRedirection(response, router);
 		router.getResolvedPath(request, serverConfig);
 		checkAllowedMethods(router, request);
-		// std::cout << std::endl;
-		// std::cout << request << std::endl;
 		if (router.locationConfig->path.compare("/cgi-bin/") == 0)
 			return CGI::handleCGI(request, response, serverConfig, router);
 		if (request.getMethod().compare("GET") == 0)

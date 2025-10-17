@@ -32,7 +32,10 @@ void Router::getLocationConfig(HttpRequest &request, const Server &serverConfig)
 		const std::string &locationPath = serverConfig.location[i].path;
 
 		if (requestPath.compare(0, locationPath.size(), locationPath) == 0)
+		{
 			locationConfig = &serverConfig.location[i];
+			break;
+		}
 	}
 }
 
