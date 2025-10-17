@@ -27,7 +27,7 @@ public:
 	static void addNewFileMetaData(std::string &hashKey, Headers &fileMetaData);
 	static void deleteFileMetaData(std::string &hashKey);
 	static void uploadFile(std::string &hashedFilename, std::string &fileContent, Router &router);
-	static void deleteFile(std::string &hashedFilename);
+	static void deleteFile(std::string &hashedFilename, Router &router);
 };
 
 #endif

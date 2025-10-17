@@ -80,14 +80,13 @@ void FileHandler::uploadFile(std::string &hashedFilename, std::string &fileConte
 	out.close();
 }
 
-void FileHandler::deleteFile(std::string &hashedFilename)
+void FileHandler::deleteFile(std::string &hashedFilename, Router &router)
 {
-	std::string TEMP_root = "var/www";
-
-	std::string filePath = TEMP_root + "/uploads/" + hashedFilename;
+	std::string uploadPath = getUploadPath(router);
+	const std::string &filePath = uploadPath + hashedFilename;
 	struct stat fileStat;
 	if (stat(filePath.c_str(), &fileStat) < 0)
-		throw Http404NotFoundException(); // Not Found
+		throw Http404NotFoundException();
 	if (std::remove(filePath.c_str()) == 0)
 	{
 		deleteFileMetaData(hashedFilename);

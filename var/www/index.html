@@ -139,17 +139,6 @@
 		</div>
 
 		<div class="card">
-			<h2>📤 Upload File</h2>
-			<div class="upload-form">
-				<form id="uploadForm">
-					<input type="file" name="file" required>
-					<button type="submit">Upload File</button>
-				</form>
-				<div id="upload-status"></div>
-			</div>
-		</div>
-
-		<div class="card">
 			<h2>📁 View Files</h2>
 			<p>All uploaded files can be viewed and managed on the uploads page.</p>
 			<a href="/uploads/" class="view-btn">View Uploads</a>
@@ -157,58 +146,6 @@
 	</div>
 
 	<div id="toast" class="toast"></div>
-
-	<script>
-		// Shows a toast notification message.
-		function showToast(message, type) {
-			const toast = document.getElementById('toast');
-			toast.textContent = message;
-			toast.className = 'toast ' + type + ' show';
-			setTimeout(() => {
-				toast.className = 'toast ' + type;
-			}, 3000);
-		}
-
-		// Handle file upload
-		document.getElementById('uploadForm').addEventListener('submit', async (event) => {
-			event.preventDefault();
-
-			const formData = new FormData(event.target);
-			const statusDiv = document.getElementById('upload-status');
-			const submitButton = event.target.querySelector('button');
-
-			statusDiv.textContent = 'Uploading...';
-			statusDiv.style.color = '#667eea';
-			submitButton.disabled = true;
-
-			try {
-				// IMPORTANT: The fetch URL now points to /uploads/ which is our dedicated handler.
-				const response = await fetch('/uploads/', {
-					method: 'POST',
-					body: formData
-				});
-
-				if (response.ok) {
-					statusDiv.textContent = '✅ Upload successful!';
-					statusDiv.style.color = '#4CAF50';
-					showToast('File uploaded successfully!', 'success');
-					event.target.reset(); // Clear the form
-				} else {
-					const errorText = await response.text();
-					statusDiv.textContent = `❌ Upload failed! Status: ${response.status}`;
-					statusDiv.style.color = '#ff4757';
-					showToast(`Upload failed: ${errorText || 'Server error'}`, 'error');
-				}
-			} catch (error) {
-				statusDiv.textContent = '❌ Upload error!';
-				statusDiv.style.color = '#ff4757';
-				showToast('A network error occurred during upload.', 'error');
-				console.error('Error:', error);
-			} finally {
-				submitButton.disabled = false;
-			}
-		});
-	</script>
 </body>
 
 </html>
