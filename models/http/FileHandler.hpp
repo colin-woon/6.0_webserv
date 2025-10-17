@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <sys/stat.h>
 #include "HttpExceptions.hpp"
+#include "Router.hpp"
 
 typedef std::map<std::string, std::string> Headers;
 
@@ -25,7 +26,7 @@ public:
 	static std::map<std::string, Headers> getAllFileMetaData();
 	static void addNewFileMetaData(std::string &hashKey, Headers &fileMetaData);
 	static void deleteFileMetaData(std::string &hashKey);
-	static void uploadFile(std::string &hashedFilename, std::string &fileContent);
+	static void uploadFile(std::string &hashedFilename, std::string &fileContent, Router &router);
 	static void deleteFile(std::string &hashedFilename);
 };
 

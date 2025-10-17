@@ -271,3 +271,8 @@ void Location::parseDirectives(void)
 	}
 	checkDirectives();
 }
+
+const std::string &Location::getServerRoot() const
+{
+	return _srvRoot;
+}
