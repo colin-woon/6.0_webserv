@@ -53,9 +53,34 @@ static std::string generateDefaultErrorPage(int statusCode, const std::string &s
 	return ss.str();
 }
 
-static void getCustomErrorPage(const Server &serverConfig, const HttpException &e, HttpResponse &response)
+static void getCustomErrorPage(const Server &serverConfig, const Location *locationConfig, const HttpException &e, HttpResponse &response)
 {
-	std::string relativePathToErrorPage = serverConfig.error_pages.at(e.getStatusCodeDigit());
+	std::string relativePathToErrorPage;
+	bool found = false;
+
+	if (locationConfig != NULL)
+	{
+		std::map<int, std::string>::const_iterator it = locationConfig->error_pages.find(e.getStatusCodeDigit());
+		if (it != locationConfig->error_pages.end())
+		{
+			relativePathToErrorPage = it->second;
+			found = true;
+		}
+	}
+
+	if (!found)
+	{
+		std::map<int, std::string>::const_iterator it = serverConfig.error_pages.find(e.getStatusCodeDigit());
+		if (it != serverConfig.error_pages.end())
+		{
+			relativePathToErrorPage = it->second;
+			found = true;
+		}
+	}
+
+	if (!found)
+		throw std::runtime_error("No custom error page configured.");
+
 	std::string resolvedPathToErrorPage = serverConfig.root + relativePathToErrorPage;
 	std::ifstream file(resolvedPathToErrorPage.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open())
@@ -92,11 +117,11 @@ static void getDefaultErrorPage(HttpResponse &response, const HttpException &e)
 	response.addHeader("Content-Length", contentLength.str());
 }
 
-static void handleHttpException(const Server &serverConfig, const HttpException &e, HttpResponse &response)
+static void handleHttpException(const Server &serverConfig, const Location *locationConfig, const HttpException &e, HttpResponse &response)
 {
 	try
 	{
-		getCustomErrorPage(serverConfig, e, response);
+		getCustomErrorPage(serverConfig, locationConfig, e, response);
 	}
 	catch (const std::exception &fallback)
 	{
@@ -140,7 +165,7 @@ void HttpHandler::handleRequest(Client &client)
 	}
 	catch (const HttpException &e)
 	{
-		handleHttpException(serverConfig, e, response);
+		handleHttpException(serverConfig, router.locationConfig, e, response);
 		const std::string &statusCode = response.getStatusCode();
 		if (statusCode == "400" || statusCode[0] == '5')
 		{
