@@ -10,6 +10,7 @@
 #include <string>
 #include <sstream>
 #include <map>
+#include <dirent.h>
 
 class HttpHandlerGET
 {
@@ -20,7 +21,7 @@ private:
 	~HttpHandlerGET();
 
 protected:
-	static void handleGetRequest(HttpRequest &request, HttpResponse &response, Router &router);
+	static void handleGetRequest(HttpRequest &request, HttpResponse &response, Router &router, const Server &serverConfig);
 };
 
 #endif

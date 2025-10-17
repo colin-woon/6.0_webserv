@@ -140,14 +140,14 @@ static void getFileNameAndExtension(std::map<std::string, std::string> &fileHead
 	fileExtension = filenameValue.substr(lastPeriodPos);
 }
 
-static void uploadHashedFile(std::string &filenameValue, std::string &fileExtension, std::string &fileContent, std::map<std::string, std::string> &fileHeaders)
+static void uploadHashedFile(std::string &filenameValue, std::string &fileExtension, std::string &fileContent, std::map<std::string, std::string> &fileHeaders, Router &router)
 {
 	unsigned long hashed = djb2Hash(filenameValue);
 	std::string hashedFilename = toHexString(hashed) + fileExtension;
 
 	fileHeaders["original-file-name"] = filenameValue;
 	FileHandler::addNewFileMetaData(hashedFilename, fileHeaders);
-	FileHandler::uploadFile(hashedFilename, fileContent);
+	FileHandler::uploadFile(hashedFilename, fileContent, router);
 
 	std::cout << FileHandler::getFileMetaData(hashedFilename)["Content-Disposition"] << std::endl;
 }
@@ -170,7 +170,7 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 		std::string fileExtension;
 		getFileNameAndExtension(fileHeaders, filenameValue, fileExtension);
 
-		uploadHashedFile(filenameValue, fileExtension, fileContent, fileHeaders);
+		uploadHashedFile(filenameValue, fileExtension, fileContent, fileHeaders, router);
 
 		// Set successful response
 		response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));

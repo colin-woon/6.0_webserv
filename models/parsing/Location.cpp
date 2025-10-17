@@ -243,8 +243,8 @@ void Location::checkDirectives(void)
 		this->cgi_timeout_sec = 60;
 	if (this->root.empty() && this->alias.empty())
 		this->root = this->_srvRoot;
-	if (this->index.empty())
-		this->index = "index.html";
+	// if (this->index.empty())
+	// 	this->index = "index.html";
 	if (this->error_pages.empty())
 		this->error_pages = this->_srvError_pages;
 }
@@ -270,4 +270,9 @@ void Location::parseDirectives(void)
 		this->_Context.first++;
 	}
 	checkDirectives();
+}
+
+const std::string &Location::getServerRoot() const
+{
+	return _srvRoot;
 }

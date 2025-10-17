@@ -18,10 +18,8 @@ HttpHandlerDELETE::~HttpHandlerDELETE() {}
 
 void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
-	(void)router;
 	std::string path = request.getPath();
 
-	// Check if path starts with /uploads/
 	if (path.find("/uploads/") != 0)
 		throw Http404NotFoundException();
 
@@ -32,7 +30,7 @@ void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &
 		throw Http400BadRequestException();
 
 	// Delete the file (this also deletes metadata)
-	FileHandler::deleteFile(hashedFilename);
+	FileHandler::deleteFile(hashedFilename, router);
 
 	// Set successful response
 	response.setStatusCode(HttpException::statusCodeToString(HTTP_204_NO_CONTENT));

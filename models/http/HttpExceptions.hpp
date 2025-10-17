@@ -10,6 +10,7 @@ enum StatusCode
 	HTTP_200_OK = 200,
 	HTTP_201_CREATED = 201,
 	HTTP_204_NO_CONTENT = 204,
+	HTTP_301_MOVED_PERMANENTLY = 301,
 	HTTP_400_BAD_REQUEST = 400,
 	HTTP_401_UNAUTHORIZED = 401,
 	HTTP_403_FORBIDDEN = 403,
@@ -41,6 +42,14 @@ class Http400BadRequestException : public HttpException
 public:
 	const std::string getStatusCodeString() const { return "400"; };
 	int getStatusCodeDigit() const { return 400; };
+	const char *what() const throw();
+};
+
+class Http403ForbiddenException : public HttpException
+{
+public:
+	const std::string getStatusCodeString() const { return "403"; };
+	int getStatusCodeDigit() const { return 403; };
 	const char *what() const throw();
 };
 

@@ -91,6 +91,7 @@ public:
 	};
 	void checkDirectives(void);
 	void parseDirectives(void);
+	const std::string &getServerRoot() const;
 };
 
 #endif
