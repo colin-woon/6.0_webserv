@@ -64,6 +64,11 @@ const char *Http414UriTooLongException::what() const throw()
 	return "URI Too Long";
 }
 
+const char *Http431RequestHeaderFieldsTooLargeException::what() const throw()
+{
+	return "Request Header Fields Too Large";
+}
+
 const char *Http500InternalServerErrorException::what() const throw()
 {
 	return "Internal Server Error";

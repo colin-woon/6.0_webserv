@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-PORT=8080
+PORT=8081
 
 # Function to send HTTP request via netcat
 send_request() {
@@ -304,11 +304,24 @@ send_request() {
 # send_request "POST / HTTP/1.1\r\nHost: localhost\r\n\r\n{\"test\":\"value\"}"
 # echo ""
 
-# DELETE Unallowed
-echo "TEST 27: Unallowed DELETE."
-echo "EXPECTED: 405 Method Not Allowed"
+# # DELETE Unallowed
+# echo "TEST 27: Unallowed DELETE."
+# echo "EXPECTED: 405 Method Not Allowed"
+# echo "----------------------------------------"
+# send_request "DELETE / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 0\r\n\r\n"
+# echo ""
+
+# DELETE
+# echo "TEST 28: DELETE."
+# echo "EXPECTED: 204 No Content"
+# echo "----------------------------------------"
+# send_request "DELETE /uploads/d1d86da2a930e50f.pdf HTTP/1.1\r\nHost: localhost\r\n\r\n"
+# echo ""
+
+echo "TEST 29: Overflow Header Cap from Config (min 512 bytes, need to setup in config)."
+echo "EXPECTED: 431 Request Header Fields Too Large"
 echo "----------------------------------------"
-send_request "DELETE / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 0\r\n\r\n"
+curl -v -H "X-Overflow: $(printf '%500s' | tr ' ' 'A')" http://127.0.0.1:8081/
 echo ""
 
 # echo "=========================================="

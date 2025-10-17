@@ -65,10 +65,16 @@ static void parseRequestLine(HttpRequest &request, std::istringstream &requestSt
 	HttpUtils::parseTarget(request);
 }
 
-static void parseHeaders(HttpRequest &request, std::istringstream &requestStream, std::string &line)
+static void parseHeaders(HttpRequest &request, std::istringstream &requestStream, std::string &line,
+						 const Server &serverConfig)
 {
+	size_t totalHeaderSize = 0;
 	while (std::getline(requestStream, line))
 	{
+		totalHeaderSize += line.length() + 1;
+		if (totalHeaderSize > static_cast<size_t>(serverConfig.header_cap))
+			throw Http431RequestHeaderFieldsTooLargeException();
+
 		HttpUtils::checkForNUL(line);
 		if (line.size() == 0 || (line.size() == 1 && line[0] == '\r'))
 		{
@@ -106,13 +112,14 @@ static void postParsingValidation(HttpRequest &request)
 // Use a string stream to process the request line by line
 // Parse the request line (first line)
 // Remove carriage return if present
-void HttpRequestParser::parseRawRequest(HttpRequest &request, const std::string &rawRequestBytes, const Server &serverConfig)
+void HttpRequestParser::parseRawRequest(HttpRequest &request, const std::string &rawRequestBytes,
+										const Server &serverConfig)
 {
 	std::istringstream requestStream(rawRequestBytes);
 	std::string line;
 
 	parseRequestLine(request, requestStream, line);
-	parseHeaders(request, requestStream, line);
+	parseHeaders(request, requestStream, line, serverConfig);
 	parseBody(request, requestStream, line, serverConfig);
 	postParsingValidation(request);
 }
