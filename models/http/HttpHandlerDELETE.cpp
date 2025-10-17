@@ -18,6 +18,7 @@ HttpHandlerDELETE::~HttpHandlerDELETE() {}
 
 void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
+	(void)router;
 	std::string path = request.getPath();
 
 	// Check if path starts with /uploads/
@@ -38,4 +39,9 @@ void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &
 	response.addHeader("Content-Type", "text/plain");
 	response.addHeader("Content-Length", "0");
 	response.setBody("");
+	std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Connection");
+	if (it != request.getHeaders().end() && it->second == "close")
+		response.addHeader("Connection", "close");
+	else
+		response.addHeader("Connection", "keep-alive");
 }

@@ -15,35 +15,35 @@ HttpHandlerGET &HttpHandlerGET::operator=(const HttpHandlerGET &other)
 
 HttpHandlerGET::~HttpHandlerGET() {}
 
-static std::string generateFileListJson()
-{
-	std::map<std::string, Headers> allFiles = FileHandler::getAllFileMetaData();
-	std::string json = "[";
-	bool first = true;
+// static std::string generateFileListJson()
+// {
+// 	std::map<std::string, Headers> allFiles = FileHandler::getAllFileMetaData();
+// 	std::string json = "[";
+// 	bool first = true;
 
-	for (std::map<std::string, Headers>::iterator it = allFiles.begin();
-		 it != allFiles.end(); ++it)
-	{
-		if (!first)
-			json += ",";
-		first = false;
+// 	for (std::map<std::string, Headers>::iterator it = allFiles.begin();
+// 		 it != allFiles.end(); ++it)
+// 	{
+// 		if (!first)
+// 			json += ",";
+// 		first = false;
 
-		std::string hash = it->first;
-		std::map<std::string, std::string> metadata = it->second;
+// 		std::string hash = it->first;
+// 		std::map<std::string, std::string> metadata = it->second;
 
-		// Check if original-file-name exists in metadata
-		std::map<std::string, std::string>::iterator nameIt = metadata.find("original-file-name");
-		std::string originalFilename = (nameIt != metadata.end()) ? nameIt->second : "unknown";
+// 		// Check if original-file-name exists in metadata
+// 		std::map<std::string, std::string>::iterator nameIt = metadata.find("original-file-name");
+// 		std::string originalFilename = (nameIt != metadata.end()) ? nameIt->second : "unknown";
 
-		json += "{";
-		json += "\"hash\":\"" + hash + "\",";
-		json += "\"original_filename\":\"" + originalFilename + "\"";
-		json += "}";
-	}
+// 		json += "{";
+// 		json += "\"hash\":\"" + hash + "\",";
+// 		json += "\"original_filename\":\"" + originalFilename + "\"";
+// 		json += "}";
+// 	}
 
-	json += "]";
-	return json;
-}
+// 	json += "]";
+// 	return json;
+// }
 
 void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
@@ -87,5 +87,11 @@ void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &respon
 		contentLength << content.length();
 		response.addHeader("Content-Length", contentLength.str());
 		response.setBody(content);
+
+		std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Connection");
+		if (it != request.getHeaders().end() && it->second == "close")
+			response.addHeader("Connection", "close");
+		else
+			response.addHeader("Connection", "keep-alive");
 	}
 }

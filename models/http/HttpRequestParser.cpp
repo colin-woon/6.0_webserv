@@ -67,8 +67,6 @@ static void parseRequestLine(HttpRequest &request, std::istringstream &requestSt
 
 static void parseHeaders(HttpRequest &request, std::istringstream &requestStream, std::string &line)
 {
-	const std::map<std::string, std::string> &headers = request.getHeaders();
-
 	while (std::getline(requestStream, line))
 	{
 		HttpUtils::checkForNUL(line);

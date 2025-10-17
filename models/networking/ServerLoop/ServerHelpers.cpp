@@ -95,6 +95,8 @@ void ServerLoop::readOnce_(int fd)
 		if (r > 0)
 		{
 			HttpHandler::handleRequest(c);
+			if (c.response.getHeaders().at("Connection") == "close")
+				c.closeFlag = true;
 			c.outBuff = c.response.toString();
 			c.responseQueued = true;
 			modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
@@ -103,6 +105,8 @@ void ServerLoop::readOnce_(int fd)
 		else if (r < 0)
 		{
 			HttpHandler::handleRequest(c);
+			if (c.response.getHeaders().at("Connection") == "close")
+				c.closeFlag = true;
 			c.outBuff = c.response.toString();
 			c.responseQueued = true;
 			c.closeFlag = true;
@@ -125,6 +129,8 @@ void ServerLoop::readOnce_(int fd)
 	else
 		c.consumedBytes = c.parsePos;
 	HttpHandler::handleRequest(c);
+	if (c.response.getHeaders().at("Connection") == "close")
+		c.closeFlag = true;
 	c.outBuff = c.response.toString();
 	c.responseQueued = true;
 	modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
