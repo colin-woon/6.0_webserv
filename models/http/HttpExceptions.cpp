@@ -39,6 +39,11 @@ const char *Http400BadRequestException::what() const throw()
 	return "Bad Request";
 }
 
+const char *Http403ForbiddenException::what() const throw()
+{
+	return "Forbidden";
+}
+
 const char *Http404NotFoundException::what() const throw()
 {
 	return "Not Found";

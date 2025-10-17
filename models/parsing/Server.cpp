@@ -239,7 +239,7 @@ void Server::handleLocation(Server &srv)
 	if (srv._Context.first == srv._Context.second)
 		throw Server::ServerSyntaxException(*srv._Context.first, "Unclosed Location Context");
 
-	bool	inserted = false;
+	bool inserted = false;
 	for (size_t i = 0; i < srv._locSpec.size(); i++)
 	{
 		if (srv._locSpec[i] == path)
@@ -335,8 +335,8 @@ void Server::checkDirectives(void)
 		this->header_cap = 8192;
 	if (this->host.empty())
 		this->host = "0.0.0.0";
-	if (this->index.empty())
-		this->index = "index.html";
+	// if (this->index.empty())
+	// 	this->index = "index.html";
 	if (this->name.empty())
 		throw Server::ServerSimpleException("Missing Server Name");
 	if (this->error_pages.empty())

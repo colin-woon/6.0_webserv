@@ -132,7 +132,7 @@ void HttpHandler::handleRequest(Client &client)
 		if (router.locationConfig->path.compare("/cgi-bin/") == 0)
 			return CGI::handleCGI(request, response, serverConfig, router);
 		if (request.getMethod().compare("GET") == 0)
-			return HttpHandlerGET::handleGetRequest(request, response, router);
+			return HttpHandlerGET::handleGetRequest(request, response, router, serverConfig);
 		if (request.getMethod().compare("POST") == 0)
 			return HttpHandlerPOST::handlePostRequest(request, response, router);
 		if (request.getMethod().compare("DELETE") == 0)

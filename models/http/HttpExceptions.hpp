@@ -45,6 +45,14 @@ public:
 	const char *what() const throw();
 };
 
+class Http403ForbiddenException : public HttpException
+{
+public:
+	const std::string getStatusCodeString() const { return "403"; };
+	int getStatusCodeDigit() const { return 403; };
+	const char *what() const throw();
+};
+
 class Http404NotFoundException : public HttpException
 {
 public:
