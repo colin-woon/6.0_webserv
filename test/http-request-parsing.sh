@@ -1,19 +1,19 @@
 #!/bin/bash
 
 # Configuration
-PORT=8002
+PORT=8081
 
 # Function to send HTTP request via netcat
 send_request() {
     echo -en "$1" | nc -N localhost $PORT
 }
 
-# # Redirect output to file
+# Redirect output to file
 # OUTPUT_FILE="http_results.txt"
 # echo "Saving results to $OUTPUT_FILE"
 # echo "==========================================" > $OUTPUT_FILE
 
-# Large request body example (uncomment to use)
+# # Large request body example (uncomment to use)
 # echo "TEST 19: large request body."
 # echo "EXPECTED: Large payload handling"
 # echo "----------------------------------------"
@@ -304,7 +304,27 @@ send_request() {
 # send_request "POST / HTTP/1.1\r\nHost: localhost\r\n\r\n{\"test\":\"value\"}"
 # echo ""
 
-echo "=========================================="
-echo "Test completed. Results saved to $OUTPUT_FILE"
+# # DELETE Unallowed
+# echo "TEST 27: Unallowed DELETE."
+# echo "EXPECTED: 405 Method Not Allowed"
+# echo "----------------------------------------"
+# send_request "DELETE / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 0\r\n\r\n"
+# echo ""
 
-echo "Results saved to $OUTPUT_FILE"
+# DELETE
+# echo "TEST 28: DELETE."
+# echo "EXPECTED: 204 No Content"
+# echo "----------------------------------------"
+# send_request "DELETE /uploads/d1d86da2a930e50f.pdf HTTP/1.1\r\nHost: localhost\r\n\r\n"
+# echo ""
+
+echo "TEST 29: Overflow Header Cap from Config (min 512 bytes, need to setup in config)."
+echo "EXPECTED: 431 Request Header Fields Too Large"
+echo "----------------------------------------"
+curl -v -H "X-Overflow: $(printf '%500s' | tr ' ' 'A')" http://127.0.0.1:8081/
+echo ""
+
+# echo "=========================================="
+# echo "Test completed. Results saved to $OUTPUT_FILE"
+
+# echo "Results saved to $OUTPUT_FILE"

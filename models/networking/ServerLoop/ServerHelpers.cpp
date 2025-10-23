@@ -12,14 +12,8 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
-static std::string preview(const std::string& s, size_t pos, size_t n) {
-	if (pos >= s.size()) return "";
-	size_t take = s.size() - pos;
-	if (take > n) take = n;
-	return s.substr(pos, take);
-}
-
-void ServerLoop::closeClient_(int fd) {
+void ServerLoop::closeClient_(int fd)
+{
 	delPollFd(pollFdList_, fdIndex_, fd);
 	std::map<int, Client>::iterator itr = clientList_.find(fd);
 	if (itr != clientList_.end())
@@ -28,16 +22,20 @@ void ServerLoop::closeClient_(int fd) {
 	std::cout << "closed " << fd << "\n";
 }
 
-void ServerLoop::acceptClients_(int lfd) {
-	while (1){
+void ServerLoop::acceptClients_(int lfd)
+{
+	while (1)
+	{
 		int clientFd = accept(lfd, 0, 0);
-		if (clientFd == -1) {
+		if (clientFd == -1)
+		{
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				break;
 			std::cerr << "accept error\n";
 			break;
 		}
-		if (!setNonBlocking(clientFd)) {
+		if (!setNonBlocking(clientFd))
+		{
 			close(clientFd);
 			continue;
 		}
@@ -45,22 +43,22 @@ void ServerLoop::acceptClients_(int lfd) {
 		Client c;
 		c.fd = clientFd;
 
-		std::map<int,const Server*>::const_iterator it = listenerOwner_.find(lfd);
+		std::map<int, std::vector<const Server *> >::const_iterator it = listenerOwner_.find(lfd);
 		if (it != listenerOwner_.end())
-			c.serverConfig = it->second;
-		else
-			c.serverConfig = NULL;
+			c.vhostCandidates = it->second;
+		c.serverConfig = NULL;
 		setClientTimeout(lfd, c, listenerTimeoutMs_);
 		clientList_[clientFd] = c;
 		std::cout << "accepted " << clientFd << "\n";
 	}
 }
 
-void ServerLoop::readOnce_(int fd) {
+void ServerLoop::readOnce_(int fd)
+{
 	std::map<int, Client>::iterator it = clientList_.find(fd);
 	if (it == clientList_.end())
 		return;
-	Client& c = it->second;
+	Client &c = it->second;
 
 	char buf[4096];
 	ssize_t n = recv(fd, buf, sizeof(buf), 0);
@@ -72,23 +70,43 @@ void ServerLoop::readOnce_(int fd) {
 	if (c.responseQueued)
 		return;
 
-	if (!c.headersDone){
+	if (!c.headersDone)
+	{
 		if (!findHeadersEndAndMark_(c))
 			return;
+		if (c.serverConfig == NULL)
+		{
+			std::string rawHeaderBlock = c.inBuff.substr(0, c.headerEndPos + 4);
+			c.serverConfig = vhostPicker_(c.vhostCandidates, rawHeaderBlock);
+		}
+		// if (c.serverConfig != NULL) {
+		// 	const char* picked = (c.serverConfig->name.empty() ? "(unnamed)" : c.serverConfig->name[0].c_str());
+		// 	std::cout << "[VHOST] fd=" << c.fd << " picked=" << picked << " root=" << c.serverConfig->root << "\n";
+		// }
+		// else
+		// 	std::cout << "[VHOST] fd=" << c.fd << " picked=(NULL)\n";
+
 		detectBodyFraming_(c);
 	}
 
-	if (c.isChunked) {
+	if (c.isChunked)
+	{
 		int r = unchunkStep_(c, 0);
-		if (r > 0) {
+		if (r > 0)
+		{
 			HttpHandler::handleRequest(c);
+			if (c.response.getHeaders().at("Connection") == "close")
+				c.closeFlag = true;
 			c.outBuff = c.response.toString();
 			c.responseQueued = true;
 			modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
 			return;
 		}
-		else if (r < 0) {
+		else if (r < 0)
+		{
 			HttpHandler::handleRequest(c);
+			if (c.response.getHeaders().at("Connection") == "close")
+				c.closeFlag = true;
 			c.outBuff = c.response.toString();
 			c.responseQueued = true;
 			c.closeFlag = true;
@@ -96,13 +114,14 @@ void ServerLoop::readOnce_(int fd) {
 		}
 		return;
 	}
-	if (c.contentLength > 0){
+	if (c.contentLength > 0)
+	{
 		size_t bodyAvail;
 		if (c.inBuff.size() >= c.parsePos)
 			bodyAvail = c.inBuff.size() - c.parsePos;
 		else
 			bodyAvail = 0;
-		if (bodyAvail < c.contentLength) //body not complete, go to next recv
+		if (bodyAvail < c.contentLength) // body not complete, go to next recv
 			return;
 		c.bodyBuf.assign(c.inBuff, c.parsePos, c.contentLength);
 		c.consumedBytes = c.parsePos + c.contentLength;
@@ -110,37 +129,48 @@ void ServerLoop::readOnce_(int fd) {
 	else
 		c.consumedBytes = c.parsePos;
 	HttpHandler::handleRequest(c);
+	if (c.response.getHeaders().at("Connection") == "close")
+		c.closeFlag = true;
 	c.outBuff = c.response.toString();
 	c.responseQueued = true;
 	modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
 }
 
-void ServerLoop::writeOnce_(int fd) {
+void ServerLoop::writeOnce_(int fd)
+{
 	std::map<int, Client>::iterator it = clientList_.find(fd);
 	if (it == clientList_.end())
-	return;
+		return;
 	Client &c = it->second;
 
-	if (c.outBuff.empty()) {
+	if (c.outBuff.empty())
+	{
 		modifyEvent(pollFdList_, fdIndex_, fd, POLLIN);
-		if (c.closeFlag) {
+		if (c.closeFlag)
+		{
 			std::cout << "closing, 2nd loop with no content" << std::endl;
 			closeClient_(fd);
-		} else
+		}
+		else
 			resetKeepAlive_(c);
 		return;
 	}
 
 	ssize_t n = send(fd, c.outBuff.data(), c.outBuff.size(), 0);
-	if (n > 0) {
+	if (n > 0)
+	{
 		c.outBuff.erase(0, (size_t)n);
 		resetClientTimeout(c);
-		if (c.outBuff.empty()) {
+		if (c.outBuff.empty())
+		{
 			modifyEvent(pollFdList_, fdIndex_, fd, POLLIN);
-			if (c.closeFlag) {
+			if (c.closeFlag)
+			{
 				std::cout << "closing, 2nd loop with no content" << std::endl;
 				closeClient_(fd);
-			} else {
+			}
+			else
+			{
 				resetKeepAlive_(c);
 			}
 		}
@@ -149,7 +179,8 @@ void ServerLoop::writeOnce_(int fd) {
 	closeClient_(fd);
 }
 
-void ServerLoop::resetKeepAlive_(Client& c) {
+void ServerLoop::resetKeepAlive_(Client &c)
+{
 	if (c.consumedBytes > 0 && c.consumedBytes <= c.inBuff.size())
 		c.inBuff.erase(0, c.consumedBytes);
 	c.headersDone = false;
@@ -163,9 +194,12 @@ void ServerLoop::resetKeepAlive_(Client& c) {
 	c.bodyBuf.clear();
 	c.responseQueued = false;
 	c.closeFlag = false;
+	c.request.clear();
+	c.response.clear();
 }
 
-bool ServerLoop::findHeadersEndAndMark_(Client& c) {
+bool ServerLoop::findHeadersEndAndMark_(Client &c)
+{
 	if (c.headersDone)
 		return true;
 	std::string::size_type p = c.inBuff.find("\r\n\r\n");
@@ -177,14 +211,16 @@ bool ServerLoop::findHeadersEndAndMark_(Client& c) {
 	return true;
 }
 
-std::string ServerLoop::toLowerCopy_(const std::string& s) {
+std::string ServerLoop::toLowerCopy_(const std::string &s)
+{
 	std::string t = s;
 	for (size_t i = 0; i < t.size(); ++i)
 		t[i] = (char)std::tolower((unsigned char)t[i]);
 	return t;
 }
 
-void ServerLoop::detectBodyFraming_(Client& c) {
+void ServerLoop::detectBodyFraming_(Client &c)
+{
 	c.isChunked = false;
 	c.contentLength = 0;
 
@@ -193,7 +229,8 @@ void ServerLoop::detectBodyFraming_(Client& c) {
 
 	const std::string kTE = "transfer-encoding:";
 	std::string::size_type t = lower.find(kTE);
-	if (t != std::string::npos) {
+	if (t != std::string::npos)
+	{
 		t += kTE.size();
 		std::string teval = lower.substr(t, lower.find("\r\n", t) - t);
 		if (teval.find("chunked") != std::string::npos)
@@ -202,7 +239,8 @@ void ServerLoop::detectBodyFraming_(Client& c) {
 
 	const std::string kCL = "content-length:";
 	std::string::size_type p = lower.find(kCL);
-	if (p != std::string::npos) {
+	if (p != std::string::npos)
+	{
 		p += kCL.size();
 		while (p < lower.size() && (lower[p] == ' ' || lower[p] == '\t'))
 			++p;
@@ -213,7 +251,8 @@ void ServerLoop::detectBodyFraming_(Client& c) {
 		while (end > p && (lower[end - 1] == ' ' || lower[end - 1] == '\t'))
 			--end;
 		size_t cl = 0;
-		if (parseContentLength_(lower, p, end, cl)) {
+		if (parseContentLength_(lower, p, end, cl))
+		{
 			c.contentLength = cl;
 		}
 		else
@@ -222,7 +261,8 @@ void ServerLoop::detectBodyFraming_(Client& c) {
 	}
 }
 
-int ServerLoop::parseContentLength_(const std::string& s, size_t start, size_t end, size_t& out){
+int ServerLoop::parseContentLength_(const std::string &s, size_t start, size_t end, size_t &out)
+{
 	if (start >= end)
 		return 0;
 	std::string tmp = s.substr(start, end - start);
@@ -230,7 +270,7 @@ int ServerLoop::parseContentLength_(const std::string& s, size_t start, size_t e
 		return 0;
 
 	for (size_t i = 0; i < tmp.size(); i++)
-		if(tmp[i] < '0' || tmp[i] > '9')
+		if (tmp[i] < '0' || tmp[i] > '9')
 			return 0;
 	errno = 0;
 	char *endptr = 0;
@@ -241,12 +281,14 @@ int ServerLoop::parseContentLength_(const std::string& s, size_t start, size_t e
 	return 1;
 }
 
-int ServerLoop::parseChunkSizeHex_(const std::string& s, size_t start, size_t end, size_t& outSz) {
+int ServerLoop::parseChunkSizeHex_(const std::string &s, size_t start, size_t end, size_t &outSz)
+{
 	size_t v = 0;
 	size_t i = start;
 	if (start >= end)
 		return 0;
-	while (i < end) {
+	while (i < end)
+	{
 		char c = s[i];
 		unsigned d;
 		if (c >= '0' && c <= '9')
@@ -268,7 +310,8 @@ int ServerLoop::parseChunkSizeHex_(const std::string& s, size_t start, size_t en
 	return 1;
 }
 
-int ServerLoop::stepReadSizeLine_(Client& c) {
+int ServerLoop::stepReadSizeLine_(Client &c)
+{
 	std::string::size_type eol = c.inBuff.find("\r\n", c.parsePos);
 	if (eol == std::string::npos)
 		return 0;
@@ -289,19 +332,25 @@ int ServerLoop::stepReadSizeLine_(Client& c) {
 	return 1;
 }
 
-int ServerLoop::stepCopyChunkData_(Client& c, size_t maxBody) {
-	if (c.parsePos >= c.inBuff.size()) return 0;
+int ServerLoop::stepCopyChunkData_(Client &c, size_t maxBody)
+{
+	if (c.parsePos >= c.inBuff.size())
+		return 0;
 
 	size_t avail = c.inBuff.size() - c.parsePos;
 	size_t take = c.chunkRemain;
-	if (take > avail) take = avail;
+	if (take > avail)
+		take = avail;
 
-	if (take > 0) {
+	if (take > 0)
+	{
 		c.bodyBuf.append(c.inBuff, c.parsePos, take);
 		c.parsePos += take;
 		c.chunkRemain -= take;
-		if (maxBody > 0) {
-			if (c.bodyBuf.size() > maxBody){
+		if (maxBody > 0)
+		{
+			if (c.bodyBuf.size() > maxBody)
+			{
 				return -1;
 			}
 		}
@@ -313,7 +362,8 @@ int ServerLoop::stepCopyChunkData_(Client& c, size_t maxBody) {
 	return 1;
 }
 
-int ServerLoop::stepCheckLineCRLF_(Client& c){
+int ServerLoop::stepCheckLineCRLF_(Client &c)
+{
 	if (c.parsePos + 2 > c.inBuff.size())
 		return 0;
 	if (c.inBuff[c.parsePos] != '\r' || c.inBuff[c.parsePos + 1] != '\n')
@@ -323,11 +373,14 @@ int ServerLoop::stepCheckLineCRLF_(Client& c){
 	return 1;
 }
 
-int ServerLoop::stepConsumeTrailers_(Client& c) {
-	if (c.parsePos + 2 <= c.inBuff.size()) {
-		if (c.inBuff[c.parsePos] == '\r' && c.inBuff[c.parsePos + 1] == '\n') {
+int ServerLoop::stepConsumeTrailers_(Client &c)
+{
+	if (c.parsePos + 2 <= c.inBuff.size())
+	{
+		if (c.inBuff[c.parsePos] == '\r' && c.inBuff[c.parsePos + 1] == '\n')
+		{
 			c.parsePos += 2;
-			c.chunkStage = 4;  // done
+			c.chunkStage = 4; // done
 			return 1;
 		}
 	}
@@ -338,29 +391,40 @@ int ServerLoop::stepConsumeTrailers_(Client& c) {
 	return 1;
 }
 
-int ServerLoop::unchunkStep_(Client& c, size_t maxBody) {
-	while (1) {
-		if (c.chunkStage == 0) {
+int ServerLoop::unchunkStep_(Client &c, size_t maxBody)
+{
+	while (1)
+	{
+		if (c.chunkStage == 0)
+		{
 			int r = stepReadSizeLine_(c);
 			if (r <= 0)
 				return r;
-		} else if (c.chunkStage == 1) {
+		}
+		else if (c.chunkStage == 1)
+		{
 			int r = stepCopyChunkData_(c, maxBody);
 			if (r <= 0)
 				return r;
-		} else if (c.chunkStage == 2) {
+		}
+		else if (c.chunkStage == 2)
+		{
 			int r = stepCheckLineCRLF_(c);
 			if (r <= 0)
 				return r;
-		} else if (c.chunkStage == 3) {
+		}
+		else if (c.chunkStage == 3)
+		{
 			int r = stepConsumeTrailers_(c);
 			if (r <= 0)
 				return r;
-		} else if (c.chunkStage == 4) {
+		}
+		else if (c.chunkStage == 4)
+		{
 			c.consumedBytes = c.parsePos; // end of request in inBuff
 			return 1;
-		} else
+		}
+		else
 			return -1; // unknown stage
 	}
 }
-

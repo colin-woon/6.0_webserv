@@ -95,3 +95,11 @@ void HttpResponse::createResponse(std::string statusCode,
 	_headers = headers;
 	_body = body;
 }
+
+void HttpResponse::clear()
+{
+	_statusCode.clear();
+	_statusText.clear();
+	_headers.clear();
+	_body.clear();
+}

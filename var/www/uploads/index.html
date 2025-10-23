@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>Uploaded Files</title>
+	<style>
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #2a3a8a 0%, #4a2f82 100%);
+			margin: 0;
+			padding: 20px;
+			min-height: 100vh;
+			display: flex;
+			justify-content: center;
+			align-items: flex-start;
+		}
+
+		.container {
+			width: 100%;
+			max-width: 800px;
+		}
+
+		.card {
+			background: white;
+			padding: 2rem;
+			border-radius: 16px;
+			box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+			margin-bottom: 1.5rem;
+		}
+
+		h1 {
+			color: #333;
+			margin-bottom: 0.5rem;
+			font-size: 2rem;
+		}
+
+		h2 {
+			color: #555;
+			margin-bottom: 1rem;
+			font-size: 1.3rem;
+			border-bottom: 2px solid #667eea;
+			padding-bottom: 0.5rem;
+		}
+
+		p {
+			color: #666;
+			line-height: 1.6;
+		}
+
+		.back-link {
+			color: #667eea;
+			text-decoration: none;
+			font-weight: 600;
+			display: inline-block;
+			margin-bottom: 1rem;
+			transition: transform 0.2s;
+		}
+
+		.back-link:hover {
+			transform: translateX(-4px);
+		}
+
+		.upload-form {
+			margin-top: 1.5rem;
+		}
+
+		.upload-form input[type="file"] {
+			margin-bottom: 1rem;
+			padding: 0.5rem;
+			width: 100%;
+			box-sizing: border-box;
+			border: 2px dashed #667eea;
+			border-radius: 8px;
+			background: #f8f9ff;
+		}
+
+		.upload-form button {
+			padding: 0.75rem 1.5rem;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			border: none;
+			border-radius: 8px;
+			cursor: pointer;
+			font-size: 1rem;
+			font-weight: 600;
+			text-decoration: none;
+			display: inline-block;
+			transition: transform 0.2s, box-shadow 0.2s;
+		}
+
+		.upload-form button:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+		}
+
+		#upload-status {
+			margin-top: 1rem;
+			padding: 0.5rem;
+			border-radius: 6px;
+			font-weight: 500;
+		}
+
+		.file-list {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+		}
+
+		.file-item {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 1rem;
+			margin-bottom: 0.75rem;
+			background: #f8f9ff;
+			border-radius: 8px;
+			border-left: 4px solid #667eea;
+			transition: all 0.2s;
+		}
+
+		.file-item:hover {
+			background: #eef0ff;
+			transform: translateX(4px);
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		}
+
+		.file-info {
+			display: flex;
+			align-items: center;
+			flex: 1;
+			min-width: 0;
+		}
+
+		.file-icon {
+			margin-right: 1rem;
+			font-size: 1.5rem;
+		}
+
+		.file-name {
+			color: #333;
+			font-weight: 500;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.delete-btn {
+			padding: 0.5rem 1rem;
+			background: #ff4757;
+			color: white;
+			border: none;
+			border-radius: 6px;
+			cursor: pointer;
+			font-size: 0.9rem;
+			transition: all 0.2s;
+		}
+
+		.delete-btn:hover {
+			background: #ee5a6f;
+			transform: scale(1.05);
+		}
+
+		.empty-state,
+		.loading {
+			text-align: center;
+			padding: 2rem;
+			color: #999;
+			font-style: italic;
+		}
+
+		.spinner {
+			border: 3px solid #f3f3f3;
+			border-top: 3px solid #667eea;
+			border-radius: 50%;
+			width: 40px;
+			height: 40px;
+			animation: spin 1s linear infinite;
+			margin: 0 auto 1rem;
+		}
+
+		@keyframes spin {
+			0% {
+				transform: rotate(0deg);
+			}
+
+			100% {
+				transform: rotate(360deg);
+			}
+		}
+
+		.toast {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			padding: 1rem 1.5rem;
+			border-radius: 8px;
+			color: white;
+			font-weight: 500;
+			opacity: 0;
+			transform: translateY(-20px);
+			transition: all 0.3s;
+			z-index: 1000;
+		}
+
+		.toast.show {
+			opacity: 1;
+			transform: translateY(0);
+		}
+
+		.toast.success {
+			background: #4CAF50;
+		}
+
+		.toast.error {
+			background: #ff4757;
+		}
+
+		.modal {
+			position: fixed;
+			z-index: 2000;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			overflow: auto;
+			background-color: rgba(0, 0, 0, 0.5);
+			display: none;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.modal-content {
+			background-color: #fefefe;
+			padding: 25px;
+			border-radius: 12px;
+			border: 1px solid #888;
+			width: 90%;
+			max-width: 400px;
+			text-align: center;
+			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+		}
+
+		.modal-content p {
+			font-size: 1.1rem;
+			margin-bottom: 1.5rem;
+		}
+
+		.modal-content button {
+			padding: 0.6rem 1.2rem;
+			border-radius: 8px;
+			border: none;
+			font-size: 1rem;
+			cursor: pointer;
+			margin: 0 0.5rem;
+		}
+
+		#confirm-yes {
+			background-color: #ff4757;
+			color: white;
+		}
+
+		#confirm-no {
+			background-color: #ddd;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div class="card">
+			<h2>📤 Upload New File</h2>
+			<div class="upload-form">
+				<form id="uploadForm">
+					<input type="file" name="file" required>
+					<button type="submit">Upload File</button>
+				</form>
+				<div id="upload-status"></div>
+			</div>
+		</div>
+		<div class="card">
+			<a href="/" class="back-link">&larr; Back to Home</a>
+			<h1>📁 Uploaded Files</h1>
+			<div id="file-list-container">
+				<div class="loading">
+					<div class="spinner"></div>
+					<p>Loading files...</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div id="toast" class="toast"></div>
+
+	<div id="confirm-modal" class="modal">
+		<div class="modal-content">
+			<p>Are you sure you want to delete this file?</p>
+			<button id="confirm-yes">Yes, Delete</button>
+			<button id="confirm-no">Cancel</button>
+		</div>
+	</div>
+
+	<script>
+		// Shows a toast notification message.
+		function showToast(message, type) {
+			const toast = document.getElementById('toast');
+			toast.textContent = message;
+			toast.className = 'toast ' + type + ' show';
+			setTimeout(() => {
+				toast.className = 'toast ' + type;
+			}, 3000);
+		}
+
+		// Shows a custom confirmation dialog.
+		function showConfirmModal(message) {
+			return new Promise(resolve => {
+				const modal = document.getElementById('confirm-modal');
+				const content = modal.querySelector('p');
+				const yesBtn = document.getElementById('confirm-yes');
+				const noBtn = document.getElementById('confirm-no');
+				content.textContent = message;
+				modal.style.display = 'flex';
+				const newYesBtn = yesBtn.cloneNode(true);
+				const newNoBtn = noBtn.cloneNode(true);
+				yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
+				noBtn.parentNode.replaceChild(newNoBtn, noBtn);
+				newYesBtn.addEventListener('click', () => {
+					modal.style.display = 'none';
+					resolve(true);
+				});
+				newNoBtn.addEventListener('click', () => {
+					modal.style.display = 'none';
+					resolve(false);
+				});
+			});
+		}
+
+		// START: Added Upload Handler
+		document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+			event.preventDefault();
+			const formData = new FormData(event.target);
+			const statusDiv = document.getElementById('upload-status');
+			const submitButton = event.target.querySelector('button');
+			statusDiv.textContent = 'Uploading...';
+			statusDiv.style.color = '#667eea';
+			submitButton.disabled = true;
+			try {
+				const response = await fetch('/uploads/', {
+					method: 'POST',
+					body: formData
+				});
+				if (response.ok) {
+					statusDiv.textContent = '✅ Upload successful!';
+					statusDiv.style.color = '#4CAF50';
+					showToast('File uploaded successfully!', 'success');
+					event.target.reset();
+					// --- ENHANCEMENT: Refresh file list after successful upload ---
+					loadFileList();
+				} else {
+					const errorText = await response.text();
+					statusDiv.textContent = `❌ Upload failed! Status: ${response.status}`;
+					statusDiv.style.color = '#ff4757';
+					showToast(`Upload failed: ${errorText || 'Server error'}`, 'error');
+				}
+			} catch (error) {
+				statusDiv.textContent = '❌ Upload error!';
+				statusDiv.style.color = '#ff4757';
+				showToast('A network error occurred during upload.', 'error');
+				console.error('Error:', error);
+			} finally {
+				submitButton.disabled = false;
+			}
+		});
+		// END: Added Upload Handler
+
+		// Fetch and display file list
+		async function loadFileList() {
+			// ... (your existing implementation)
+		}
+
+		// Delete file
+		async function deleteFile(hashedName) {
+			// ... (your existing implementation)
+		}
+
+		// Load file list on page load
+		window.addEventListener('load', loadFileList);
+	</script>
+</body>
+
+</html>

@@ -12,11 +12,11 @@
 # add back WFLAGS later to CFLAGS, removed cause it doesnt work for testing
 # Compiler and flags
 CXX			=	c++
-CFLAGS		=	$(INCLUDES) $(DEBUG) $(FSAN)
+CFLAGS		=	$(INCLUDES) $(DEBUG) $(STANDARD) $(FSAN)
 STANDARD	=	-Wpedantic -std=c++98
 WFLAGS		=	-Wall -Werror -Wextra
 INCLUDES	=	-I$(INC_DIR) -I$(MODELS_DIR)
-DEBUG		=	-g3 -O0 #-fstandalone-debug
+DEBUG		=	-g3 -O0 -fstandalone-debug
 FSAN		=	-fsanitize=address,leak
 RM			=	rm -rf
 
@@ -25,13 +25,15 @@ NAME	=	webserv
 
 # Directories
 INC_DIR			=	includes/
-MODELS_DIR		=	models/
+MODELS_DIR		=	models
 SRCS_DIR		=	srcs/
 OBJS_DIR		=	bin/
 
 # Set search path for source files
-VPATH			=	$(SRCS_DIR):$(MODELS_DIR)/http:$(MODELS_DIR)/networking/ServerLoop:$(MODELS_DIR)/networking/Sockets:$(MODELS_DIR)/parsing
+VPATH			=	$(SRCS_DIR):$(MODELS_DIR)/http:$(MODELS_DIR)/networking/ServerLoop:$(MODELS_DIR)/networking/Sockets:$(MODELS_DIR)/parsing:$(MODELS_DIR)/cgi
 
+CGI_HEADER		=	models/cgi/CGI.hpp
+CGI_MODEL		=	models/cgi/CGI.cpp
 
 PARSING_HEADERS =	models/parsing/Header.hpp \
 					models/parsing/Location.hpp \
@@ -50,6 +52,7 @@ NETWORKING_HEADERS =	models/networking/ServerLoop/PollHelpers.hpp \
 						models/networking/ServerLoop/ServerHelpers.hpp \
 						models/networking/ServerLoop/ServerLoop.hpp \
 						models/networking/ServerLoop/Timeout.hpp \
+						models/networking/ServerLoop/VhostHelpers.hpp \
 						models/networking/Sockets/Sockets.hpp \
 
 NETWORKING_MODELS = 	models/networking/ServerLoop/ServerHelpers.cpp \
@@ -57,6 +60,8 @@ NETWORKING_MODELS = 	models/networking/ServerLoop/ServerHelpers.cpp \
 						models/networking/ServerLoop/Timeout.cpp \
 						models/networking/Sockets/Sockets.cpp \
 						models/networking/ServerLoop/PollHelpers.cpp \
+						models/networking/ServerLoop/VhostHelpers.cpp \
+
 
 HTTP_HEADERS	=	models/http/HttpRequest.hpp \
 					models/http/HttpResponse.hpp \
@@ -68,6 +73,7 @@ HTTP_HEADERS	=	models/http/HttpRequest.hpp \
 					models/http/HttpExceptions.hpp \
 					models/http/HttpUtils.hpp \
 					models/http/FileHandler.hpp \
+					models/http/Router.hpp \
 
 HTTP_MODELS		=	models/http/HttpRequest.cpp \
 					models/http/HttpResponse.cpp \
@@ -79,9 +85,10 @@ HTTP_MODELS		=	models/http/HttpRequest.cpp \
 					models/http/HttpRequestParser.cpp \
 					models/http/HttpExceptions.cpp \
 					models/http/FileHandler.cpp \
+					models/http/Router.cpp \
 
-MODEL_FILES		=	$(HTTP_MODELS) $(NETWORKING_MODELS) $(PARSING_MODELS)
-MODEL_HEADERS	=	$(HTTP_HEADERS) $(NETWORKING_HEADERS) $(PARSING_HEADERS)
+MODEL_FILES		=	$(HTTP_MODELS) $(NETWORKING_MODELS) $(PARSING_MODELS) $(CGI_MODEL)
+MODEL_HEADERS	=	$(HTTP_HEADERS) $(NETWORKING_HEADERS) $(PARSING_HEADERS) $(CGI_HEADER)
 
 INC_FILES		=
 SRCS_FILES		=	srcs/main.cpp

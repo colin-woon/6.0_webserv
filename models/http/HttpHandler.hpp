@@ -8,7 +8,11 @@
 #include "HttpHandlerGET.hpp"
 #include "HttpHandlerPOST.hpp"
 #include "HttpHandlerDELETE.hpp"
+#include "Router.hpp"
 #include "../networking/ServerLoop/ServerLoop.hpp"
+#include "../parsing/Server.hpp"
+#include "../parsing/Location.hpp"
+#include "../cgi/CGI.hpp"
 
 class HttpHandler : public HttpHandlerGET, public HttpHandlerPOST, public HttpHandlerDELETE
 {

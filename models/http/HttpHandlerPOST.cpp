@@ -32,38 +32,39 @@ static std::string toHexString(unsigned long num)
 	return ss.str();
 }
 
-static void parseFileHeaderKeyValuePair(std::string &line, std::map<std::string, std::string> fileHeaders)
-{
-	size_t whitespacePos = line.find_first_of(" \t");
-	size_t headerFieldPos = line.find_first_not_of(" \t");
-	if (whitespacePos < headerFieldPos)
-		throw Http400BadRequestException();
+// static void parseFileHeaderKeyValuePair(std::string &line, std::map<std::string, std::string> fileHeaders)
+// {
+// 	size_t whitespacePos = line.find_first_of(" \t");
+// 	size_t headerFieldPos = line.find_first_not_of(" \t");
+// 	if (whitespacePos < headerFieldPos)
+// 		throw Http400BadRequestException();
 
-	// Find the colon separator
-	size_t colonPos = line.find(':');
-	if (colonPos != std::string::npos)
-	{
-		std::string key = line.substr(0, colonPos);
-		if (whitespacePos < colonPos)
-			throw Http400BadRequestException();
-		// Trim leading whitespace from key (C++98 compatible)
-		size_t start = key.find_first_not_of(" \t");
-		if (start != std::string::npos)
-			key = key.substr(start);
-		else
-			key.clear(); // All whitespace, make empty
+// 	// Find the colon separator
+// 	size_t colonPos = line.find(':');
+// 	if (colonPos != std::string::npos)
+// 	{
+// 		std::string key = line.substr(0, colonPos);
+// 		if (whitespacePos < colonPos)
+// 			throw Http400BadRequestException();
+// 		// Trim leading whitespace from key (C++98 compatible)
+// 		size_t start = key.find_first_not_of(" \t");
+// 		if (start != std::string::npos)
+// 			key = key.substr(start);
+// 		else
+// 			key.clear(); // All whitespace, make empty
 
-		size_t valueStart = line.find_first_not_of(" \t", colonPos + 1);
-		if (valueStart != std::string::npos)
-		{
-			std::string value = line.substr(valueStart);
-			fileHeaders[key] = value;
-		}
-	}
-}
+// 		size_t valueStart = line.find_first_not_of(" \t", colonPos + 1);
+// 		if (valueStart != std::string::npos)
+// 		{
+// 			std::string value = line.substr(valueStart);
+// 			fileHeaders[key] = value;
+// 		}
+// 	}
+// }
 
 static void parseFileHeaders(std::map<std::string, std::string> &fileHeaders, HttpRequest &request, std::istringstream &bodyStream)
 {
+	(void)request;
 	std::string line;
 
 	while (std::getline(bodyStream, line))
@@ -139,20 +140,21 @@ static void getFileNameAndExtension(std::map<std::string, std::string> &fileHead
 	fileExtension = filenameValue.substr(lastPeriodPos);
 }
 
-static void uploadHashedFile(std::string &filenameValue, std::string &fileExtension, std::string &fileContent, std::map<std::string, std::string> &fileHeaders)
+static void uploadHashedFile(std::string &filenameValue, std::string &fileExtension, std::string &fileContent, std::map<std::string, std::string> &fileHeaders, Router &router)
 {
 	unsigned long hashed = djb2Hash(filenameValue);
 	std::string hashedFilename = toHexString(hashed) + fileExtension;
 
 	fileHeaders["original-file-name"] = filenameValue;
 	FileHandler::addNewFileMetaData(hashedFilename, fileHeaders);
-	FileHandler::uploadFile(hashedFilename, fileContent);
+	FileHandler::uploadFile(hashedFilename, fileContent, router);
 
 	std::cout << FileHandler::getFileMetaData(hashedFilename)["Content-Disposition"] << std::endl;
 }
 
-void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &response)
+void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
+	(void)router;
 	try
 	{
 		std::map<std::string, std::string> headers = request.getHeaders();
@@ -168,13 +170,18 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 		std::string fileExtension;
 		getFileNameAndExtension(fileHeaders, filenameValue, fileExtension);
 
-		uploadHashedFile(filenameValue, fileExtension, fileContent, fileHeaders);
-		
+		uploadHashedFile(filenameValue, fileExtension, fileContent, fileHeaders, router);
+
 		// Set successful response
 		response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
 		response.addHeader("Content-Type", "text/plain");
 		response.addHeader("Content-Length", "18");
 		response.setBody("Upload successful\n");
+		std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Connection");
+		if (it != request.getHeaders().end() && it->second == "close")
+			response.addHeader("Connection", "close");
+		else
+			response.addHeader("Connection", "keep-alive");
 	}
 	catch (std::out_of_range)
 	{

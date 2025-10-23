@@ -16,11 +16,10 @@ HttpHandlerDELETE &HttpHandlerDELETE::operator=(const HttpHandlerDELETE &other)
 
 HttpHandlerDELETE::~HttpHandlerDELETE() {}
 
-void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &response)
+void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
 	std::string path = request.getPath();
 
-	// Check if path starts with /uploads/
 	if (path.find("/uploads/") != 0)
 		throw Http404NotFoundException();
 
@@ -31,11 +30,16 @@ void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &
 		throw Http400BadRequestException();
 
 	// Delete the file (this also deletes metadata)
-	FileHandler::deleteFile(hashedFilename);
+	FileHandler::deleteFile(hashedFilename, router);
 
 	// Set successful response
 	response.setStatusCode(HttpException::statusCodeToString(HTTP_204_NO_CONTENT));
 	response.addHeader("Content-Type", "text/plain");
 	response.addHeader("Content-Length", "0");
 	response.setBody("");
+	std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Connection");
+	if (it != request.getHeaders().end() && it->second == "close")
+		response.addHeader("Connection", "close");
+	else
+		response.addHeader("Connection", "keep-alive");
 }

@@ -33,7 +33,7 @@ void Location::handleAutoindex(Location &loc)
 		throw Location::LocationInvalidContextException(*loc._Context.first, "Invalid Autoindex Setting");
 }
 
-void Location::handleCGI_timeout_sec(Location& loc)
+void Location::handleCGI_timeout_sec(Location &loc)
 {
 	loc._Context.first++;
 	if (loc._Context.first == loc._Context.second || loc._Context.first->type != Argument)
@@ -52,7 +52,7 @@ void Location::handleRoot(Location &loc)
 		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Alias Predefined");
 	loc.root = loc._Context.first->buffer;
 	// if (loc.root[0] != '/')
-		// loc.root = loc._srvRoot + "/" + loc.root;
+	// 	loc.root = loc._srvRoot + "/" + loc.root;
 }
 
 void Location::handleAlias(Location &loc)
@@ -66,7 +66,7 @@ void Location::handleAlias(Location &loc)
 		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Root Predefined");
 	loc.alias = loc._Context.first->buffer;
 	// if (loc.alias[0] != '/')
-		// loc.alias = loc._srvRoot + "/" + loc.alias;
+	// 	loc.alias = loc._srvRoot + "/" + loc.alias;
 }
 
 void Location::handleIndex(Location &loc)
@@ -196,9 +196,9 @@ void Location::fillDirectiveMap(void)
 	_totalMethods.push_back("DELETE");
 }
 
-Location::Location(const Spec& spec, const std::string& srvRoot, const std::map<int, std::string>& srvError_pages)
+Location::Location(const Spec &spec, const std::string &srvRoot, const std::map<int, std::string> &srvError_pages)
 	: _Context(spec.Context), _srvRoot(srvRoot), _srvError_pages(srvError_pages),
-		autoindex(false), cgi_timeout_sec(-1), path(spec.path), redirect(-1, "")
+	  autoindex(false), cgi_timeout_sec(-1), path(spec.path), redirect(-1, "")
 {
 	fillDirectiveMap();
 	parseDirectives();
@@ -243,8 +243,8 @@ void Location::checkDirectives(void)
 		this->cgi_timeout_sec = 60;
 	if (this->root.empty() && this->alias.empty())
 		this->root = this->_srvRoot;
-	if (this->index.empty())
-		this->index = "index.html";
+	// if (this->index.empty())
+	// 	this->index = "index.html";
 	if (this->error_pages.empty())
 		this->error_pages = this->_srvError_pages;
 }
@@ -270,4 +270,9 @@ void Location::parseDirectives(void)
 		this->_Context.first++;
 	}
 	checkDirectives();
+}
+
+const std::string &Location::getServerRoot() const
+{
+	return _srvRoot;
 }

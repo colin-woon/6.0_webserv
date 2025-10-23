@@ -5,6 +5,7 @@
 #include "HttpResponse.hpp"
 #include "HttpExceptions.hpp"
 #include "FileHandler.hpp"
+#include "Router.hpp"
 
 class HttpHandlerDELETE
 {
@@ -15,7 +16,7 @@ private:
 	~HttpHandlerDELETE();
 
 protected:
-	static void handleDeleteRequest(HttpRequest &request, HttpResponse &response);
+	static void handleDeleteRequest(HttpRequest &request, HttpResponse &response, Router &router);
 };
 
 #endif
