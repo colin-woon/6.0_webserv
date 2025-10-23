@@ -9,57 +9,57 @@
 // 	return (fcntl(fd, F_GETFL, flags | O_NONBLOCK) != -1);
 // }
 
-// void printAllServers(const std::vector<Server>& servers) {
-// 	for (size_t i = 0; i < servers.size(); ++i) {
-// 		const Server& s = servers[i];
-// 		std::cout << "\033[1;36m\n═══════════ Server #" << i + 1 << " ═══════════\033[0m\n";
-// 		std::cout << "  \033[37mport:\033[0m \033[32m" << s.port << "\033[0m\n";
-// 		std::cout << "  \033[37mhost:\033[0m \033[32m" << s.host << "\033[0m\n";
-// 		std::cout << "  \033[37mroot:\033[0m \033[32m" << s.root << "\033[0m\n";
-// 		std::cout << "  \033[37mindex:\033[0m \033[32m" << s.index << "\033[0m\n";
-// 		std::cout << "  \033[37mautoindex:\033[0m " << (s.autoindex ? "\033[32mon\033[0m" : "\033[31moff\033[0m") << "\n";
-// 		std::cout << "  \033[37mbacklog:\033[0m \033[32m" << s.backlog << "\033[0m\n";
-// 		std::cout << "  \033[37mclient_timeout_sec:\033[0m \033[32m" << s.client_timeout_sec << "\033[0m\n";
-// 		std::cout << "  \033[37mmax_body_size:\033[0m \033[32m" << s.max_body_size << "\033[0m\n";
-// 		std::cout << "  \033[37mbody_ram_threshold:\033[0m \033[32m" << s.body_ram_threshold << "\033[0m\n";
-// 		std::cout << "  \033[37mheader_cap:\033[0m \033[32m" << s.header_cap << "\033[0m\n";
+void printAllServers(const std::vector<Server>& servers) {
+	for (size_t i = 0; i < servers.size(); ++i) {
+		const Server& s = servers[i];
+		std::cout << "\033[1;36m\n═══════════ Server #" << i + 1 << " ═══════════\033[0m\n";
+		std::cout << "  \033[37mport:\033[0m \033[32m" << s.port << "\033[0m\n";
+		std::cout << "  \033[37mhost:\033[0m \033[32m" << s.host << "\033[0m\n";
+		std::cout << "  \033[37mroot:\033[0m \033[32m" << s.root << "\033[0m\n";
+		std::cout << "  \033[37mindex:\033[0m \033[32m" << s.index << "\033[0m\n";
+		std::cout << "  \033[37mautoindex:\033[0m " << (s.autoindex ? "\033[32mon\033[0m" : "\033[31moff\033[0m") << "\n";
+		std::cout << "  \033[37mbacklog:\033[0m \033[32m" << s.backlog << "\033[0m\n";
+		std::cout << "  \033[37mclient_timeout_sec:\033[0m \033[32m" << s.client_timeout_sec << "\033[0m\n";
+		std::cout << "  \033[37mmax_body_size:\033[0m \033[32m" << s.max_body_size << "\033[0m\n";
+		std::cout << "  \033[37mbody_ram_threshold:\033[0m \033[32m" << s.body_ram_threshold << "\033[0m\n";
+		std::cout << "  \033[37mheader_cap:\033[0m \033[32m" << s.header_cap << "\033[0m\n";
 
-// 		std::cout << "  \033[37mserver names:\033[0m ";
-// 		for (size_t j = 0; j < s.name.size(); ++j)
-// 			std::cout << "\033[32m" << s.name[j] << (j + 1 < s.name.size() ? ", " : "") << "\033[0m";
-// 		std::cout << "\n";
+		std::cout << "  \033[37mserver names:\033[0m ";
+		for (size_t j = 0; j < s.name.size(); ++j)
+			std::cout << "\033[32m" << s.name[j] << (j + 1 < s.name.size() ? ", " : "") << "\033[0m";
+		std::cout << "\n";
 
-// 		std::cout << "  \033[37merror_pages:\033[0m\n";
-// 		for (std::map<int, std::string>::const_iterator it = s.error_pages.begin(); it != s.error_pages.end(); ++it)
-// 			std::cout << "    [" << it->first << "] → \033[32m" << it->second << "\033[0m\n";
+		std::cout << "  \033[37merror_pages:\033[0m\n";
+		for (std::map<int, std::string>::const_iterator it = s.error_pages.begin(); it != s.error_pages.end(); ++it)
+			std::cout << "    [" << it->first << "] → \033[32m" << it->second << "\033[0m\n";
 
-// 		for (size_t i = 0; i < s.location.size(); ++i) {
-// 			const Location& loc = s.location[i];
-// 			std::cout << "\033[1;33m\n    ── Location [" << loc.path << "] ──\033[0m\n";
-// 			std::cout << "      \033[37mroot:\033[0m \033[32m" << loc.root << "\033[0m\n";
-// 			std::cout << "      \033[37malias:\033[0m \033[32m" << loc.alias << "\033[0m\n";
-// 			std::cout << "      \033[37mindex:\033[0m \033[32m" << loc.index << "\033[0m\n";
-// 			std::cout << "      \033[37mupload_store:\033[0m \033[32m" << loc.upload_store << "\033[0m\n";
-// 			std::cout << "      \033[37mredirect:\033[0m \033[32m" << loc.redirect.first << " → " << loc.redirect.second << "\033[0m\n";
-// 			std::cout << "      \033[37mautoindex:\033[0m " << (loc.autoindex ? "\033[32mon\033[0m" : "\033[31moff\033[0m") << "\n";
-// 			std::cout << "      \033[37mcgi_timeout_sec:\033[0m \033[32m" << loc.cgi_timeout_sec << "\033[0m\n";
+		for (size_t i = 0; i < s.location.size(); ++i) {
+			const Location& loc = s.location[i];
+			std::cout << "\033[1;33m\n    ── Location [" << loc.path << "] ──\033[0m\n";
+			std::cout << "      \033[37mroot:\033[0m \033[32m" << loc.root << "\033[0m\n";
+			std::cout << "      \033[37malias:\033[0m \033[32m" << loc.alias << "\033[0m\n";
+			std::cout << "      \033[37mindex:\033[0m \033[32m" << loc.index << "\033[0m\n";
+			std::cout << "      \033[37mupload_store:\033[0m \033[32m" << loc.upload_store << "\033[0m\n";
+			std::cout << "      \033[37mredirect:\033[0m \033[32m" << loc.redirect.first << " → " << loc.redirect.second << "\033[0m\n";
+			std::cout << "      \033[37mautoindex:\033[0m " << (loc.autoindex ? "\033[32mon\033[0m" : "\033[31moff\033[0m") << "\n";
+			std::cout << "      \033[37mcgi_timeout_sec:\033[0m \033[32m" << loc.cgi_timeout_sec << "\033[0m\n";
 
-// 			std::cout << "      \033[37mallowedMethods:\033[0m ";
-// 			for (size_t k = 0; k < loc.allowedMethods.size(); ++k)
-// 				std::cout << "\033[32m" << loc.allowedMethods[k] << (k + 1 < loc.allowedMethods.size() ? ", " : "") << "\033[0m";
-// 			std::cout << "\n";
+			std::cout << "      \033[37mallowedMethods:\033[0m ";
+			for (size_t k = 0; k < loc.allowedMethods.size(); ++k)
+				std::cout << "\033[32m" << loc.allowedMethods[k] << (k + 1 < loc.allowedMethods.size() ? ", " : "") << "\033[0m";
+			std::cout << "\n";
 
-// 			std::cout << "      \033[37mCGI handlers:\033[0m\n";
-// 			for (std::map<std::string, std::string>::const_iterator cgi = loc.cgi.begin(); cgi != loc.cgi.end(); ++cgi)
-// 				std::cout << "        " << cgi->first << " → \033[32m" << cgi->second << "\033[0m\n";
+			std::cout << "      \033[37mCGI handlers:\033[0m\n";
+			for (std::map<std::string, std::string>::const_iterator cgi = loc.cgi.begin(); cgi != loc.cgi.end(); ++cgi)
+				std::cout << "        " << cgi->first << " → \033[32m" << cgi->second << "\033[0m\n";
 
-// 			std::cout << "      \033[37mError pages:\033[0m\n";
-// 			for (std::map<int, std::string>::const_iterator ep = loc.error_pages.begin(); ep != loc.error_pages.end(); ++ep)
-// 				std::cout << "        [" << ep->first << "] → \033[32m" << ep->second << "\033[0m\n";
-// 		}
-// 		std::cout << "\n";
-// 	}
-// }
+			std::cout << "      \033[37mError pages:\033[0m\n";
+			for (std::map<int, std::string>::const_iterator ep = loc.error_pages.begin(); ep != loc.error_pages.end(); ++ep)
+				std::cout << "        [" << ep->first << "] → \033[32m" << ep->second << "\033[0m\n";
+		}
+		std::cout << "\n";
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -67,12 +67,10 @@ int main(int argc, char **argv)
 	try
 	{
 		std::map<int, std::vector<const Server*> > listenerOwners;
-
 		Parsing parse(argc, argv);
 		parse.parseNodes();
 
 		std::vector<int> listenerFds = setupListenerSockets(parse.nodes, listenerOwners);
-
 		ServerLoop headacheServer(listenerFds, parse.nodes);
 		headacheServer.listenerOwner_ = listenerOwners;
 		headacheServer.run();
