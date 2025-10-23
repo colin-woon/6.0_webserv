@@ -95,3 +95,7 @@ void ServerLoop::run(){
 	}
 }
 
+void	ServerLoop::addSocket(struct pollfd pfd)
+{
+	this->pollFdList_.push_back(pfd);
+}

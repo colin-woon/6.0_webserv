@@ -51,8 +51,8 @@ void Location::handleRoot(Location &loc)
 	if (!loc.alias.empty())
 		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Alias Predefined");
 	loc.root = loc._Context.first->buffer;
-	if (loc.root[0] != '/')
-		loc.root = loc._srvRoot + "/" + loc.root;
+	// if (loc.root[0] != '/')
+		// loc.root = loc._srvRoot + "/" + loc.root;
 }
 
 void Location::handleAlias(Location &loc)
@@ -65,8 +65,8 @@ void Location::handleAlias(Location &loc)
 	if (!loc.root.empty())
 		throw Location::LocationInvalidContextException(*(loc._Context.first - 1), "Root Predefined");
 	loc.alias = loc._Context.first->buffer;
-	if (loc.alias[0] != '/')
-		loc.alias = loc._srvRoot + "/" + loc.alias;
+	// if (loc.alias[0] != '/')
+		// loc.alias = loc._srvRoot + "/" + loc.alias;
 }
 
 void Location::handleIndex(Location &loc)

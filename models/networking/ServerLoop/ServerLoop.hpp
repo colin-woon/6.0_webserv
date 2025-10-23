@@ -76,6 +76,8 @@ public:
 	static int	unchunkStep_(Client& c, size_t maxBody);
 
 	static std::string toLowerCopy_(const std::string& s);
+
+	void	addSocket(struct pollfd pfd);
 };
 
 #endif

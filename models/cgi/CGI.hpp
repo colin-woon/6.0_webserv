@@ -2,6 +2,7 @@
 # define CGI_HPP
 
 #include "../http/HttpRequest.hpp"
+#include "../networking/ServerLoop/ServerLoop.hpp"
 #include "../parsing/Server.hpp"
 
 class CGI
@@ -24,7 +25,7 @@ class CGI
 		};
 
 		void	createEnv(const Server& srv);
-		std::string	execCGI(const Location& loc, const std::pair<std::string, std::string>& cgiEntry);
+		void	execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>& cgiEntry);
 };
 
 #endif

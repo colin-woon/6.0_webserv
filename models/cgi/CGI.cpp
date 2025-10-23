@@ -13,7 +13,7 @@ const char *CGI::CGISimpleException::what() const throw()
 	return (this->_message.c_str());
 }
 
-std::string	CGI::execCGI(const Location& loc, const std::pair<std::string, std::string>& cgiEntry)
+void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>& cgiEntry)
 {
 	int	sp[2];
 
@@ -51,66 +51,11 @@ std::string	CGI::execCGI(const Location& loc, const std::pair<std::string, std::
 	else
 	{
 		close(sp[1]);
+		fcntl(sp[0], F_SETFL, O_NONBLOCK);
 		struct pollfd	pfd;
-		std::string	output;
-		int	pollret;
-
 		pfd.fd = sp[0];
 		pfd.events = POLLIN | POLLOUT;
-		bool	sendDone = _req.getBody().empty();
-		bool	recvDone = false;
-
-		size_t	sent;
-		size_t	total = 0;
-		char buf[1024];
-		size_t	n;
-
-		while (!sendDone || !recvDone)
-		{
-			pollret = poll(&pfd, 1, (loc.cgi_timeout_sec != -1) ? loc.cgi_timeout_sec * 1000 : 60000);
-			if (pollret < 0)
-			{
-				perror("CGI Poll Failed");
-				break ;
-			}
-			else if (!pollret)
-			{
-				perror("CGI Timeout");
-				break ;
-			}
-
-			if ((pfd.revents & POLLOUT) && !sendDone)
-			{
-				sent = send(sp[0], _req.getBody().data() + total, _req.getBody().size() - total, 0);
-				if (sent < 0)
-				{
-					perror("CGI Send Failed");
-					sendDone = true;
-				}
-				else
-				{
-					total += sent;
-					if (total < _req.getBody().size())
-						sendDone = true;
-				}
-			}
-			if ((pfd.revents & POLLIN) && !recvDone)
-			{
-				n = recv(sp[0], buf, sizeof(buf), 0);
-				if (n <= 0)
-				{
-					recvDone = true;
-					if (n < 0)
-						perror("CGI recv Failed");
-				}
-				else
-					output.append(buf, n);
-			}
-			if ((pfd.revents & POLLERR) || (pfd.revents & POLLHUP))
-				recvDone = true;
-		}
-		close(sp[0]);
-		return output;
+		srvLoop.addSocket(pfd);
 	}
 }
 
@@ -139,8 +84,8 @@ void	CGI::createEnv(const Server& srv)
 	this->_envp.push_back("GATEWAY_INTERFACE=CGI/1.1");
 	this->_envp.push_back("SERVER_PROTOCOL=" + this->_req.getVersion());
 	this->_envp.push_back("SERVER_SOFTWARE=webserv/1.0");
-	if (this->_req.getHeaders().count("host"))
-		this->_envp.push_back("SERVER_NAME=" + this->_req.getHeaders().find("host")->second);
+	if (this->_req.getHeaders().count("Host"))
+		this->_envp.push_back("SERVER_NAME=" + this->_req.getHeaders().find("Host")->second);
 	else
 		this->_envp.push_back("SERVER_NAME=" + srv.name[0]);
 	stream << srv.port;
