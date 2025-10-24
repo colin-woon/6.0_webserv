@@ -18,6 +18,7 @@ HttpHandlerDELETE::~HttpHandlerDELETE() {}
 
 void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
+	std::string sessionId = request.getCookie();
 	std::string path = request.getPath();
 
 	if (path.find("/uploads/") != 0)
@@ -30,8 +31,10 @@ void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &
 	if (hashedFilename.empty())
 		throw Http400BadRequestException();
 
+	FileHandler::validateFileOwnership(sessionId, hashedFilename);
+
 	// Delete the file (this also deletes metadata)
-	FileHandler::deleteFile(hashedFilename, router, request.getCookie());
+	FileHandler::deleteFile(hashedFilename, router, sessionId);
 
 	// Set successful response
 	response.setStatusCode(HttpException::statusCodeToString(HTTP_204_NO_CONTENT));

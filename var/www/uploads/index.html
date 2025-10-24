@@ -145,6 +145,23 @@
 			text-overflow: ellipsis;
 		}
 
+		.download-btn {
+			padding: 0.5rem 1rem;
+			background: #667eea;
+			color: white;
+			border: none;
+			border-radius: 6px;
+			cursor: pointer;
+			font-size: 0.9rem;
+			transition: all 0.2s;
+			margin-right: 0.5rem;
+		}
+
+		.download-btn:hover {
+			background: #764ba2;
+			transform: scale(1.05);
+		}
+
 		.delete-btn {
 			padding: 0.5rem 1rem;
 			background: #ff4757;
@@ -437,6 +454,12 @@
 						fileInfo.appendChild(fileIcon);
 						fileInfo.appendChild(fileName);
 
+						// Create download button
+						const downloadBtn = document.createElement('button');
+						downloadBtn.className = 'download-btn';
+						downloadBtn.textContent = '⬇️ Download';
+						downloadBtn.onclick = () => downloadFile(file.hash, file.original_filename);
+
 						// Create delete button
 						const deleteBtn = document.createElement('button');
 						deleteBtn.className = 'delete-btn';
@@ -445,6 +468,7 @@
 
 						// Assemble the list item
 						listItem.appendChild(fileInfo);
+						listItem.appendChild(downloadBtn);
 						listItem.appendChild(deleteBtn);
 						fileList.appendChild(listItem);
 					});
@@ -457,6 +481,50 @@
 				container.innerHTML = '<div class="empty-state">❌ Error loading files. Please try again.</div>';
 				sessionIdDisplay.textContent = 'Error loading session';
 				showToast('Failed to load files', 'error');
+			}
+		}
+
+		// Download file
+		async function downloadFile(hashedName, originalName) {
+			try {
+				const response = await fetch(`/api/download/${hashedName}`, {
+					method: 'GET',
+					credentials: 'same-origin'
+				});
+
+				if (!response.ok) {
+					if (response.status === 401) {
+						showToast('Session expired. Please log in again.', 'error');
+						setTimeout(() => {
+							window.location.href = '/';
+						}, 2000);
+					} else if (response.status === 404) {
+						showToast('File not found', 'error');
+					} else {
+						showToast('Failed to download file', 'error');
+					}
+					return;
+				}
+
+				// Get the file as a blob
+				const blob = await response.blob();
+
+				// Create a temporary download link
+				const url = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = originalName; // Use original filename for download
+				document.body.appendChild(a);
+				a.click();
+
+				// Cleanup
+				window.URL.revokeObjectURL(url);
+				document.body.removeChild(a);
+
+				showToast('Download started!', 'success');
+			} catch (error) {
+				console.error('Error downloading file:', error);
+				showToast('Error downloading file', 'error');
 			}
 		}
 

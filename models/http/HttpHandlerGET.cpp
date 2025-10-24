@@ -174,7 +174,7 @@ static void getFileListJson(std::stringstream &json, std::string &sessionId, std
 	json << "}";
 }
 
-void HttpHandlerGET::handleGetRequestUploads(HttpRequest &request, HttpResponse &response, Router &router)
+void HttpHandlerGET::handleGetRequestAllFiles(HttpRequest &request, HttpResponse &response, Router &router)
 {
 	(void)router;
 	std::vector<std::string> sessionHashedFilenames;
@@ -200,4 +200,53 @@ void HttpHandlerGET::handleGetRequestUploads(HttpRequest &request, HttpResponse 
 	response.addHeader("Connection", "keep-alive");
 	response.setBody(jsonContent);
 	std::cout << response.getBody() << std::endl;
+}
+
+void HttpHandlerGET::handleGetRequestDownload(HttpRequest &request, HttpResponse &response, Router &router)
+{
+	// 1. Extract hash from path: /api/download/d1d86da2a930e50f.pdf
+	std::string pathPrefix = "/api/download/";
+	std::string path = request.getPath();
+	std::string hash = path.substr(pathPrefix.size()); // Skip "/api/download/"
+
+	// 2. Validate session
+	std::string sessionId = request.getCookie();
+	FileHandler::validateFileOwnership(sessionId, hash);
+
+	// 3. Check file ownership
+	std::vector<std::string> &userFiles = Cookie::sessionMetadata[sessionId];
+	bool fileFound = false;
+	for (size_t i = 0; i < userFiles.size(); ++i)
+	{
+		if (userFiles[i] == hash)
+		{
+			fileFound = true;
+			break;
+		}
+	}
+	if (!fileFound)
+		throw Http404NotFoundException();
+
+	// 4. Get metadata
+	Headers metadata = FileHandler::getFileMetaData(hash);
+	std::string originalFilename = metadata["original-file-name"];
+	std::string contentType = metadata["Content-Type"];
+
+	// Fallback if Content-Type not found
+	if (contentType.empty())
+		contentType = "application/octet-stream";
+
+	// 5. Download file using FileHandler
+	std::string content = FileHandler::downloadFile(hash, router);
+
+	// 6. Set response
+	response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+	response.addHeader("Content-Type", contentType); // Use actual content type!
+	response.addHeader("Content-Disposition", "attachment; filename=\"" + originalFilename + "\"");
+
+	std::stringstream contentLength;
+	contentLength << content.length();
+	response.addHeader("Content-Length", contentLength.str());
+	response.addHeader("Connection", "keep-alive");
+	response.setBody(content);
 }

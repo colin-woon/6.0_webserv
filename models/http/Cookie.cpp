@@ -62,6 +62,12 @@ void Cookie::addHashedFileToSession(const std::string &sessionId, std::string &f
 
 void Cookie::removeHashedFileFromSession(const std::string &sessionId, std::string &fileHash)
 {
-    std::vector<std::string> &vec = sessionMetadata[sessionId];
-    vec.erase(std::remove(vec.begin(), vec.end(), fileHash), vec.end());
+	std::vector<std::string> &vec = sessionMetadata[sessionId];
+	vec.erase(std::remove(vec.begin(), vec.end(), fileHash), vec.end());
+}
+
+void Cookie::validateSession(const std::string &sessionId)
+{
+	if (sessionId.empty() || Cookie::sessionMetadata.find(sessionId) == Cookie::sessionMetadata.end())
+		throw Http401UnauthorizedException();
 }

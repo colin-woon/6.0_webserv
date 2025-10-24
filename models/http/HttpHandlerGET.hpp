@@ -23,7 +23,8 @@ private:
 
 protected:
 	static void handleGetRequest(HttpRequest &request, HttpResponse &response, Router &router, const Server &serverConfig);
-	static void handleGetRequestUploads(HttpRequest &request, HttpResponse &response, Router &router);
+	static void handleGetRequestAllFiles(HttpRequest &request, HttpResponse &response, Router &router);
+	static void handleGetRequestDownload(HttpRequest &request, HttpResponse &response, Router &router);
 };
 
 #endif

@@ -158,6 +158,9 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 	(void)router;
 	try
 	{
+		std::string sessionId = request.getCookie();
+		Cookie::validateSession(sessionId);
+
 		std::map<std::string, std::string> headers = request.getHeaders();
 		std::string body = request.getBody();
 		std::string boundary;

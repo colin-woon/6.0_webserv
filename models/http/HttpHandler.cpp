@@ -159,7 +159,9 @@ void HttpHandler::handleRequest(Client &client)
 		if (router.locationConfig && !router.locationConfig->cgi.empty())
 			return CGI::handleCGI(request, response, serverConfig, router);
 		else if (request.getPath() == "/api/uploads" && requestMethod == "GET")
-			return HttpHandlerGET::handleGetRequestUploads(request, response, router);
+			return HttpHandlerGET::handleGetRequestAllFiles(request, response, router);
+		else if (request.getPath().find("/api/download") == 0 && requestMethod == "GET")
+			return HttpHandlerGET::handleGetRequestDownload(request, response, router);
 		else if (router.locationConfig && !router.locationConfig->upload_store.empty())
 		{
 			if (requestMethod == "POST")

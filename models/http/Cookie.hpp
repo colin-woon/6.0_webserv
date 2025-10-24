@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include "HttpExceptions.hpp"
 
 class Cookie
 {
@@ -24,6 +25,7 @@ public:
 	static std::string createSessionID();
 	static void addHashedFileToSession(const std::string &sessionId, std::string &fileHash);
 	static void removeHashedFileFromSession(const std::string &sessionId, std::string &fileHash);
+	static void validateSession(const std::string &sessionId);
 };
 
 #endif
