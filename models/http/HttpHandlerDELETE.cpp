@@ -30,7 +30,7 @@ void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &
 		throw Http400BadRequestException();
 
 	// Delete the file (this also deletes metadata)
-	FileHandler::deleteFile(hashedFilename, router);
+	FileHandler::deleteFile(hashedFilename, router, request.getCookie());
 
 	// Set successful response
 	response.setStatusCode(HttpException::statusCodeToString(HTTP_204_NO_CONTENT));

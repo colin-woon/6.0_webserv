@@ -80,7 +80,7 @@ void FileHandler::uploadFile(std::string &hashedFilename, std::string &fileConte
 	out.close();
 }
 
-void FileHandler::deleteFile(std::string &hashedFilename, Router &router)
+void FileHandler::deleteFile(std::string &hashedFilename, Router &router, const std::string &sessionId)
 {
 	std::string uploadPath = getUploadPath(router);
 	const std::string &filePath = uploadPath + hashedFilename;
@@ -90,6 +90,7 @@ void FileHandler::deleteFile(std::string &hashedFilename, Router &router)
 	if (std::remove(filePath.c_str()) == 0)
 	{
 		deleteFileMetaData(hashedFilename);
+		Cookie::removeHashedFileFromSession(sessionId, hashedFilename);
 		return;
 	}
 }

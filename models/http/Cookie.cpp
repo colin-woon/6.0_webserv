@@ -54,3 +54,14 @@ std::string Cookie::createSessionID()
 	sessionMetadata[sessionId];
 	return sessionId;
 }
+
+void Cookie::addHashedFileToSession(const std::string &sessionId, std::string &fileHash)
+{
+	sessionMetadata[sessionId].push_back(fileHash);
+}
+
+void Cookie::removeHashedFileFromSession(const std::string &sessionId, std::string &fileHash)
+{
+    std::vector<std::string> &vec = sessionMetadata[sessionId];
+    vec.erase(std::remove(vec.begin(), vec.end(), fileHash), vec.end());
+}

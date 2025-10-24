@@ -413,7 +413,40 @@
 					fileList.className = 'file-list';
 
 					files.forEach(file => {
-						// ...existing code...
+						const listItem = document.createElement('li');
+						listItem.className = 'file-item';
+
+						// Create file info section
+						const fileInfo = document.createElement('div');
+						fileInfo.className = 'file-info';
+
+						// Add file icon (you can customize based on file type)
+						const fileIcon = document.createElement('span');
+						fileIcon.className = 'file-icon';
+						fileIcon.textContent = '📄'; // Default icon
+
+						// You could add logic for different file types:
+						// if (file.original_filename.endsWith('.pdf')) fileIcon.textContent = '📕';
+						// if (file.original_filename.match(/\.(jpg|jpeg|png|gif)$/i)) fileIcon.textContent = '🖼️';
+
+						// Add file name
+						const fileName = document.createElement('span');
+						fileName.className = 'file-name';
+						fileName.textContent = file.original_filename;
+
+						fileInfo.appendChild(fileIcon);
+						fileInfo.appendChild(fileName);
+
+						// Create delete button
+						const deleteBtn = document.createElement('button');
+						deleteBtn.className = 'delete-btn';
+						deleteBtn.textContent = '🗑️ Delete';
+						deleteBtn.onclick = () => deleteFile(file.hash, file.original_filename);
+
+						// Assemble the list item
+						listItem.appendChild(fileInfo);
+						listItem.appendChild(deleteBtn);
+						fileList.appendChild(listItem);
 					});
 
 					container.innerHTML = '';
