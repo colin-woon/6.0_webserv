@@ -1,6 +1,6 @@
 #include "HttpHandlerGET.hpp"
 
-std::map<std::string, std::vector<std::string> > Cookies::sessionMetadata;
+std::map<std::string, std::vector<std::string> > Cookie::sessionMetadata;
 
 HttpHandlerGET::HttpHandlerGET() {}
 
@@ -84,10 +84,28 @@ static std::string getIndexFile(Router &router, const Server &serverConfig)
 		return (serverConfig.index);
 }
 
+static bool hasCookieSessionHeader(HttpRequest &request)
+{
+	std::string cookieName = "sessionId=";
+
+	std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Cookie");
+	if (it != request.getHeaders().end())
+		return true;
+	else
+		return false;
+}
+
 void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &response, Router &router, const Server &serverConfig)
 {
 	std::string fullPath;
 	std::string pathToServe = router.resolvedPath;
+	std::string sessionId;
+
+	if (!hasCookieSessionHeader(request))
+	{
+		sessionId = Cookie::createSessionID();
+		response.addHeader("Set-Cookie", "sessionId=" + sessionId);
+	}
 
 	struct stat path_stat;
 	if (stat(pathToServe.c_str(), &path_stat) != 0)
@@ -171,11 +189,11 @@ void HttpHandlerGET::handleGetRequestUploads(HttpRequest &request, HttpResponse 
 {
 	(void)router;
 	std::vector<std::string> sessionHashedFilenames;
-	std::string cookieName = "sessionId=";
 	std::string sessionId;
+	std::string cookieName = "sessionId=";
 
-	std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Cookies");
-	if (it != request.getHeaders().end())
+	std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Cookie");
+	if (hasCookieSessionHeader(request))
 	{
 		size_t sessionIdStartPos = it->second.find(cookieName);
 		if (sessionIdStartPos == std::string::npos)
@@ -184,13 +202,10 @@ void HttpHandlerGET::handleGetRequestUploads(HttpRequest &request, HttpResponse 
 			throw Http500InternalServerErrorException();
 		}
 		sessionId = it->second.substr(sessionIdStartPos + cookieName.size());
-		sessionHashedFilenames = Cookies::sessionMetadata[sessionId];
+		sessionHashedFilenames = Cookie::sessionMetadata[sessionId];
 	}
 	else
-	{
-		sessionId = Cookies::createSessionID();
-		response.addHeader("Set-Cookie", "sessionId=" + sessionId);
-	}
+		throw Http401UnauthorizedException();
 
 	  // Build JSON response
     std::stringstream json;

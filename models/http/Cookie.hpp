@@ -10,13 +10,13 @@
 #include <sstream>
 #include <iomanip>
 
-class Cookies
+class Cookie
 {
 private:
-	Cookies();
-	Cookies(const Cookies &other);
-	Cookies &operator=(const Cookies &other);
-	~Cookies();
+	Cookie();
+	Cookie(const Cookie &other);
+	Cookie &operator=(const Cookie &other);
+	~Cookie();
 
 public:
 	static std::map<std::string, std::vector<std::string> > sessionMetadata;

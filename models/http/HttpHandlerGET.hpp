@@ -6,7 +6,7 @@
 #include "HttpExceptions.hpp"
 #include "FileHandler.hpp"
 #include "Router.hpp"
-#include "Cookies.hpp"
+#include "Cookie.hpp"
 #include <fstream>
 #include <string>
 #include <sstream>

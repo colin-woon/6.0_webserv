@@ -1,21 +1,21 @@
-#include "Cookies.hpp"
+#include "Cookie.hpp"
 
-Cookies::Cookies() {}
+Cookie::Cookie() {}
 
-Cookies::Cookies(const Cookies &other)
+Cookie::Cookie(const Cookie &other)
 {
 	(void)other;
 }
 
-Cookies &Cookies::operator=(const Cookies &other)
+Cookie &Cookie::operator=(const Cookie &other)
 {
 	(void)other;
 	return *this;
 }
 
-Cookies::~Cookies() {}
+Cookie::~Cookie() {}
 
-std::string Cookies::createSessionID()
+std::string Cookie::createSessionID()
 {
 	const int sessionIdLength = 32;
 	std::string sessionId;
