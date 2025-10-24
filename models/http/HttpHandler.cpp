@@ -144,6 +144,8 @@ void HttpHandler::handleRequest(Client &client)
 	HttpRequest &request = client.request;
 	HttpResponse &response = client.response;
 	const Server &serverConfig = *client.serverConfig;
+	const std::string &requestMethod = request.getMethod();
+
 	Router router;
 
 	try
@@ -156,14 +158,16 @@ void HttpHandler::handleRequest(Client &client)
 		router.getResolvedPath(request, serverConfig);
 		if (!router.locationConfig->cgi.empty())
 			return CGI::handleCGI(request, response, serverConfig, router);
+		else if (router.locationConfig->path == "/uploads" && requestMethod == "GET")
+			return HttpHandlerGET::handleGetRequestUploads(request, response, router);
 		else if (!router.locationConfig->upload_store.empty())
 		{
-			if (request.getMethod().compare("POST") == 0)
+			if (requestMethod.compare("POST") == 0)
 				return HttpHandlerPOST::handlePostRequest(request, response, router);
-			if (request.getMethod().compare("DELETE") == 0)
+			if (requestMethod.compare("DELETE") == 0)
 				return HttpHandlerDELETE::handleDeleteRequest(request, response, router);
 		}
-		if (request.getMethod().compare("GET") == 0)
+		if (requestMethod.compare("GET") == 0)
 			return HttpHandlerGET::handleGetRequest(request, response, router, serverConfig);
 	}
 	catch (const HttpException &e)

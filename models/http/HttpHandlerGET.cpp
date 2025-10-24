@@ -1,5 +1,7 @@
 #include "HttpHandlerGET.hpp"
 
+std::map<std::string, std::vector<std::string> > Cookies::sessionMetadata;
+
 HttpHandlerGET::HttpHandlerGET() {}
 
 HttpHandlerGET::HttpHandlerGET(const HttpHandlerGET &other)
@@ -14,36 +16,6 @@ HttpHandlerGET &HttpHandlerGET::operator=(const HttpHandlerGET &other)
 }
 
 HttpHandlerGET::~HttpHandlerGET() {}
-
-// static std::string generateFileListJson()
-// {
-// 	std::map<std::string, Headers> allFiles = FileHandler::getAllFileMetaData();
-// 	std::string json = "[";
-// 	bool first = true;
-
-// 	for (std::map<std::string, Headers>::iterator it = allFiles.begin();
-// 		 it != allFiles.end(); ++it)
-// 	{
-// 		if (!first)
-// 			json += ",";
-// 		first = false;
-
-// 		std::string hash = it->first;
-// 		std::map<std::string, std::string> metadata = it->second;
-
-// 		// Check if original-file-name exists in metadata
-// 		std::map<std::string, std::string>::iterator nameIt = metadata.find("original-file-name");
-// 		std::string originalFilename = (nameIt != metadata.end()) ? nameIt->second : "unknown";
-
-// 		json += "{";
-// 		json += "\"hash\":\"" + hash + "\",";
-// 		json += "\"original_filename\":\"" + originalFilename + "\"";
-// 		json += "}";
-// 	}
-
-// 	json += "]";
-// 	return json;
-// }
 
 static std::string generateAutoindexPage(const std::string &directoryPath, const std::string &requestPath)
 {
@@ -114,25 +86,6 @@ static std::string getIndexFile(Router &router, const Server &serverConfig)
 
 void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &response, Router &router, const Server &serverConfig)
 {
-	// std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
-
-	// std::string path = request.getPath();
-
-	// // Handle file list endpoint
-	// if (path.compare("/files") == 0)
-	// {
-	// 	std::string jsonContent = generateFileListJson();
-
-	// 	response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
-	// 	response.addHeader("Content-Type", "application/json");
-
-	// 	std::stringstream contentLength;
-	// 	contentLength << jsonContent.length();
-	// 	response.addHeader("Content-Length", contentLength.str());
-	// 	response.setBody(jsonContent);
-	// 	return;
-	// }
-
 	std::string fullPath;
 	std::string pathToServe = router.resolvedPath;
 
@@ -166,4 +119,92 @@ void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &respon
 		throw Http403ForbiddenException();
 	else
 		return serveFile(file, request, response);
+}
+
+static void getFileListJson(std::stringstream &json, std::string &sessionId, std::vector<std::string> &sessionHashedFilenames)
+{
+    json << "{";
+    json << "\"sessionId\":\"" << sessionId << "\",";
+    json << "\"files\":[";
+
+    bool first = true;
+    for (size_t i = 0; i < sessionHashedFilenames.size(); ++i)
+    {
+        std::string hash = sessionHashedFilenames[i];
+
+        // Get metadata for this file from FileHandler
+        Headers metadata = FileHandler::getFileMetaData(hash);
+
+        // Extract original filename from metadata
+        std::map<std::string, std::string>::iterator nameIt = metadata.find("original-file-name");
+        if (nameIt == metadata.end())
+            continue; // Skip if no metadata found
+
+        if (!first)
+            json << ",";
+        first = false;
+
+        std::string originalFilename = nameIt->second;
+
+        // Build file object
+        json << "{";
+        json << "\"hash\":\"" << hash << "\",";
+        json << "\"original_filename\":\"" << originalFilename << "\"";
+
+        // Add other metadata if available
+        std::map<std::string, std::string>::iterator sizeIt = metadata.find("size");
+        if (sizeIt != metadata.end())
+            json << ",\"size\":" << sizeIt->second;
+
+        std::map<std::string, std::string>::iterator dateIt = metadata.find("upload-date");
+        if (dateIt != metadata.end())
+            json << ",\"upload_date\":\"" << dateIt->second << "\"";
+
+        json << "}";
+    }
+
+    json << "]";
+    json << "}";
+}
+
+void HttpHandlerGET::handleGetRequestUploads(HttpRequest &request, HttpResponse &response, Router &router)
+{
+	(void)router;
+	std::vector<std::string> sessionHashedFilenames;
+	std::string cookieName = "sessionId=";
+	std::string sessionId;
+
+	std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Cookies");
+	if (it != request.getHeaders().end())
+	{
+		size_t sessionIdStartPos = it->second.find(cookieName);
+		if (sessionIdStartPos == std::string::npos)
+		{
+			std::cout << "not found" << std::endl;
+			throw Http500InternalServerErrorException();
+		}
+		sessionId = it->second.substr(sessionIdStartPos + cookieName.size());
+		sessionHashedFilenames = Cookies::sessionMetadata[sessionId];
+	}
+	else
+	{
+		sessionId = Cookies::createSessionID();
+		response.addHeader("Set-Cookie", "sessionId=" + sessionId);
+	}
+
+	  // Build JSON response
+    std::stringstream json;
+	getFileListJson(json, sessionId, sessionHashedFilenames);
+
+    // Set response
+    std::string jsonContent = json.str();
+    response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+    response.addHeader("Content-Type", "application/json");
+
+    std::stringstream contentLength;
+    contentLength << jsonContent.length();
+    response.addHeader("Content-Length", contentLength.str());
+    response.addHeader("Connection", "keep-alive");
+    response.setBody(jsonContent);
+	std::cout << response.getBody() << std::endl;
 }
