@@ -21,6 +21,7 @@ private:
 	std::string _version;
 	std::map<std::string, std::string> _headers;
 	std::string _body;
+	std::string _cookie;
 
 public:
 	HttpRequest();
@@ -35,12 +36,14 @@ public:
 	const std::string &getVersion() const;
 	const std::map<std::string, std::string> &getHeaders() const;
 	const std::string &getBody() const;
+	const std::string &getCookie() const;
 
 	void setMethod(const std::string &method);
 	void setTarget(const std::string &target);
 	void setPath(const std::string &path);
 	void setVersion(const std::string &version);
 	void setBody(const std::string &body);
+	void setCookie(const std::string &cookie);
 
 	void clear();
 

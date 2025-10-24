@@ -13,6 +13,8 @@ std::string HttpException::statusCodeToString(int statusCode)
 		return "301";
 	case HTTP_400_BAD_REQUEST:
 		return "400";
+	case HTTP_401_UNAUTHORIZED:
+		return "401";
 	case HTTP_404_NOT_FOUND:
 		return "404";
 	case HTTP_405_METHOD_NOT_ALLOWED:
@@ -37,6 +39,11 @@ std::string HttpException::statusCodeToString(int statusCode)
 const char *Http400BadRequestException::what() const throw()
 {
 	return "Bad Request";
+}
+
+const char *Http401UnauthorizedException::what() const throw()
+{
+	return "Unauthorized";
 }
 
 const char *Http403ForbiddenException::what() const throw()

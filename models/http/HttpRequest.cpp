@@ -7,7 +7,8 @@ HttpRequest::HttpRequest() : _method(""),
 							 _queryParams(),
 							 _version(""),
 							 _headers(),
-							 _body("")
+							 _body(""),
+							 _cookie("")
 {
 }
 
@@ -17,7 +18,8 @@ HttpRequest::HttpRequest(const HttpRequest &other) : _method(other._method),
 													 _queryParams(other._queryParams),
 													 _version(other._version),
 													 _headers(other._headers),
-													 _body(other._body)
+													 _body(other._body),
+													 _cookie(other._cookie)
 {
 }
 
@@ -32,6 +34,7 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &other)
 		_version = other._version;
 		_headers = other._headers;
 		_body = other._body;
+		_cookie = other._cookie;
 	}
 	return *this;
 }
@@ -69,6 +72,10 @@ const std::string &HttpRequest::getBody() const
 {
 	return _body;
 }
+const std::string &HttpRequest::getCookie() const
+{
+	return _cookie;
+}
 
 // SETTERS
 void HttpRequest::setMethod(const std::string &method)
@@ -100,16 +107,10 @@ void HttpRequest::setBody(const std::string &body)
 	_body = body;
 }
 
-// HttpRequest::HttpRequest(const std::string &request) : _method(""),
-// 													   _target(""),
-// 													   _path(""),
-// 													   _queryParams(),
-// 													   _version(""),
-// 													   _headers(),
-// 													   _body("")
-// {
-// 	HttpRequestParser::parseRawRequest(*this, request);
-// }
+void HttpRequest::setCookie(const std::string &cookie)
+{
+	_cookie = cookie;
+}
 
 std::ostream &operator<<(std::ostream &out, const HttpRequest &request)
 {
@@ -153,4 +154,5 @@ void HttpRequest::clear()
 	_version.clear();
 	_headers.clear();
 	_body.clear();
+	_cookie.clear();
 }

@@ -108,6 +108,25 @@ static void postParsingValidation(HttpRequest &request)
 		throw Http505HttpVersionNotSupportedException();
 }
 
+static void parseCookieHeader(HttpRequest &request)
+{
+	std::string cookieName = "sessionId=";
+
+	std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Cookie");
+	if (it != request.getHeaders().end())
+	{
+		size_t sessionIdStartPos = it->second.find(cookieName);
+		if (sessionIdStartPos == std::string::npos)
+		{
+			std::cout << "cookie not found" << std::endl;
+			throw Http501NotImplementedException();
+		}
+		request.setCookie(it->second.substr(sessionIdStartPos + cookieName.size()));
+	}
+	else
+		return;
+
+}
 // Visualization https://chat.qwen.ai/s/c6b79ac1-d473-48b4-a34e-394bb622a11f?fev=0.0.201
 // Use a string stream to process the request line by line
 // Parse the request line (first line)
@@ -120,6 +139,7 @@ void HttpRequestParser::parseRawRequest(HttpRequest &request, const std::string 
 
 	parseRequestLine(request, requestStream, line);
 	parseHeaders(request, requestStream, line, serverConfig);
+	parseCookieHeader(request);
 	parseBody(request, requestStream, line, serverConfig);
 	postParsingValidation(request);
 }

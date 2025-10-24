@@ -47,6 +47,14 @@ public:
 	const char *what() const throw();
 };
 
+class Http401UnauthorizedException : public HttpException
+{
+public:
+	const std::string getStatusCodeString() const { return "401"; };
+	int getStatusCodeDigit() const { return 401; };
+	const char *what() const throw();
+};
+
 class Http403ForbiddenException : public HttpException
 {
 public:

@@ -6,6 +6,7 @@
 #include "HttpExceptions.hpp"
 #include "FileHandler.hpp"
 #include "Router.hpp"
+#include "Cookie.hpp"
 
 class HttpHandlerPOST
 {
