@@ -318,10 +318,16 @@ send_request() {
 # send_request "DELETE /uploads/d1d86da2a930e50f.pdf HTTP/1.1\r\nHost: localhost\r\n\r\n"
 # echo ""
 
-echo "TEST 29: Overflow Header Cap from Config (min 512 bytes, need to setup in config)."
-echo "EXPECTED: 431 Request Header Fields Too Large"
+# echo "TEST 29: Overflow Header Cap from Config (min 512 bytes, need to setup in config)."
+# echo "EXPECTED: 431 Request Header Fields Too Large"
+# echo "----------------------------------------"
+# curl -v -H "X-Overflow: $(printf '%500s' | tr ' ' 'A')" http://127.0.0.1:8081/
+# echo ""
+
+echo "TEST 30: Test Cookie Persistence (need to change cookie value)"
+echo "EXPECTED: JSON with file metadata"
 echo "----------------------------------------"
-curl -v -H "X-Overflow: $(printf '%500s' | tr ' ' 'A')" http://127.0.0.1:8081/
+send_request "GET /api/uploads HTTP/1.1\r\nHost: localhost\r\nCookie: sessionId=e031ca79d97554bb6cf3de3dbd34a038\r\n\r\n"
 echo ""
 
 # echo "=========================================="

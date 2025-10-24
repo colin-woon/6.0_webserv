@@ -24,7 +24,8 @@ void HttpHandlerDELETE::handleDeleteRequest(HttpRequest &request, HttpResponse &
 		throw Http404NotFoundException();
 
 	// Extract the hashed filename from the path
-	std::string hashedFilename = path.substr(9); // Remove "/uploads/" prefix
+	// Remove "/uploads/" prefix
+	std::string hashedFilename = path.substr(9);
 
 	if (hashedFilename.empty())
 		throw Http400BadRequestException();

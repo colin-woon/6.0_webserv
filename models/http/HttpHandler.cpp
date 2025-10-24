@@ -156,11 +156,11 @@ void HttpHandler::handleRequest(Client &client)
 			return handleRedirection(response, router);
 		checkAllowedMethods(router, request);
 		router.getResolvedPath(request, serverConfig);
-		if (!router.locationConfig->cgi.empty())
+		if (router.locationConfig && !router.locationConfig->cgi.empty())
 			return CGI::handleCGI(request, response, serverConfig, router);
 		else if (request.getPath() == "/api/uploads" && requestMethod == "GET")
 			return HttpHandlerGET::handleGetRequestUploads(request, response, router);
-		else if (!router.locationConfig->upload_store.empty())
+		else if (router.locationConfig && !router.locationConfig->upload_store.empty())
 		{
 			if (requestMethod == "POST")
 				return HttpHandlerPOST::handlePostRequest(request, response, router);
