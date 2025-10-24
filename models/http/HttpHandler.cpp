@@ -152,16 +152,19 @@ void HttpHandler::handleRequest(Client &client)
 		router.getLocationConfig(request, serverConfig);
 		if (router.locationConfig && !router.locationConfig->redirect.second.empty())
 			return handleRedirection(response, router);
-		router.getResolvedPath(request, serverConfig);
 		checkAllowedMethods(router, request);
-		if (router.locationConfig->path.compare("/cgi-bin/") == 0)
+		router.getResolvedPath(request, serverConfig);
+		if (!router.locationConfig->cgi.empty())
 			return CGI::handleCGI(request, response, serverConfig, router);
+		else if (!router.locationConfig->upload_store.empty())
+		{
+			if (request.getMethod().compare("POST") == 0)
+				return HttpHandlerPOST::handlePostRequest(request, response, router);
+			if (request.getMethod().compare("DELETE") == 0)
+				return HttpHandlerDELETE::handleDeleteRequest(request, response, router);
+		}
 		if (request.getMethod().compare("GET") == 0)
 			return HttpHandlerGET::handleGetRequest(request, response, router, serverConfig);
-		if (request.getMethod().compare("POST") == 0)
-			return HttpHandlerPOST::handlePostRequest(request, response, router);
-		if (request.getMethod().compare("DELETE") == 0)
-			return HttpHandlerDELETE::handleDeleteRequest(request, response, router);
 	}
 	catch (const HttpException &e)
 	{

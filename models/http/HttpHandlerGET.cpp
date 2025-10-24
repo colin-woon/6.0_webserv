@@ -143,6 +143,8 @@ void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &respon
 	if (S_ISDIR(path_stat.st_mode))
 	{
 		std::string indexFile = getIndexFile(router, serverConfig);
+		if (pathToServe[pathToServe.size() - 1] != '/')
+			pathToServe += "/";
 		fullPath = pathToServe + indexFile;
 		struct stat index_stat;
 

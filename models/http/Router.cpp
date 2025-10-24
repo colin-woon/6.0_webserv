@@ -41,22 +41,37 @@ void Router::getLocationConfig(HttpRequest &request, const Server &serverConfig)
 
 void Router::getResolvedPath(HttpRequest &request, const Server &serverConfig)
 {
+	resolvedPath = serverConfig.root;
 	if (locationConfig != NULL)
 	{
 		if (!locationConfig->root.empty())
-			resolvedPath = locationConfig->root + request.getPath();
+			resolvedPath = locationConfig->root;
 		else if (!locationConfig->alias.empty())
-			resolvedPath = locationConfig->alias + request.getPath().substr(locationConfig->path.size());
-		else
-			resolvedPath = serverConfig.root + request.getPath();
+			resolvedPath = locationConfig->alias;
 	}
-	else
-		resolvedPath = serverConfig.root + request.getPath();
 
-	struct stat path_stat;
-	if (stat(resolvedPath.c_str(), &path_stat) != 0)
-		throw Http404NotFoundException();
-
-	if (S_ISDIR(path_stat.st_mode))
-		resolvedPath += "/";
+	if (request.getMethod() == "GET")
+	{
+		if (!locationConfig->alias.empty())
+		{
+			std::string remaining = request.getPath().substr(locationConfig->path.size());
+			if (!remaining.empty() && remaining[0] == '/')
+				remaining = remaining.substr(1);
+			resolvedPath += remaining;
+		}
+		else
+			resolvedPath += request.getPath();
+	}
+	else if (request.getMethod() == "DELETE")
+	{
+		if (!locationConfig->alias.empty())
+		{
+			std::string remaining = request.getPath().substr(locationConfig->path.size());
+			if (!remaining.empty() && remaining[0] == '/')
+				remaining = remaining.substr(1);
+			resolvedPath += remaining;
+		}
+		else
+			resolvedPath += request.getPath();
+	}
 }
