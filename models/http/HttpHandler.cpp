@@ -158,16 +158,16 @@ void HttpHandler::handleRequest(Client &client)
 		router.getResolvedPath(request, serverConfig);
 		if (!router.locationConfig->cgi.empty())
 			return CGI::handleCGI(request, response, serverConfig, router);
-		else if (router.locationConfig->path == "/uploads" && requestMethod == "GET")
+		else if (request.getPath() == "/api/uploads" && requestMethod == "GET")
 			return HttpHandlerGET::handleGetRequestUploads(request, response, router);
 		else if (!router.locationConfig->upload_store.empty())
 		{
-			if (requestMethod.compare("POST") == 0)
+			if (requestMethod == "POST")
 				return HttpHandlerPOST::handlePostRequest(request, response, router);
-			if (requestMethod.compare("DELETE") == 0)
+			if (requestMethod == "DELETE")
 				return HttpHandlerDELETE::handleDeleteRequest(request, response, router);
 		}
-		if (requestMethod.compare("GET") == 0)
+		if (requestMethod == "GET")
 			return HttpHandlerGET::handleGetRequest(request, response, router, serverConfig);
 	}
 	catch (const HttpException &e)
