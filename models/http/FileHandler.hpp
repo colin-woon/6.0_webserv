@@ -27,7 +27,7 @@ public:
 	static std::map<std::string, Headers> getAllFileMetaData();
 	static void addNewFileMetaData(std::string &hashKey, Headers &fileMetaData);
 	static void deleteFileMetaData(std::string &hashKey);
-	static void uploadFile(std::string &hashedFilename, std::string &fileContent, Router &router);
+	static std::string uploadFile(std::string &hashedFilename, std::string &fileContent, Router &router, const std::string &requestPath);
 	static void deleteFile(std::string &hashedFilename, Router &router, const std::string &sessionId);
 	static std::string downloadFile(std::string &hashedFilename, Router &router);
 	static void validateFileOwnership(const std::string &sessionId, const std::string &hashedFilename);

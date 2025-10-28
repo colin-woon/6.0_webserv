@@ -7,6 +7,8 @@ std::string HttpException::statusCodeToString(int statusCode)
 	{
 	case HTTP_200_OK:
 		return "200";
+	case HTTP_201_CREATED:
+		return "201";
 	case HTTP_204_NO_CONTENT:
 		return "204";
 	case HTTP_301_MOVED_PERMANENTLY:

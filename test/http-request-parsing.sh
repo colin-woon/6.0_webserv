@@ -330,10 +330,16 @@ send_request() {
 # send_request "GET /api/uploads HTTP/1.1\r\nHost: localhost\r\nCookie: sessionId=e031ca79d97554bb6cf3de3dbd34a038\r\n\r\n"
 # echo ""
 
-echo "TEST 31: Unauthorized Download"
-echo "EXPECTED: 401 Unauthorized"
+# echo "TEST 31: Unauthorized Download"
+# echo "EXPECTED: 401 Unauthorized"
+# echo "----------------------------------------"
+# send_request "GET /api/downloads/d1d86da2a930e50f.pdf HTTP/1.1\r\nHost: localhost\r\n\r\n"
+# echo ""
+
+echo "TEST 32: Unsupported Content-Type (application/json)"
+echo "EXPECTED: 501 Not Implemented"
 echo "----------------------------------------"
-send_request "GET /api/downloads/d1d86da2a930e50f.pdf HTTP/1.1\r\nHost: localhost\r\n\r\n"
+send_request "POST /uploads HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 48\r\n\r\n{\"filename\": \"document.txt\", \"data\": \"VGhpcyBpcyBhIHRlc3QgZGF0YQ==\"}\r\n"
 echo ""
 
 # echo "=========================================="

@@ -67,7 +67,7 @@ static std::string getUploadPath(Router &router)
 	return finalPath;
 }
 
-void FileHandler::uploadFile(std::string &hashedFilename, std::string &fileContent, Router &router)
+std::string FileHandler::uploadFile(std::string &hashedFilename, std::string &fileContent, Router &router, const std::string &requestPath)
 {
 	std::string uploadPath = getUploadPath(router);
 	const std::string &filePath = uploadPath + hashedFilename;
@@ -77,6 +77,12 @@ void FileHandler::uploadFile(std::string &hashedFilename, std::string &fileConte
 		throw Http500InternalServerErrorException();
 	out.write(fileContent.c_str(), fileContent.size());
 	out.close();
+	std::string publicFilePath;
+	if (requestPath[requestPath.size()] == '/')
+		publicFilePath = requestPath + hashedFilename;
+	else
+		publicFilePath = requestPath + '/' + hashedFilename;
+	return publicFilePath;
 }
 
 void FileHandler::deleteFile(std::string &hashedFilename, Router &router, const std::string &sessionId)
