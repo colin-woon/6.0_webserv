@@ -177,7 +177,7 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 	{
 		std::map<std::string, std::string> headers = request.getHeaders();
 		if (isInvalidContentType(headers))
-			throw Http501NotImplementedException();
+			throw Http415UnsupportedMediaTypeException();
 
 		std::string sessionId = request.getCookie();
 		Cookie::validateSession(sessionId);

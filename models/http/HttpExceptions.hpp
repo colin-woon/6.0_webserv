@@ -24,6 +24,7 @@ enum StatusCode
 	HTTP_501_NOT_IMPLEMENTED = 501,
 	HTTP_502_BAD_GATEWAY = 502,
 	HTTP_503_SERVICE_UNAVAILABLE = 503,
+	HTTP_503_GATEWAY_TIMEOUT = 504,
 	HTTP_505_HTTP_VERSION_NOT_SUPPORTED = 505,
 	UNKNOWN = 0
 };
@@ -95,13 +96,13 @@ public:
 	const char *what() const throw();
 };
 
-// class Http415UnsupportedMediaTypeException : public HttpException
-// {
-// public:
-// 	const std::string getStatusCodeString() const { return "415"; };
-// 	int getStatusCodeDigit() const { return 415; };
-// 	const char *what() const throw();
-// };
+class Http415UnsupportedMediaTypeException : public HttpException
+{
+public:
+	const std::string getStatusCodeString() const { return "415"; };
+	int getStatusCodeDigit() const { return 415; };
+	const char *what() const throw();
+};
 
 class Http431RequestHeaderFieldsTooLargeException : public HttpException
 {
@@ -132,6 +133,14 @@ class Http502BadGatewayException : public HttpException
 public:
 	const std::string getStatusCodeString() const { return "502"; };
 	int getStatusCodeDigit() const { return 502; };
+	const char *what() const throw();
+};
+
+class Http504GatewayTimeoutException : public HttpException
+{
+public:
+	const std::string getStatusCodeString() const { return "504"; };
+	int getStatusCodeDigit() const { return 504; };
 	const char *what() const throw();
 };
 

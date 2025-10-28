@@ -73,6 +73,11 @@ const char *Http414UriTooLongException::what() const throw()
 	return "URI Too Long";
 }
 
+const char *Http415UnsupportedMediaTypeException::what() const throw()
+{
+	return "Unsupported Media Type. Expected 'multipart/form-data'.";
+}
+
 const char *Http431RequestHeaderFieldsTooLargeException::what() const throw()
 {
 	return "Request Header Fields Too Large";
@@ -90,7 +95,12 @@ const char *Http501NotImplementedException::what() const throw()
 
 const char *Http502BadGatewayException::what() const throw()
 {
-	return "Bad Getaway";
+	return "Bad Gateway";
+}
+
+const char *Http504GatewayTimeoutException::what() const throw()
+{
+	return "Gateway Timeout";
 }
 
 const char *Http505HttpVersionNotSupportedException::what() const throw()
