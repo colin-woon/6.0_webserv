@@ -54,7 +54,43 @@ static void handleAutoindex(Router &router, HttpRequest &request, HttpResponse &
 	response.addHeader("Connection", "keep-alive");
 }
 
-static void serveFile(std::ifstream &file, HttpRequest &request, HttpResponse &response)
+static std::string getContentType(const std::string &resolvedPath)
+{
+	size_t dotPos = resolvedPath.find_last_of('.');
+	if (dotPos == std::string::npos)
+		return "application/octet-stream";
+
+	std::string extension = resolvedPath.substr(dotPos);
+
+	if (extension == ".html" || extension == ".htm")
+		return "text/html";
+	else if (extension == ".css")
+		return "text/css";
+	else if (extension == ".js")
+		return "application/javascript";
+	else if (extension == ".json")
+		return "application/json";
+	else if (extension == ".png")
+		return "image/png";
+	else if (extension == ".jpg" || extension == ".jpeg")
+		return "image/jpeg";
+	else if (extension == ".gif")
+		return "image/gif";
+	else if (extension == ".svg")
+		return "image/svg+xml";
+	else if (extension == ".ico")
+		return "image/x-icon";
+	else if (extension == ".pdf")
+		return "application/pdf";
+	else if (extension == ".txt")
+		return "text/plain";
+	else if (extension == ".xml")
+		return "application/xml";
+	else
+		return "application/octet-stream";
+}
+
+static void serveFile(std::ifstream &file, HttpRequest &request, HttpResponse &response, std::string &fullPath)
 {
 	std::stringstream buffer;
 	buffer << file.rdbuf();
@@ -62,7 +98,7 @@ static void serveFile(std::ifstream &file, HttpRequest &request, HttpResponse &r
 	file.close();
 
 	response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
-	response.addHeader("Content-Type", "text/html");
+	response.addHeader("Content-Type", getContentType(fullPath));
 
 	std::stringstream contentLength;
 	contentLength << content.length();
@@ -125,7 +161,7 @@ void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &respon
 	if (!file.is_open())
 		throw Http403ForbiddenException();
 	else
-		return serveFile(file, request, response);
+		return serveFile(file, request, response, fullPath);
 }
 
 static void getFileListJson(std::stringstream &json, std::string &sessionId, std::vector<std::string> &sessionHashedFilenames)
