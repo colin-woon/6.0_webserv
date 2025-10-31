@@ -12,11 +12,11 @@
 # add back WFLAGS later to CFLAGS, removed cause it doesnt work for testing
 # Compiler and flags
 CXX			=	c++
-CFLAGS		=	$(INCLUDES) $(DEBUG) $(STANDARD) $(FSAN)
+CFLAGS		=	$(INCLUDES) $(DEBUG) $(WFLAGS) $(STANDARD) $(FSAN)
 STANDARD	=	-Wpedantic -std=c++98
 WFLAGS		=	-Wall -Werror -Wextra
 INCLUDES	=	-I$(INC_DIR) -I$(MODELS_DIR)
-DEBUG		=	-g3 -O0 -fstandalone-debug
+DEBUG		=	-g3 -O0
 FSAN		=	-fsanitize=address,leak
 RM			=	rm -rf
 

@@ -183,7 +183,7 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 		else
 			response.addHeader("Connection", "keep-alive");
 	}
-	catch (std::out_of_range)
+	catch (std::out_of_range&)
 	{
 		throw Http400BadRequestException();
 	}
