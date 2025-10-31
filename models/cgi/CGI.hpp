@@ -3,16 +3,30 @@
 
 #include "../http/HttpRequest.hpp"
 #include "../http/HttpResponse.hpp"
-#include "../http/Router.hpp"
 #include "../parsing/Server.hpp"
+#include "../http/Router.hpp"
+
+class Client;
+class ServerLoop;
+
+struct CGIcontext
+{
+	pid_t pid;
+	int fd;
+	int clientFd;
+	size_t sendPos;
+	std::string buffer;
+	uint64_t	expiresAtMs;
+	HttpResponse response;
+};
 
 class CGI
 {
 	private:
 		std::vector<std::string>	_envp;
-		const HttpRequest& _req;
+		Client& _client;
 	public:
-		CGI(const HttpRequest& request, const Server& srv);
+		CGI(Client& client, const Server& srv);
 		~CGI();
 
 		class CGISimpleException : public std::exception
@@ -26,8 +40,8 @@ class CGI
 		};
 
 		void	createEnv(const Server& srv);
-		std::string	execCGI(const Location& loc, const std::pair<std::string, std::string>& cgiEntry);
-		static void	handleCGI(HttpRequest &request, HttpResponse &response, const Server &serverConfig, Router &router);
+		void	execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>& cgiEntry, int timeout);
+		void	handleCGI(Client& client, Router &router);
 };
 
 #endif

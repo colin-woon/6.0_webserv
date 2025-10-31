@@ -19,6 +19,7 @@ public:
 	HttpResponse &operator=(const HttpResponse &other);
 	~HttpResponse();
 
+	bool	isCGI;
 	const std::string &getStatusCode() const;
 	const std::string &getStatusText() const;
 	const std::map<std::string, std::string> &getHeaders() const;

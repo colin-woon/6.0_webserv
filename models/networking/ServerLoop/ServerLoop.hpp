@@ -12,9 +12,12 @@
 #include <unistd.h>
 #include <climits>
 #include <stdint.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #include "../../http/HttpRequest.hpp"
 #include "../../http/HttpResponse.hpp"
+#include "../../cgi/CGI.hpp"
 
 class Client{
 public:
@@ -25,6 +28,7 @@ public:
 	uint64_t		expiresAtMs;
 	std::vector<const Server*> vhostCandidates;
 
+	ServerLoop				*srvLoop_;
 	HttpRequest				request;
 	HttpResponse			response;
 	bool					responseQueued;
@@ -58,11 +62,15 @@ public:
 	std::map<int, Client>			clientList_;
 	std::map<int, int>				listenerTimeoutMs_; // listener fd -> timeout ms
 	std::map<int, std::vector<const Server*> > listenerOwner_;
+	std::map<int, CGIcontext>	CGIMap_;
 
 	void closeClient_(int fd);
 	void acceptClients_(int lfd);
 	void readOnce_(int fd);
 	void writeOnce_(int fd);
+
+	void readOnceCGI_(CGIcontext& ctx);
+	void writeOnceCGI_(CGIcontext& ctx);
 
 	static void resetKeepAlive_(Client& c);
 	static bool findHeadersEndAndMark_(Client& c);
@@ -78,6 +86,7 @@ public:
 	const Server* vhostPicker_(const std::vector<const Server*>& candidates, const std::string& rawHeaders);
 
 	static std::string toLowerCopy_(const std::string& s);
+	void	addSocket(struct pollfd &pfd, pid_t pid, Client& client, int timeout);
 };
 
 #endif

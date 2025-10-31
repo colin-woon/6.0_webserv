@@ -157,7 +157,11 @@ void HttpHandler::handleRequest(Client &client)
 		checkAllowedMethods(router, request);
 		router.getResolvedPath(request, serverConfig);
 		if (router.locationConfig && !router.locationConfig->cgi.empty())
-			return CGI::handleCGI(request, response, serverConfig, router);
+		{
+			CGI cgi(client, serverConfig);
+			if (client.srvLoop_)
+				return cgi.handleCGI(client, router);
+		}
 		else if (request.getPath() == "/api/uploads" && requestMethod == "GET")
 			return HttpHandlerGET::handleGetRequestAllFiles(request, response, router);
 		else if (request.getPath().find("/api/download") == 0 && requestMethod == "GET")

@@ -4,14 +4,16 @@
 HttpResponse::HttpResponse() : _statusCode(""),
 							   _statusText(""),
 							   _headers(),
-							   _body("")
+							   _body(""),
+							   isCGI(false)
 {
 }
 
 HttpResponse::HttpResponse(const HttpResponse &other) : _statusCode(other._statusCode),
 														_statusText(other._statusText),
 														_headers(other._headers),
-														_body(other._body)
+														_body(other._body),
+														isCGI(other.isCGI)
 {
 }
 
@@ -23,6 +25,7 @@ HttpResponse &HttpResponse::operator=(const HttpResponse &other)
 		_statusText = other._statusText;
 		_headers = other._headers;
 		_body = other._body;
+		isCGI = other.isCGI;
 	}
 	return *this;
 }
@@ -102,4 +105,5 @@ void HttpResponse::clear()
 	_statusText.clear();
 	_headers.clear();
 	_body.clear();
+	isCGI = false;
 }
