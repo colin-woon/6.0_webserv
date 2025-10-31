@@ -41,6 +41,7 @@ void ServerLoop::acceptClients_(int lfd)
 		}
 		addPollFd(pollFdList_, fdIndex_, clientFd, POLLIN);
 		Client c;
+		c.srvLoop_ = this;
 		c.fd = clientFd;
 
 		std::map<int, std::vector<const Server *> >::const_iterator it = listenerOwner_.find(lfd);
@@ -129,11 +130,22 @@ void ServerLoop::readOnce_(int fd)
 	else
 		c.consumedBytes = c.parsePos;
 	HttpHandler::handleRequest(c);
-	if (c.response.getHeaders().at("Connection") == "close")
-		c.closeFlag = true;
-	c.outBuff = c.response.toString();
-	c.responseQueued = true;
-	modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
+
+	if (!c.response.isCGI)
+	{
+		if (c.response.getStatusCode() == "400" || c.response.getStatusCode()[0] == '5')
+		{
+			c.response.addHeader("Connection", "close");
+			c.closeFlag = true;
+		}
+		else
+			c.response.addHeader("Connection", "keep-alive");
+		if (c.response.getHeaders().at("Connection") == "close")
+			c.closeFlag = true;
+		c.outBuff = c.response.toString();
+		c.responseQueued = true;
+		modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
+	}
 }
 
 void ServerLoop::writeOnce_(int fd)

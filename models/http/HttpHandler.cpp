@@ -154,8 +154,12 @@ void HttpHandler::handleRequest(Client &client)
 			return handleRedirection(response, router);
 		router.getResolvedPath(request, serverConfig);
 		checkAllowedMethods(router, request);
-		if (router.locationConfig->path.compare("/cgi-bin/") == 0)
-			return CGI::handleCGI(request, response, serverConfig, router);
+		if (router.locationConfig->path.compare("/cgi-bin") == 0)
+		{
+			CGI cgi(client, serverConfig);
+			if (client.srvLoop_)
+				return cgi.handleCGI(client, router);
+		}
 		if (request.getMethod().compare("GET") == 0)
 			return HttpHandlerGET::handleGetRequest(request, response, router, serverConfig);
 		if (request.getMethod().compare("POST") == 0)
