@@ -145,6 +145,23 @@
 			text-overflow: ellipsis;
 		}
 
+		.download-btn {
+			padding: 0.5rem 1rem;
+			background: #667eea;
+			color: white;
+			border: none;
+			border-radius: 6px;
+			cursor: pointer;
+			font-size: 0.9rem;
+			transition: all 0.2s;
+			margin-right: 0.5rem;
+		}
+
+		.download-btn:hover {
+			background: #764ba2;
+			transform: scale(1.05);
+		}
+
 		.delete-btn {
 			padding: 0.5rem 1rem;
 			background: #ff4757;
@@ -279,6 +296,11 @@
 			</div>
 		</div>
 		<div class="card">
+			<h3>🔑 Session ID</h3>
+			<p id="session-id-display" style="font-family: monospace; color: #667eea; word-break: break-all;">Loading...
+			</p>
+		</div>
+		<div class="card">
 			<a href="/" class="back-link">&larr; Back to Home</a>
 			<h1>📁 Uploaded Files</h1>
 			<div id="file-list-container">
@@ -345,7 +367,7 @@
 			statusDiv.style.color = '#667eea';
 			submitButton.disabled = true;
 			try {
-				const response = await fetch('/uploads/', {
+				const response = await fetch('/uploads', {
 					method: 'POST',
 					body: formData
 				});
@@ -375,12 +397,166 @@
 
 		// Fetch and display file list
 		async function loadFileList() {
-			// ... (your existing implementation)
+			const container = document.getElementById('file-list-container');
+			const sessionIdDisplay = document.getElementById('session-id-display');
+
+			try {
+				const response = await fetch('/api/uploads', {
+					method: 'GET',
+					credentials: 'same-origin'
+				});
+
+				if (response.status === 401) {
+					// Not authenticated, redirect to login
+					window.location.href = '/';
+					return;
+				}
+
+				if (!response.ok) {
+					throw new Error('Failed to fetch files');
+				}
+
+				const data = await response.json();
+				const files = data.files || [];
+				const sessionId = data.sessionId || 'Unknown';
+
+				// Display session ID
+				sessionIdDisplay.textContent = sessionId;
+
+				if (files.length === 0) {
+					container.innerHTML = '<div class="empty-state">📂 No files uploaded yet. Upload your first file above!</div>';
+				} else {
+					const fileList = document.createElement('ul');
+					fileList.className = 'file-list';
+
+					files.forEach(file => {
+						const listItem = document.createElement('li');
+						listItem.className = 'file-item';
+
+						// Create file info section
+						const fileInfo = document.createElement('div');
+						fileInfo.className = 'file-info';
+
+						// Add file icon (you can customize based on file type)
+						const fileIcon = document.createElement('span');
+						fileIcon.className = 'file-icon';
+						fileIcon.textContent = '📄'; // Default icon
+
+						// You could add logic for different file types:
+						// if (file.original_filename.endsWith('.pdf')) fileIcon.textContent = '📕';
+						// if (file.original_filename.match(/\.(jpg|jpeg|png|gif)$/i)) fileIcon.textContent = '🖼️';
+
+						// Add file name
+						const fileName = document.createElement('span');
+						fileName.className = 'file-name';
+						fileName.textContent = file.original_filename;
+
+						fileInfo.appendChild(fileIcon);
+						fileInfo.appendChild(fileName);
+
+						// Create download button
+						const downloadBtn = document.createElement('button');
+						downloadBtn.className = 'download-btn';
+						downloadBtn.textContent = '⬇️ Download';
+						downloadBtn.onclick = () => downloadFile(file.hash, file.original_filename);
+
+						// Create delete button
+						const deleteBtn = document.createElement('button');
+						deleteBtn.className = 'delete-btn';
+						deleteBtn.textContent = '🗑️ Delete';
+						deleteBtn.onclick = () => deleteFile(file.hash, file.original_filename);
+
+						// Assemble the list item
+						listItem.appendChild(fileInfo);
+						listItem.appendChild(downloadBtn);
+						listItem.appendChild(deleteBtn);
+						fileList.appendChild(listItem);
+					});
+
+					container.innerHTML = '';
+					container.appendChild(fileList);
+				}
+			} catch (error) {
+				console.error('Error loading files:', error);
+				container.innerHTML = '<div class="empty-state">❌ Error loading files. Please try again.</div>';
+				sessionIdDisplay.textContent = 'Error loading session';
+				showToast('Failed to load files', 'error');
+			}
+		}
+
+		// Download file
+		async function downloadFile(hashedName, originalName) {
+			try {
+				const response = await fetch(`/api/download/${hashedName}`, {
+					method: 'GET',
+					credentials: 'same-origin'
+				});
+
+				if (!response.ok) {
+					if (response.status === 401) {
+						showToast('Session expired. Please log in again.', 'error');
+						setTimeout(() => {
+							window.location.href = '/';
+						}, 2000);
+					} else if (response.status === 404) {
+						showToast('File not found', 'error');
+					} else {
+						showToast('Failed to download file', 'error');
+					}
+					return;
+				}
+
+				// Get the file as a blob
+				const blob = await response.blob();
+
+				// Create a temporary download link
+				const url = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = originalName; // Use original filename for download
+				document.body.appendChild(a);
+				a.click();
+
+				// Cleanup
+				window.URL.revokeObjectURL(url);
+				document.body.removeChild(a);
+
+				showToast('Download started!', 'success');
+			} catch (error) {
+				console.error('Error downloading file:', error);
+				showToast('Error downloading file', 'error');
+			}
 		}
 
 		// Delete file
-		async function deleteFile(hashedName) {
-			// ... (your existing implementation)
+		async function deleteFile(hashedName, originalName) {
+			const confirmed = await showConfirmModal(`Are you sure you want to delete "${originalName}"?`);
+
+			if (!confirmed) {
+				return;
+			}
+
+			try {
+				const response = await fetch(`/uploads/${hashedName}`, {
+					method: 'DELETE',
+					credentials: 'same-origin'
+				});
+
+				if (response.ok) {
+					showToast('File deleted successfully!', 'success');
+					loadFileList(); // Refresh the list
+				} else if (response.status === 401) {
+					showToast('Session expired. Please log in again.', 'error');
+					setTimeout(() => {
+						window.location.href = '/';
+					}, 2000);
+				} else {
+					showToast('Failed to delete file', 'error');
+				}
+			} catch (error) {
+				console.error('Error deleting file:', error);
+				showToast('Error deleting file', 'error');
+			}
 		}
 
 		// Load file list on page load

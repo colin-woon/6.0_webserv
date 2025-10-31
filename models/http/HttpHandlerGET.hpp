@@ -6,6 +6,7 @@
 #include "HttpExceptions.hpp"
 #include "FileHandler.hpp"
 #include "Router.hpp"
+#include "Cookie.hpp"
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -22,6 +23,8 @@ private:
 
 protected:
 	static void handleGetRequest(HttpRequest &request, HttpResponse &response, Router &router, const Server &serverConfig);
+	static void handleGetRequestAllFiles(HttpRequest &request, HttpResponse &response, Router &router);
+	static void handleGetRequestDownload(HttpRequest &request, HttpResponse &response, Router &router);
 };
 
 #endif

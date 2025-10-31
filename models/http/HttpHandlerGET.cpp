@@ -1,5 +1,7 @@
 #include "HttpHandlerGET.hpp"
 
+std::map<std::string, std::vector<std::string> > Cookie::sessionMetadata;
+
 HttpHandlerGET::HttpHandlerGET() {}
 
 HttpHandlerGET::HttpHandlerGET(const HttpHandlerGET &other)
@@ -14,36 +16,6 @@ HttpHandlerGET &HttpHandlerGET::operator=(const HttpHandlerGET &other)
 }
 
 HttpHandlerGET::~HttpHandlerGET() {}
-
-// static std::string generateFileListJson()
-// {
-// 	std::map<std::string, Headers> allFiles = FileHandler::getAllFileMetaData();
-// 	std::string json = "[";
-// 	bool first = true;
-
-// 	for (std::map<std::string, Headers>::iterator it = allFiles.begin();
-// 		 it != allFiles.end(); ++it)
-// 	{
-// 		if (!first)
-// 			json += ",";
-// 		first = false;
-
-// 		std::string hash = it->first;
-// 		std::map<std::string, std::string> metadata = it->second;
-
-// 		// Check if original-file-name exists in metadata
-// 		std::map<std::string, std::string>::iterator nameIt = metadata.find("original-file-name");
-// 		std::string originalFilename = (nameIt != metadata.end()) ? nameIt->second : "unknown";
-
-// 		json += "{";
-// 		json += "\"hash\":\"" + hash + "\",";
-// 		json += "\"original_filename\":\"" + originalFilename + "\"";
-// 		json += "}";
-// 	}
-
-// 	json += "]";
-// 	return json;
-// }
 
 static std::string generateAutoindexPage(const std::string &directoryPath, const std::string &requestPath)
 {
@@ -82,7 +54,43 @@ static void handleAutoindex(Router &router, HttpRequest &request, HttpResponse &
 	response.addHeader("Connection", "keep-alive");
 }
 
-static void serveFile(std::ifstream &file, HttpRequest &request, HttpResponse &response)
+static std::string getContentType(const std::string &resolvedPath)
+{
+	size_t dotPos = resolvedPath.find_last_of('.');
+	if (dotPos == std::string::npos)
+		return "application/octet-stream";
+
+	std::string extension = resolvedPath.substr(dotPos);
+
+	if (extension == ".html" || extension == ".htm")
+		return "text/html";
+	else if (extension == ".css")
+		return "text/css";
+	else if (extension == ".js")
+		return "application/javascript";
+	else if (extension == ".json")
+		return "application/json";
+	else if (extension == ".png")
+		return "image/png";
+	else if (extension == ".jpg" || extension == ".jpeg")
+		return "image/jpeg";
+	else if (extension == ".gif")
+		return "image/gif";
+	else if (extension == ".svg")
+		return "image/svg+xml";
+	else if (extension == ".ico")
+		return "image/x-icon";
+	else if (extension == ".pdf")
+		return "application/pdf";
+	else if (extension == ".txt")
+		return "text/plain";
+	else if (extension == ".xml")
+		return "application/xml";
+	else
+		return "application/octet-stream";
+}
+
+static void serveFile(std::ifstream &file, HttpRequest &request, HttpResponse &response, std::string &fullPath)
 {
 	std::stringstream buffer;
 	buffer << file.rdbuf();
@@ -90,7 +98,7 @@ static void serveFile(std::ifstream &file, HttpRequest &request, HttpResponse &r
 	file.close();
 
 	response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
-	response.addHeader("Content-Type", "text/html");
+	response.addHeader("Content-Type", getContentType(fullPath));
 
 	std::stringstream contentLength;
 	contentLength << content.length();
@@ -114,27 +122,15 @@ static std::string getIndexFile(Router &router, const Server &serverConfig)
 
 void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &response, Router &router, const Server &serverConfig)
 {
-	// std::string TEMP_root = "/home/colin/42_core_program/6.0_webserv/var/www";
-
-	// std::string path = request.getPath();
-
-	// // Handle file list endpoint
-	// if (path.compare("/files") == 0)
-	// {
-	// 	std::string jsonContent = generateFileListJson();
-
-	// 	response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
-	// 	response.addHeader("Content-Type", "application/json");
-
-	// 	std::stringstream contentLength;
-	// 	contentLength << jsonContent.length();
-	// 	response.addHeader("Content-Length", contentLength.str());
-	// 	response.setBody(jsonContent);
-	// 	return;
-	// }
-
 	std::string fullPath;
 	std::string pathToServe = router.resolvedPath;
+	std::string sessionId;
+
+	if (request.getCookie().empty())
+	{
+		sessionId = Cookie::createSessionID();
+		response.addHeader("Set-Cookie", "sessionId=" + sessionId);
+	}
 
 	struct stat path_stat;
 	if (stat(pathToServe.c_str(), &path_stat) != 0)
@@ -143,6 +139,8 @@ void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &respon
 	if (S_ISDIR(path_stat.st_mode))
 	{
 		std::string indexFile = getIndexFile(router, serverConfig);
+		if (pathToServe[pathToServe.size() - 1] != '/')
+			pathToServe += "/";
 		fullPath = pathToServe + indexFile;
 		struct stat index_stat;
 
@@ -163,5 +161,128 @@ void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &respon
 	if (!file.is_open())
 		throw Http403ForbiddenException();
 	else
-		return serveFile(file, request, response);
+		return serveFile(file, request, response, fullPath);
+}
+
+static void getFileListJson(std::stringstream &json, std::string &sessionId, std::vector<std::string> &sessionHashedFilenames)
+{
+	json << "{";
+	json << "\"sessionId\":\"" << sessionId << "\",";
+	json << "\"files\":[";
+
+	bool first = true;
+	for (size_t i = 0; i < sessionHashedFilenames.size(); ++i)
+	{
+		std::string hash = sessionHashedFilenames[i];
+
+		// Get metadata for this file from FileHandler
+		Headers metadata = FileHandler::getFileMetaData(hash);
+
+		// Extract original filename from metadata
+		std::map<std::string, std::string>::iterator nameIt = metadata.find("original-file-name");
+		if (nameIt == metadata.end())
+			continue; // Skip if no metadata found
+
+		if (!first)
+			json << ",";
+		first = false;
+
+		std::string originalFilename = nameIt->second;
+
+		// Build file object
+		json << "{";
+		json << "\"hash\":\"" << hash << "\",";
+		json << "\"original_filename\":\"" << originalFilename << "\"";
+
+		// Add other metadata if available
+		std::map<std::string, std::string>::iterator sizeIt = metadata.find("size");
+		if (sizeIt != metadata.end())
+			json << ",\"size\":" << sizeIt->second;
+
+		std::map<std::string, std::string>::iterator dateIt = metadata.find("upload-date");
+		if (dateIt != metadata.end())
+			json << ",\"upload_date\":\"" << dateIt->second << "\"";
+
+		json << "}";
+	}
+
+	json << "]";
+	json << "}";
+}
+
+void HttpHandlerGET::handleGetRequestAllFiles(HttpRequest &request, HttpResponse &response, Router &router)
+{
+	(void)router;
+	std::vector<std::string> sessionHashedFilenames;
+	std::string sessionId = request.getCookie();
+
+	if (!sessionId.empty())
+		sessionHashedFilenames = Cookie::sessionMetadata[sessionId];
+	else
+		throw Http401UnauthorizedException();
+
+	// Build JSON response
+	std::stringstream json;
+	getFileListJson(json, sessionId, sessionHashedFilenames);
+
+	// Set response
+	std::string jsonContent = json.str();
+	response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+	response.addHeader("Content-Type", "application/json");
+
+	std::stringstream contentLength;
+	contentLength << jsonContent.length();
+	response.addHeader("Content-Length", contentLength.str());
+	response.addHeader("Connection", "keep-alive");
+	response.setBody(jsonContent);
+	std::cout << response.getBody() << std::endl;
+}
+
+void HttpHandlerGET::handleGetRequestDownload(HttpRequest &request, HttpResponse &response, Router &router)
+{
+	// 1. Extract hash from path: /api/download/d1d86da2a930e50f.pdf
+	std::string pathPrefix = "/api/download/";
+	std::string path = request.getPath();
+	std::string hash = path.substr(pathPrefix.size()); // Skip "/api/download/"
+
+	// 2. Validate session
+	std::string sessionId = request.getCookie();
+	FileHandler::validateFileOwnership(sessionId, hash);
+
+	// 3. Check file ownership
+	std::vector<std::string> &userFiles = Cookie::sessionMetadata[sessionId];
+	bool fileFound = false;
+	for (size_t i = 0; i < userFiles.size(); ++i)
+	{
+		if (userFiles[i] == hash)
+		{
+			fileFound = true;
+			break;
+		}
+	}
+	if (!fileFound)
+		throw Http404NotFoundException();
+
+	// 4. Get metadata
+	Headers metadata = FileHandler::getFileMetaData(hash);
+	std::string originalFilename = metadata["original-file-name"];
+	std::string contentType = metadata["Content-Type"];
+
+	// Fallback if Content-Type not found
+	if (contentType.empty())
+		contentType = "application/octet-stream";
+
+	// 5. Download file using FileHandler
+	std::string content = FileHandler::downloadFile(hash, router);
+
+	// 6. Set response
+	response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+	response.addHeader("Content-Type", contentType); // Use actual content type!
+	response.addHeader("Content-Disposition", "attachment; filename=\"" + originalFilename + "\"");
+
+	std::stringstream contentLength;
+	contentLength << content.length();
+	response.addHeader("Content-Length", contentLength.str());
+	response.addHeader("Connection", "keep-alive");
+	response.setBody(content);
 }

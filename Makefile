@@ -62,7 +62,6 @@ NETWORKING_MODELS = 	models/networking/ServerLoop/ServerHelpers.cpp \
 						models/networking/ServerLoop/PollHelpers.cpp \
 						models/networking/ServerLoop/VhostHelpers.cpp \
 
-
 HTTP_HEADERS	=	models/http/HttpRequest.hpp \
 					models/http/HttpResponse.hpp \
 					models/http/HttpHandlerGET.hpp \
@@ -74,6 +73,7 @@ HTTP_HEADERS	=	models/http/HttpRequest.hpp \
 					models/http/HttpUtils.hpp \
 					models/http/FileHandler.hpp \
 					models/http/Router.hpp \
+					models/http/Cookie.hpp \
 
 HTTP_MODELS		=	models/http/HttpRequest.cpp \
 					models/http/HttpResponse.cpp \
@@ -86,6 +86,7 @@ HTTP_MODELS		=	models/http/HttpRequest.cpp \
 					models/http/HttpExceptions.cpp \
 					models/http/FileHandler.cpp \
 					models/http/Router.cpp \
+					models/http/Cookie.cpp \
 
 MODEL_FILES		=	$(HTTP_MODELS) $(NETWORKING_MODELS) $(PARSING_MODELS) $(CGI_MODEL)
 MODEL_HEADERS	=	$(HTTP_HEADERS) $(NETWORKING_HEADERS) $(PARSING_HEADERS) $(CGI_HEADER)

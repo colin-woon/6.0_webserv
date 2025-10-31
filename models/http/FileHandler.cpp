@@ -37,7 +37,6 @@ void FileHandler::deleteFileMetaData(std::string &hashKey)
 	_hashedFileNames.erase(hashKey);
 }
 
-
 static std::string getUploadPath(Router &router)
 {
 	std::string uploadStore = router.locationConfig->upload_store;
@@ -68,7 +67,7 @@ static std::string getUploadPath(Router &router)
 	return finalPath;
 }
 
-void FileHandler::uploadFile(std::string &hashedFilename, std::string &fileContent, Router &router)
+std::string FileHandler::uploadFile(std::string &hashedFilename, std::string &fileContent, Router &router, const std::string &requestPath)
 {
 	std::string uploadPath = getUploadPath(router);
 	const std::string &filePath = uploadPath + hashedFilename;
@@ -78,9 +77,15 @@ void FileHandler::uploadFile(std::string &hashedFilename, std::string &fileConte
 		throw Http500InternalServerErrorException();
 	out.write(fileContent.c_str(), fileContent.size());
 	out.close();
+	std::string publicFilePath;
+	if (requestPath[requestPath.size()] == '/')
+		publicFilePath = requestPath + hashedFilename;
+	else
+		publicFilePath = requestPath + '/' + hashedFilename;
+	return publicFilePath;
 }
 
-void FileHandler::deleteFile(std::string &hashedFilename, Router &router)
+void FileHandler::deleteFile(std::string &hashedFilename, Router &router, const std::string &sessionId)
 {
 	std::string uploadPath = getUploadPath(router);
 	const std::string &filePath = uploadPath + hashedFilename;
@@ -90,6 +95,42 @@ void FileHandler::deleteFile(std::string &hashedFilename, Router &router)
 	if (std::remove(filePath.c_str()) == 0)
 	{
 		deleteFileMetaData(hashedFilename);
+		Cookie::removeHashedFileFromSession(sessionId, hashedFilename);
 		return;
 	}
+}
+
+std::string FileHandler::downloadFile(std::string &hashedFilename, Router &router)
+{
+	std::string uploadPath = getUploadPath(router);
+	const std::string &filePath = uploadPath + hashedFilename;
+
+	struct stat fileStat;
+	if (stat(filePath.c_str(), &fileStat) < 0)
+		throw Http404NotFoundException();
+
+	std::ifstream file(filePath.c_str(), std::ios::in | std::ios::binary);
+	if (!file.is_open())
+		throw Http404NotFoundException();
+
+	std::stringstream buffer;
+	buffer << file.rdbuf();
+	std::string content = buffer.str();
+	file.close();
+
+	return content;
+}
+
+void FileHandler::validateFileOwnership(const std::string &sessionId, const std::string &hashedFilename)
+{
+	Cookie::validateSession(sessionId);
+
+	std::vector<std::string> &userFiles = Cookie::sessionMetadata[sessionId];
+	for (size_t i = 0; i < userFiles.size(); ++i)
+	{
+		if (userFiles[i] == hashedFilename)
+			return;
+	}
+
+	throw Http404NotFoundException();
 }

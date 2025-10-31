@@ -7,12 +7,16 @@ std::string HttpException::statusCodeToString(int statusCode)
 	{
 	case HTTP_200_OK:
 		return "200";
+	case HTTP_201_CREATED:
+		return "201";
 	case HTTP_204_NO_CONTENT:
 		return "204";
 	case HTTP_301_MOVED_PERMANENTLY:
 		return "301";
 	case HTTP_400_BAD_REQUEST:
 		return "400";
+	case HTTP_401_UNAUTHORIZED:
+		return "401";
 	case HTTP_404_NOT_FOUND:
 		return "404";
 	case HTTP_405_METHOD_NOT_ALLOWED:
@@ -37,6 +41,11 @@ std::string HttpException::statusCodeToString(int statusCode)
 const char *Http400BadRequestException::what() const throw()
 {
 	return "Bad Request";
+}
+
+const char *Http401UnauthorizedException::what() const throw()
+{
+	return "Unauthorized";
 }
 
 const char *Http403ForbiddenException::what() const throw()
@@ -64,6 +73,11 @@ const char *Http414UriTooLongException::what() const throw()
 	return "URI Too Long";
 }
 
+const char *Http415UnsupportedMediaTypeException::what() const throw()
+{
+	return "Unsupported Media Type. Expected 'multipart/form-data'.";
+}
+
 const char *Http431RequestHeaderFieldsTooLargeException::what() const throw()
 {
 	return "Request Header Fields Too Large";
@@ -81,7 +95,12 @@ const char *Http501NotImplementedException::what() const throw()
 
 const char *Http502BadGatewayException::what() const throw()
 {
-	return "Bad Getaway";
+	return "Bad Gateway";
+}
+
+const char *Http504GatewayTimeoutException::what() const throw()
+{
+	return "Gateway Timeout";
 }
 
 const char *Http505HttpVersionNotSupportedException::what() const throw()

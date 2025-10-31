@@ -140,28 +140,53 @@ static void getFileNameAndExtension(std::map<std::string, std::string> &fileHead
 	fileExtension = filenameValue.substr(lastPeriodPos);
 }
 
-static void uploadHashedFile(std::string &filenameValue, std::string &fileExtension, std::string &fileContent, std::map<std::string, std::string> &fileHeaders, Router &router)
+static std::string uploadHashedFile(std::string &filenameValue, std::string &fileExtension, std::string &fileContent, std::map<std::string, std::string> &fileHeaders, Router &router, const std::string &sessionId, const std::string &requestPath)
 {
 	unsigned long hashed = djb2Hash(filenameValue);
 	std::string hashedFilename = toHexString(hashed) + fileExtension;
+	std::string uploadFileLocation;
 
 	fileHeaders["original-file-name"] = filenameValue;
 	FileHandler::addNewFileMetaData(hashedFilename, fileHeaders);
-	FileHandler::uploadFile(hashedFilename, fileContent, router);
+	uploadFileLocation = FileHandler::uploadFile(hashedFilename, fileContent, router, requestPath);
+	Cookie::addHashedFileToSession(sessionId, hashedFilename);
 
 	std::cout << FileHandler::getFileMetaData(hashedFilename)["Content-Disposition"] << std::endl;
+	return uploadFileLocation;
+}
+
+static bool isInvalidContentType(std::map<std::string, std::string> &headers)
+{
+	std::string contentTypeValue = headers.at("Content-Type");
+	std::string mimeType;
+
+	size_t semicolonPos = contentTypeValue.find(';');
+	if (semicolonPos != std::string::npos)
+		mimeType = contentTypeValue.substr(0, semicolonPos);
+	else
+		mimeType = contentTypeValue;
+
+	if (mimeType != "multipart/form-data")
+		return true;
+	return false;
 }
 
 void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &response, Router &router)
 {
-	(void)router;
 	try
 	{
 		std::map<std::string, std::string> headers = request.getHeaders();
+		if (isInvalidContentType(headers))
+			throw Http415UnsupportedMediaTypeException();
+
+		std::string sessionId = request.getCookie();
+		Cookie::validateSession(sessionId);
+
 		std::string body = request.getBody();
 		std::string boundary;
 		std::map<std::string, std::string> fileHeaders;
 		std::string fileContent;
+		std::string uploadFileLocation;
 
 		getBoundary(headers, boundary);
 		getFileHeadersAndContent(body, fileHeaders, request, boundary, fileContent);
@@ -170,12 +195,12 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 		std::string fileExtension;
 		getFileNameAndExtension(fileHeaders, filenameValue, fileExtension);
 
-		uploadHashedFile(filenameValue, fileExtension, fileContent, fileHeaders, router);
+		uploadFileLocation = uploadHashedFile(filenameValue, fileExtension, fileContent, fileHeaders, router, request.getCookie(), request.getPath());
 
-		// Set successful response
-		response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+		response.setStatusCode(HttpException::statusCodeToString(HTTP_201_CREATED));
 		response.addHeader("Content-Type", "text/plain");
 		response.addHeader("Content-Length", "18");
+		response.addHeader("Location", uploadFileLocation);
 		response.setBody("Upload successful\n");
 		std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Connection");
 		if (it != request.getHeaders().end() && it->second == "close")
@@ -188,8 +213,3 @@ void HttpHandlerPOST::handlePostRequest(HttpRequest &request, HttpResponse &resp
 		throw Http400BadRequestException();
 	}
 }
-
-// {
-// _M_p:
-// 	"------WebKitFormBoundaryjCmBlkofnsaOsXrw \nContent-Disposition: form-data; name=\"file\"; filename=\"Hackathon – Participant Rules & Guidelines.pdf\" \nContent-Type: application/pdf \n \n%PDF-1.7 \n%\xb5\xb5\xb5\xb5 \n1 0 obj \n<</Type/Catalog/Pages 2 0 R/Lang(en) /StructTreeRoot 34 0 R/MarkInfo<</Marked true>>/Metadata 222 0 R/ViewerPreferences 223 0 R>> \nendobj \n2 0 obj \n<</Type/Pages/Count 3/Kids[ 4 0 R 30 0 R 32 0 R] >> \nendobj \n3 0 obj \n<</MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_Enabled(true) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_SetDate(2025-09-12T09:03:13Z) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_Method(Standard) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_Name(UST Internal) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_SiteId(a4431f4b-c207-4733-9530-34c08a9b2b8d) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_ActionId(47a2c451-15b0-4ce9-b6e2-4803cd19f2ff) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_ContentBits(0) /MSIP_Label_15ffddfa-74ad-4c1f-9757-a38a11902f1c_Tag(10, 3, 0, 1) /" ...
-// }
