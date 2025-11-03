@@ -117,7 +117,7 @@ static void getDefaultErrorPage(HttpResponse &response, const HttpException &e)
 	response.addHeader("Content-Length", contentLength.str());
 }
 
-static void handleHttpException(const Server &serverConfig, const Location *locationConfig, const HttpException &e, HttpResponse &response)
+void handleHttpException(const Server &serverConfig, const Location *locationConfig, const HttpException &e, HttpResponse &response)
 {
 	try
 	{

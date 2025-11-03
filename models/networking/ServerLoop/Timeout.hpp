@@ -8,7 +8,7 @@
 
 uint64_t nowMs();
 void buildTimeoutList(std::vector<int>& listenerFdList, std::vector<Server>& serverList, std::map<int,int>& listenerTimeoutMs);
-int calcNextTimeout(std::map<int,Client>& clients, int fallbackMs);
+int calcNextTimeout(std::map<int,Client>& clients, std::map<int, CGIcontext>& CGImap, int fallbackMs);
 void setClientTimeout(int listenerFd, Client& c, std::map<int,int>& listenerTimeoutMs);
 void resetClientTimeout(Client& c);
 

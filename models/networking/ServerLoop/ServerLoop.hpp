@@ -86,7 +86,7 @@ public:
 	const Server* vhostPicker_(const std::vector<const Server*>& candidates, const std::string& rawHeaders);
 
 	static std::string toLowerCopy_(const std::string& s);
-	void	addSocket(struct pollfd &pfd, pid_t pid, Client& client, int timeout);
+	void	addSocket(struct pollfd &pfd, pid_t pid, Client& client, Router& router);
 };
 
 #endif
