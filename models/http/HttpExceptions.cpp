@@ -31,6 +31,8 @@ std::string HttpException::statusCodeToString(int statusCode)
 		return "501";
 	case HTTP_502_BAD_GATEWAY:
 		return "502";
+	case HTTP_504_GATEWAY_TIMEOUT:
+		return "504";
 	case HTTP_505_HTTP_VERSION_NOT_SUPPORTED:
 		return "505";
 	default:

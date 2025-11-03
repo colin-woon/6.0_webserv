@@ -16,7 +16,9 @@ struct CGIcontext
 	int clientFd;
 	size_t sendPos;
 	std::string buffer;
+	int			timeoutMs;
 	uint64_t	expiresAtMs;
+	const Location	*loc;
 	HttpResponse response;
 };
 
@@ -40,7 +42,7 @@ class CGI
 		};
 
 		void	createEnv(const Server& srv);
-		void	execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>& cgiEntry, int timeout);
+		void	execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>& cgiEntry, Router& router);
 		void	handleCGI(Client& client, Router &router);
 };
 

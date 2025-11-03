@@ -65,6 +65,11 @@ void ServerLoop::readOnce_(int fd)
 	ssize_t n = recv(fd, buf, sizeof(buf), 0);
 	if (n < 0)
 		return;
+	if (n == 0)
+	{
+		modifyEvent(pollFdList_, fdIndex_, fd, POLLOUT);
+		return ;
+	}
 
 	c.inBuff.append(buf, (size_t)n);
 	resetClientTimeout(c);

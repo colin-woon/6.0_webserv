@@ -14,7 +14,7 @@ const char *CGI::CGISimpleException::what() const throw()
 	return (this->_message.c_str());
 }
 
-void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>& cgiEntry, int timeout)
+void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>& cgiEntry, Router& router)
 {
 	int sp[2];
 
@@ -56,7 +56,7 @@ void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>
 		struct pollfd	pfd;
 		pfd.fd = sp[0];
 		pfd.events = POLLIN | POLLOUT;
-		srvLoop.addSocket(pfd, pid, _client, timeout);
+		srvLoop.addSocket(pfd, pid, _client, router);
 	}
 }
 
@@ -126,6 +126,6 @@ void CGI::handleCGI(Client& client, Router &router)
 	}
 	const std::pair<std::string, std::string> cgiEntry = std::make_pair(cgiInterpreter, router.resolvedPath);
 	client.response.isCGI = true;
-	this->execCGI(*client.srvLoop_, cgiEntry, router.locationConfig->cgi_timeout_sec);
+	this->execCGI(*client.srvLoop_, cgiEntry, router);
 	return;
 }

@@ -50,7 +50,7 @@ void resetClientTimeout(Client &c)
 		c.expiresAtMs = nowMs() + (uint64_t)c.timeoutMs;
 }
 
-int calcNextTimeout(std::map<int, Client> &clients, int fallbackMs)
+int calcNextTimeout(std::map<int, Client> &clients, std::map<int, CGIcontext>& CGImap, int fallbackMs)
 {
 	uint64_t now = nowMs();
 	uint64_t earliest = 0;
@@ -67,6 +67,13 @@ int calcNextTimeout(std::map<int, Client> &clients, int fallbackMs)
 				earliest = c.expiresAtMs;
 		}
 		++it;
+	}
+	for (std::map<int, CGIcontext>::iterator it = CGImap.begin();
+			it != CGImap.end(); it++)
+	{
+		if (it->second.timeoutMs > 0 && it->second.expiresAtMs > 0
+			&& it->second.expiresAtMs < earliest)
+				earliest = it->second.expiresAtMs;
 	}
 	if (earliest == 0)
 		return fallbackMs;
