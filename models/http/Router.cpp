@@ -49,19 +49,7 @@ void Router::getResolvedPath(HttpRequest &request, const Server &serverConfig)
 		else if (!locationConfig->alias.empty())
 			resolvedPath = locationConfig->alias;
 	}
-	if (request.getMethod() == "GET")
-	{
-		if (locationConfig != NULL && !locationConfig->alias.empty())  // ← Add NULL check
-		{
-			std::string remaining = request.getPath().substr(locationConfig->path.size());
-			if (!remaining.empty() && remaining[0] == '/')
-				remaining = remaining.substr(1);
-			resolvedPath += remaining;
-		}
-		else
-			resolvedPath += request.getPath();
-	}
-	else if (request.getMethod() == "DELETE")
+	if (request.getMethod() == "GET" || request.getMethod() == "DELETE" || (request.getMethod() == "POST" && !locationConfig->cgi.empty()))
 	{
 		if (locationConfig != NULL && !locationConfig->alias.empty())  // ← Add NULL check
 		{
