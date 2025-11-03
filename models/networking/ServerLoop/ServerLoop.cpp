@@ -177,13 +177,14 @@ void	ServerLoop::readOnceCGI_(CGIcontext& ctx)
 	}
 	else if (n == 0)
 	{
-		size_t separatorPos = ctx.buffer.find("\r\n\r\n");
+		std::string seperator = "\n\n";
+		size_t separatorPos = ctx.buffer.find(seperator);
 		std::string cgiBody;
 		if (separatorPos != std::string::npos)
 		{
 			std::string cgiHeadersStr = ctx.buffer.substr(0, separatorPos);
-			cgiBody = ctx.buffer.substr(separatorPos + 4);
-		
+			cgiBody = ctx.buffer.substr(separatorPos + seperator.size());
+
 			std::stringstream ss(cgiHeadersStr);
 			std::string headerLine;
 			while (std::getline(ss, headerLine) && !headerLine.empty() && headerLine != "\r")
@@ -195,13 +196,18 @@ void	ServerLoop::readOnceCGI_(CGIcontext& ctx)
 					std::string value = headerLine.substr(colonPos + 2);
 					if (!value.empty() && value[value.size() - 1] == '\r')
 						value.erase(value.size() - 1);
-					ctx.response.addHeader(key, value);
+					if (key == "Status")
+						ctx.response.setStatusCode(value);
+					else
+						ctx.response.addHeader(key, value);
+
 				}
 			}
 		}
 		else
 			cgiBody = ctx.buffer;
-		ctx.response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+		if (ctx.response.getStatusCode().empty())
+			ctx.response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
 		ctx.response.setBody(cgiBody);
 		if (ctx.response.getHeaders().find("Content-Length") == ctx.response.getHeaders().end())
 		{

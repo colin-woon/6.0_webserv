@@ -193,16 +193,6 @@ static void getFileListJson(std::stringstream &json, std::string &sessionId, std
 		json << "{";
 		json << "\"hash\":\"" << hash << "\",";
 		json << "\"original_filename\":\"" << originalFilename << "\"";
-
-		// Add other metadata if available
-		std::map<std::string, std::string>::iterator sizeIt = metadata.find("size");
-		if (sizeIt != metadata.end())
-			json << ",\"size\":" << sizeIt->second;
-
-		std::map<std::string, std::string>::iterator dateIt = metadata.find("upload-date");
-		if (dateIt != metadata.end())
-			json << ",\"upload_date\":\"" << dateIt->second << "\"";
-
 		json << "}";
 	}
 
