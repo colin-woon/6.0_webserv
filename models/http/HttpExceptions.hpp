@@ -3,6 +3,12 @@
 
 #include <string>
 #include <exception>
+#include <sstream>
+#include <map>
+#include "HttpResponse.hpp"
+#include "HttpUtils.hpp"
+#include "../parsing/Server.hpp"
+#include "../parsing/Location.hpp"
 
 enum StatusCode
 {
@@ -31,13 +37,15 @@ enum StatusCode
 
 class HttpException : public std::exception
 {
-public:
+	public:
 	virtual ~HttpException() throw() {};
 	virtual const char *what() const throw() = 0;
 	virtual const std::string getStatusCodeString() const = 0;
 	virtual int getStatusCodeDigit() const = 0;
 	static std::string statusCodeToString(int statusCode);
 };
+
+void handleHttpException(const Server &serverConfig, const Location *locationConfig, const HttpException &e, HttpResponse &response);
 
 // Specific HTTP exceptions
 class Http400BadRequestException : public HttpException

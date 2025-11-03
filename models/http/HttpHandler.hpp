@@ -10,8 +10,7 @@
 #include "HttpHandlerDELETE.hpp"
 #include "Router.hpp"
 #include "../networking/ServerLoop/ServerLoop.hpp"
-#include "../parsing/Server.hpp"
-#include "../parsing/Location.hpp"
+
 #include "../cgi/CGI.hpp"
 
 class HttpHandler : public HttpHandlerGET, public HttpHandlerPOST, public HttpHandlerDELETE
@@ -19,7 +18,5 @@ class HttpHandler : public HttpHandlerGET, public HttpHandlerPOST, public HttpHa
 public:
 	static void handleRequest(Client &client);
 };
-
-void handleHttpException(const Server &serverConfig, const Location *locationConfig, const HttpException &e, HttpResponse &response);
 
 #endif

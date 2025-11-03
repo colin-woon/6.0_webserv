@@ -163,3 +163,12 @@ void HttpUtils::parseHeaderKeyValuePair(std::string &line, HttpRequest &request)
 		}
 	}
 }
+
+std::string HttpUtils::getCurrentHttpDate()
+{
+	char buf[100];
+	time_t now = time(0);
+	struct tm tm = *gmtime(&now);
+	strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", &tm);
+	return std::string(buf);
+}
