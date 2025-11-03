@@ -30,6 +30,7 @@ public:
 	static void handleEndOfHeaders(HttpRequest &request, std::istringstream &requestStream);
 	static void validateWhitespaceBeforeHeaderField(std::string &line);
 	static void parseHeaderKeyValuePair(std::string &line, HttpRequest &request);
+	static std::string getCurrentHttpDate();
 };
 
 #endif
