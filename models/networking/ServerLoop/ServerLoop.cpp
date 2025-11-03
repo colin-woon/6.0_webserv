@@ -177,44 +177,7 @@ void	ServerLoop::readOnceCGI_(CGIcontext& ctx)
 	}
 	else if (n == 0)
 	{
-		std::string seperator = "\n\n";
-		size_t separatorPos = ctx.buffer.find(seperator);
-		std::string cgiBody;
-		if (separatorPos != std::string::npos)
-		{
-			std::string cgiHeadersStr = ctx.buffer.substr(0, separatorPos);
-			cgiBody = ctx.buffer.substr(separatorPos + seperator.size());
-
-			std::stringstream ss(cgiHeadersStr);
-			std::string headerLine;
-			while (std::getline(ss, headerLine) && !headerLine.empty() && headerLine != "\r")
-			{
-				size_t colonPos = headerLine.find(":");
-				if (colonPos != std::string::npos)
-				{
-					std::string key = headerLine.substr(0, colonPos);
-					std::string value = headerLine.substr(colonPos + 2);
-					if (!value.empty() && value[value.size() - 1] == '\r')
-						value.erase(value.size() - 1);
-					if (key == "Status")
-						ctx.response.setStatusCode(value);
-					else
-						ctx.response.addHeader(key, value);
-
-				}
-			}
-		}
-		else
-			cgiBody = ctx.buffer;
-		if (ctx.response.getStatusCode().empty())
-			ctx.response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
-		ctx.response.setBody(cgiBody);
-		if (ctx.response.getHeaders().find("Content-Length") == ctx.response.getHeaders().end())
-		{
-			std::stringstream contentLength;
-			contentLength << cgiBody.length();
-			ctx.response.addHeader("Content-Length", contentLength.str());
-		}
+		CGI::getHttpResponse(ctx);
 
 		std::map<int, Client>::iterator it = clientList_.find(ctx.clientFd);
 		if (it != clientList_.end())
