@@ -44,6 +44,7 @@ class CGI
 		void	createEnv(const Server& srv);
 		void	execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>& cgiEntry, Router& router);
 		void	handleCGI(Client& client, Router &router);
+		static void	getHttpResponse(CGIcontext& ctx);
 };
 
 #endif
