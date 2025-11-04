@@ -49,7 +49,6 @@ void ServerLoop::sweepExpiredClients(){
 			c.closeFlag = true;
 			c.outBuff = ctx.response.toString();
 			c.responseQueued = true;
-			ctx.response.isCGI = false;
 			modifyEvent(pollFdList_, fdIndex_, c.fd, POLLOUT);
 		}
 		std::cout << "closed(CGI) " << ctx.fd << std::endl;
@@ -161,7 +160,7 @@ void	ServerLoop::addSocket(struct pollfd &pfd, pid_t pid, Client& client, Router
 	ctx.response = client.response;
 	ctx.loc = router.locationConfig;
 	this->CGIMap_[pfd.fd] = ctx;
-	std::cout << "accepted(CGI) " << pfd.fd << std::endl;
+	std::cout << "accepted(CGI) " << pfd.fd << " on Client " << client.fd << std::endl;
 }
 
 void	ServerLoop::readOnceCGI_(CGIcontext& ctx)
@@ -185,7 +184,6 @@ void	ServerLoop::readOnceCGI_(CGIcontext& ctx)
 			c.outBuff = ctx.response.toString();
 			c.responseQueued = true;
 			modifyEvent(pollFdList_, fdIndex_, ctx.clientFd, (short) (POLLOUT | POLLIN));
-			c.response.isCGI = false;
 		}
 
 		std::cout << "close(CGI) " << ctx.fd << std::endl;
@@ -217,6 +215,7 @@ void	ServerLoop::writeOnceCGI_(CGIcontext& ctx)
 	if (ctx.sendPos >= data.size())
 	{
 		modifyEvent(this->pollFdList_, this->fdIndex_, ctx.fd, POLLIN);
+		shutdown(ctx.fd, SHUT_WR);
 		return ;
 	}
 

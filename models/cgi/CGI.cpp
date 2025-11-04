@@ -4,6 +4,9 @@
 CGI::CGI(Client& client, const Server &srv) : _client(client)
 {
 	this->createEnv(srv);
+	// std::cout << "This is the ENVIRONMENT: " << std::endl;
+	// for (size_t i = 0; i < this->_envp.size(); i++)
+		// std::cout << this->_envp[i] << std::endl;
 }
 
 CGI::~CGI() {}
@@ -36,8 +39,16 @@ void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>
 		close(sp[1]);
 
 		char *argv[3];
-		argv[0] = const_cast<char *>(cgiEntry.first.c_str());
-		argv[1] = const_cast<char *>(cgiEntry.second.c_str());
+		if (cgiEntry.first.empty())
+		{
+			argv[0] = const_cast<char *>(cgiEntry.second.c_str());
+			argv[1] = NULL;
+		}
+		else
+		{
+			argv[0] = const_cast<char *>(cgiEntry.first.c_str());
+			argv[1] = const_cast<char *>(cgiEntry.second.c_str());
+		}
 		argv[2] = NULL;
 
 		std::vector<char *> envp;
@@ -118,7 +129,8 @@ void CGI::handleCGI(Client& client, Router &router)
 	std::string cgiInterpreter;
 	try
 	{
-		cgiInterpreter = router.locationConfig->cgi.at(cgiExtension);
+		if (cgiExtension != ".cgi")
+			cgiInterpreter = router.locationConfig->cgi.at(cgiExtension);
 	}
 	catch (const std::out_of_range &e)
 	{
