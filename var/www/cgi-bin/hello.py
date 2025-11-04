@@ -3,7 +3,7 @@
 import os
 import time
 
-# time.sleep(20)
+time.sleep(8)
 
 # Required header
 print("Status: 201")

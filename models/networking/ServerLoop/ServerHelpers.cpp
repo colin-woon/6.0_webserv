@@ -151,6 +151,8 @@ void ServerLoop::readOnce_(int fd)
 		c.responseQueued = true;
 		modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
 	}
+	else
+		c.response.isCGI = false;
 }
 
 void ServerLoop::writeOnce_(int fd)
