@@ -19,24 +19,30 @@ const char *CGI::CGISimpleException::what() const throw()
 
 void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>& cgiEntry, Router& router)
 {
-	int sp[2];
-
-	if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, sp) == -1)
-		throw CGI::CGISimpleException("Socket Pair Failed");
-
+	int fdRead[2];
+	int fdWrite[2];
+	if (pipe(fdRead) < 0 || pipe(fdWrite) < 0)
+	{
+		std::cout << "CGI Pipe Fail" << std::endl;
+		return ;
+	}
 	pid_t pid = fork();
 	if (pid == -1)
 	{
-		close(sp[0]);
-		close(sp[1]);
+		close(fdRead[0]);
+		close(fdRead[1]);
+		close(fdWrite[0]);
+		close(fdWrite[1]);
 		throw CGI::CGISimpleException("Fork Failed");
 	}
 	if (!pid)
 	{
-		dup2(sp[1], STDIN_FILENO);
-		dup2(sp[1], STDOUT_FILENO);
-		close(sp[0]);
-		close(sp[1]);
+		dup2(fdRead[0], STDIN_FILENO);
+		dup2(fdWrite[1], STDOUT_FILENO);
+		close(fdRead[0]);
+		close(fdRead[1]);
+		close(fdWrite[0]);
+		close(fdWrite[1]);
 
 		char *argv[3];
 		if (cgiEntry.first.empty())
@@ -62,12 +68,22 @@ void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>
 	}
 	else
 	{
-		close(sp[1]);
-		fcntl(sp[0], F_SETFL, O_NONBLOCK);
+		close(fdRead[0]);
+		close(fdWrite[1]);
 		struct pollfd	pfd;
-		pfd.fd = sp[0];
-		pfd.events = POLLIN | POLLOUT;
-		srvLoop.addSocket(pfd, pid, _client, router);
+		
+		fcntl(fdRead[1], F_SETFL, O_NONBLOCK);
+		pfd.fd = fdRead[1];
+		pfd.events = POLLOUT;
+		pfd.revents = 0;
+		srvLoop.addPollCGI(pfd, pid, _client, router, fdWrite[0]);
+		
+		fcntl(fdWrite[0], F_SETFL, O_NONBLOCK);
+		pfd.fd = fdWrite[0];
+		pfd.events = POLLIN;
+		pfd.revents = 0;
+		srvLoop.addPollCGI(pfd, pid, _client, router, fdRead[1]);
+		return ;
 	}
 }
 

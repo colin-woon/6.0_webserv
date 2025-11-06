@@ -13,7 +13,10 @@ struct CGIcontext
 {
 	pid_t pid;
 	int fd;
+	// int	fdRead;
+	// int fdWrite;
 	int clientFd;
+	int partnerFd;
 	size_t sendPos;
 	std::string buffer;
 	int			timeoutMs;
