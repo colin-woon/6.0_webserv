@@ -55,6 +55,15 @@ std::string Cookie::createSessionID()
 	return sessionId;
 }
 
+void Cookie::setSecureCookie(HttpResponse &response)
+{
+	std::string cookieHeader = "sessionId=" + createSessionID();
+	cookieHeader += "; HttpOnly";  // Prevents JavaScript access (XSS)
+	cookieHeader += "; Secure";    // Requires HTTPS (MITM)
+	// cookieHeader += "; SameSite=Strict";  // Prevents CSRF
+	response.addHeader("Set-Cookie", cookieHeader);
+}
+
 void Cookie::addHashedFileToSession(const std::string &sessionId, std::string &fileHash)
 {
 	sessionMetadata[sessionId].push_back(fileHash);
