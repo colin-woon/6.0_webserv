@@ -1,12 +1,13 @@
 #include "./CGI.hpp"
 #include "../networking/ServerLoop/ServerLoop.hpp"
 
+CGIcontext::CGIcontext(Client& client, const Location& loc) : clientFd(client.fd), loc_(loc), response_(client.response) {}
+
+CGIcontext::~CGIcontext() {}
+
 CGI::CGI(Client& client, const Server &srv) : _client(client)
 {
 	this->createEnv(srv);
-	// std::cout << "This is the ENVIRONMENT: " << std::endl;
-	// for (size_t i = 0; i < this->_envp.size(); i++)
-		// std::cout << this->_envp[i] << std::endl;
 }
 
 CGI::~CGI() {}
@@ -70,19 +71,10 @@ void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>
 	{
 		close(fdRead[0]);
 		close(fdWrite[1]);
-		struct pollfd	pfd;
-		
 		fcntl(fdRead[1], F_SETFL, O_NONBLOCK);
-		pfd.fd = fdRead[1];
-		pfd.events = POLLOUT;
-		pfd.revents = 0;
-		srvLoop.addPollCGI(pfd, pid, _client, router, fdWrite[0]);
-		
 		fcntl(fdWrite[0], F_SETFL, O_NONBLOCK);
-		pfd.fd = fdWrite[0];
-		pfd.events = POLLIN;
-		pfd.revents = 0;
-		srvLoop.addPollCGI(pfd, pid, _client, router, fdRead[1]);
+
+		srvLoop.addPollCGI(fdWrite[0], fdRead[1], pid, _client, router);
 		return ;
 	}
 }
@@ -158,7 +150,7 @@ void CGI::handleCGI(Client& client, Router &router)
 	return;
 }
 
-void CGI::getHttpResponse(CGIcontext& ctx)
+void CGI::getHttpResponse(CGIcontext &ctx)
 {
 	std::string seperator = "\n\n";
 	size_t separatorPos = ctx.buffer.find(seperator);
@@ -180,22 +172,22 @@ void CGI::getHttpResponse(CGIcontext& ctx)
 				if (!value.empty() && value[value.size() - 1] == '\r')
 					value.erase(value.size() - 1);
 				if (key == "Status")
-					ctx.response.setStatusCode(value);
+					ctx.response_.setStatusCode(value);
 				else
-					ctx.response.addHeader(key, value);
+					ctx.response_.addHeader(key, value);
 
 			}
 		}
 	}
 	else
 		cgiBody = ctx.buffer;
-	if (ctx.response.getStatusCode().empty())
-		ctx.response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
-	ctx.response.setBody(cgiBody);
-	if (ctx.response.getHeaders().find("Content-Length") == ctx.response.getHeaders().end())
+	if (ctx.response_.getStatusCode().empty())
+		ctx.response_.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+	ctx.response_.setBody(cgiBody);
+	if (ctx.response_.getHeaders().find("Content-Length") == ctx.response_.getHeaders().end())
 	{
 		std::stringstream contentLength;
 		contentLength << cgiBody.length();
-		ctx.response.addHeader("Content-Length", contentLength.str());
+		ctx.response_.addHeader("Content-Length", contentLength.str());
 	}
 }
