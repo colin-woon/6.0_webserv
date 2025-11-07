@@ -3,16 +3,43 @@
 /**
  * A CGI script (using ts-node) for a simple User API.
  * - GET: Responds to /user.ts?id=1 (returns JSON)
+ * - GET: Responds to /user.ts (returns all users)
  * - POST: Responds to form data (application/x-www-form-urlencoded)
  * - OUTPUT: Always returns JSON.
  */
 
-// --- Mock Database (lives for one request, then dies) ---
-// In a real app, this would read/write to a file or external DB.
-const db = new Map<string, { id: string; name: string; title: string }>();
-// Pre-populate our "database"
-db.set("1", { id: "1", name: "Gigachad", title: "CEO" });
-db.set("2", { id: "2", name: "Colin", title: "Dev" });
+import * as fs from "fs";
+import * as path from "path";
+
+// Path to persistent storage
+const DB_FILE = path.join(__dirname, "users.json");
+
+// --- Persistent Database ---
+function loadDB(): Map<string, { id: string; name: string; title: string }> {
+	try {
+		if (fs.existsSync(DB_FILE)) {
+			const data = fs.readFileSync(DB_FILE, "utf-8");
+			const obj = JSON.parse(data);
+			return new Map(Object.entries(obj));
+		}
+	} catch (err) {
+		// If file doesn't exist or is corrupt, start fresh
+	}
+
+	// Initialize with default users
+	const db = new Map<string, { id: string; name: string; title: string }>();
+	db.set("1", { id: "1", name: "Gigachad", title: "CEO" });
+	db.set("2", { id: "2", name: "Colin", title: "Dev" });
+	saveDB(db);
+	return db;
+}
+
+function saveDB(db: Map<string, { id: string; name: string; title: string }>) {
+	const obj = Object.fromEntries(db);
+	fs.writeFileSync(DB_FILE, JSON.stringify(obj, null, 2));
+}
+
+const db = loadDB();
 
 /**
  * Asynchronously reads the full request body from stdin.
@@ -56,35 +83,38 @@ function readStdin(): Promise<string> {
 /**
  * The only function that prints to stdout.
  * Formats and sends the final CGI response.
- * @param status The CGI status line (e.g., "200 OK", "404 Not Found")
+ * @param statusCode The HTTP status code (e.g., "200", "404", "500")
  * @param body The JavaScript object to send as a JSON response.
  */
-function sendResponse(status: string, body: object) {
-	console.log(`Status: ${status}`);
+function sendResponse(statusCode: string, body: object) {
+	console.log(`Status: ${statusCode}`);
 	console.log("Content-Type: application/json");
 	console.log(""); // The critical blank line
 	console.log(JSON.stringify(body, null, 2)); // Pretty-print JSON
 }
 
 /**
- * Handles GET requests (e.g., /user.ts?id=1)
+ * Handles GET requests
+ * - /user.ts?id=1 (returns single user)
+ * - /user.ts (returns all users)
  */
 async function handleGet() {
 	const params = new URLSearchParams(process.env.QUERY_STRING || "");
 	const id = params.get("id");
 
+	// If no ID provided, return ALL users
 	if (!id) {
-		return sendResponse("400 Bad Request", {
-			error: "Missing 'id' in query string.",
-		});
+		const allUsers = Array.from(db.values());
+		return sendResponse("200", { users: allUsers });
 	}
 
+	// Otherwise, return specific user
 	const user = db.get(id);
 
 	if (user) {
-		return sendResponse("200 OK", user);
+		return sendResponse("200", user);
 	} else {
-		return sendResponse("404 Not Found", {
+		return sendResponse("404", {
 			error: `User with id ${id} not found.`,
 		});
 	}
@@ -97,7 +127,7 @@ async function handlePost() {
 	// 1. Check Content-Type (as per your plan)
 	const contentType = process.env.CONTENT_TYPE || "";
 	if (contentType !== "application/x-www-form-urlencoded") {
-		return sendResponse("415 Unsupported Media Type", {
+		return sendResponse("415", {
 			error: `Expected 'application/x-www-form-urlencoded', but got '${contentType}'`,
 		});
 	}
@@ -112,7 +142,7 @@ async function handlePost() {
 
 	// 4. Validate
 	if (!name || !title) {
-		return sendResponse("400 Bad Request", {
+		return sendResponse("400", {
 			error: "Missing 'name' or 'title' in form body.",
 		});
 	}
@@ -121,9 +151,10 @@ async function handlePost() {
 	const newId = String(db.size + 1);
 	const newUser = { id: newId, name, title };
 	db.set(newId, newUser);
+	saveDB(db); // Persist to file
 
 	// 6. Respond with 201 Created
-	return sendResponse("201 Created", newUser);
+	return sendResponse("201", newUser);
 }
 
 /**
@@ -132,7 +163,7 @@ async function handlePost() {
 function handleMethodNotAllowed() {
 	// The "Allow" header is crucial for a 405 response
 	console.log("Allow: GET, POST");
-	sendResponse("405 Method Not Allowed", {
+	sendResponse("405", {
 		error: `Method ${process.env.REQUEST_METHOD} is not allowed.`,
 	});
 }
@@ -153,7 +184,7 @@ async function main() {
 				handleMethodNotAllowed();
 		}
 	} catch (error) {
-		sendResponse("500 Internal Server Error", {
+		sendResponse("500", {
 			error: "An unexpected error occurred.",
 			detail: error instanceof Error ? error.message : "Unknown error",
 		});

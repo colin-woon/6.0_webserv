@@ -176,17 +176,33 @@ void CGI::getHttpResponse(CGIcontext &ctx)
 				if (key == "Status")
 					ctx.response_.setStatusCode(value);
 				else
-					ctx.response_.addHeader(key, value);
-
+					ctx.response.addHeader(key, value);
 			}
 		}
 	}
 	else
 		cgiBody = ctx.buffer;
-	if (ctx.response_.getStatusCode().empty())
-		ctx.response_.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
-	ctx.response_.setBody(cgiBody);
-	if (ctx.response_.getHeaders().find("Content-Length") == ctx.response_.getHeaders().end())
+  
+	if (ctx.response.getStatusCode().empty())
+		ctx.response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+
+	// Check if CGI returned an error status code
+	std::string statusCode = ctx.response.getStatusCode();
+	if (statusCode[0] == '4' || statusCode[0] == '5')
+	{
+		// Create exception and generate error page
+		HttpException* exception = HttpException::createFromStatusCode(statusCode);
+		if (exception && ctx.serverConfig)
+		{
+			handleHttpException(*ctx.serverConfig, ctx.loc, *exception, ctx.response);
+			delete exception;
+			return;
+		}
+		delete exception;
+	}
+
+	ctx.response.setBody(cgiBody);
+	if (ctx.response.getHeaders().find("Content-Length") == ctx.response.getHeaders().end())
 	{
 		std::stringstream contentLength;
 		contentLength << cgiBody.length();

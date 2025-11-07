@@ -127,10 +127,7 @@ void HttpHandlerGET::handleGetRequest(HttpRequest &request, HttpResponse &respon
 	std::string sessionId;
 
 	if (request.getCookie().empty())
-	{
-		sessionId = Cookie::createSessionID();
-		response.addHeader("Set-Cookie", "sessionId=" + sessionId);
-	}
+		Cookie::setSecureCookie(response);
 
 	struct stat path_stat;
 	if (stat(pathToServe.c_str(), &path_stat) != 0)

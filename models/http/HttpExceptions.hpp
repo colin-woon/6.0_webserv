@@ -24,7 +24,7 @@ enum StatusCode
 	HTTP_405_METHOD_NOT_ALLOWED = 405,
 	HTTP_413_PAYLOAD_TOO_LARGE = 413,
 	HTTP_414_URI_TOO_LONG = 414,
-	// HTTP_415_UNSUPPORTED_MEDIA_TYPE = 415,
+	HTTP_415_UNSUPPORTED_MEDIA_TYPE = 415,
 	HTTP_431_REQUEST_HEADER_FIELDS_TOO_LARGE = 431,
 	HTTP_500_INTERNAL_SERVER_ERROR = 500,
 	HTTP_501_NOT_IMPLEMENTED = 501,
@@ -43,6 +43,8 @@ class HttpException : public std::exception
 	virtual const std::string getStatusCodeString() const = 0;
 	virtual int getStatusCodeDigit() const = 0;
 	static std::string statusCodeToString(int statusCode);
+	static HttpException* createFromStatusCode(const std::string& statusCode);
+
 };
 
 void handleHttpException(const Server &serverConfig, const Location *locationConfig, const HttpException &e, HttpResponse &response);
