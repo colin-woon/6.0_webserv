@@ -9,21 +9,22 @@
 class Client;
 class ServerLoop;
 
-struct CGIcontext
+class CGIcontext
 {
-	pid_t pid;
-	int fd;
-	// int	fdRead;
-	// int fdWrite;
-	int clientFd;
-	int partnerFd;
-	size_t sendPos;
-	std::string buffer;
-	int			timeoutMs;
-	uint64_t	expiresAtMs;
-	const Location	*loc;
-	HttpResponse response;
-	const Server* serverConfig;
+	public:
+		pid_t pid;
+		int	fdRead;
+		int fdWrite;
+		int clientFd;
+		size_t sendPos;
+		std::string buffer;
+		int			timeoutMs;
+		uint64_t	expiresAtMs;
+		const Location&	loc_;
+		HttpResponse& response_;
+
+		CGIcontext(Client& client, const Location& loc);
+		~CGIcontext();
 };
 
 class CGI
@@ -48,7 +49,7 @@ class CGI
 		void	createEnv(const Server& srv);
 		void	execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>& cgiEntry, Router& router);
 		void	handleCGI(Client& client, Router &router);
-		static void	getHttpResponse(CGIcontext& ctx);
+		static void	getHttpResponse(CGIcontext &ctx);
 };
 
 #endif

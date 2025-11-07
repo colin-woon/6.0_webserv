@@ -47,18 +47,15 @@ void ServerLoop::sweepExpiredClients(){
 			if (clientList_.find(ctx.clientFd) != clientList_.end())
 			{
 				Client &c = clientList_[ctx.clientFd];
-				handleHttpException(*c.serverConfig, ctx.loc, e, ctx.response);
-				ctx.response.addHeader("Connection", "close");
+				handleHttpException(*c.serverConfig, &ctx.loc_, e, ctx.response_);
+				ctx.response_.addHeader("Connection", "close");
 				c.closeFlag = true;
-				c.outBuff = ctx.response.toString();
+				c.outBuff = ctx.response_.toString();
 				c.responseQueued = true;
 				modifyEvent(pollFdList_, fdIndex_, c.fd, POLLOUT);
 			}
 		}
-		kill(ctx.pid, SIGKILL);
-		waitpid(ctx.pid, NULL, 0);
-		closeCGI(ctx.partnerFd);
-		closeCGI(ctx.fd);
+		closeCGI(ctx);
 	}
 	for (size_t i = 0; i < toClose.size(); ++i)
 		closeClient_(toClose[i]);
@@ -95,13 +92,13 @@ void ServerLoop::run(){
 			if (p.revents == 0) continue;
 
 			if ((p.revents & POLLERR) || (p.revents & POLLHUP) || (p.revents & POLLNVAL)) {
-				if (CGIMap_.find(p.fd) != CGIMap_.end())
+				if (CGIbyRead_.find(p.fd) != CGIbyRead_.end() ||
+						CGIbyWrite_.find(p.fd) != CGIbyWrite_.end())
 				{
-					if ((p.revents & POLLHUP))
-						readOnceCGI_(CGIMap_[p.fd]);
-					continue ;
+					if (p.revents & (POLLHUP | POLLIN))
+						readyReaders.push_back(p.fd);
 				}
-				if (!listenerOrNot(listenerFdList_, p.fd))
+				else if (!listenerOrNot(listenerFdList_, p.fd))
 					errFds.push_back(p.fd);
 				else
 					std::cerr << "listener error-ish revents on fd " << p.fd << "\n";
@@ -115,10 +112,10 @@ void ServerLoop::run(){
 				if (p.revents & POLLOUT) readyWriters.push_back(p.fd);
 				if (p.revents & POLLIN)  readyReaders.push_back(p.fd);
 			}
-			if (CGIMap_.find(p.fd) != CGIMap_.end()) {
-				if (p.revents & POLLOUT) readyWriters.push_back(p.fd);
+			if (CGIbyRead_.find(p.fd) != CGIbyRead_.end())
 				if (p.revents & POLLIN) readyReaders.push_back(p.fd);
-			}
+			if (CGIbyWrite_.find(p.fd) != CGIbyWrite_.end())
+				if (p.revents & POLLOUT) readyWriters.push_back(p.fd);
 		}
 		for (size_t i = 0; i < errFds.size(); ++i)
 			closeClient_(errFds[i]);
@@ -128,8 +125,8 @@ void ServerLoop::run(){
 			const int fd = readyReaders[i];
 			if (clientList_.find(fd) != clientList_.end())
 				readOnce_(fd);
-			else if (CGIMap_.find(fd) != CGIMap_.end())
-				readOnceCGI_(CGIMap_[fd]);
+			else if (CGIbyRead_.find(fd) != CGIbyRead_.end())
+				readOnceCGI_(CGIbyRead_[fd]->second);
 			else
 				continue ;
 			touched.push_back(fd);
@@ -141,37 +138,36 @@ void ServerLoop::run(){
 				continue ;
 			if (clientList_.find(fd) != clientList_.end())
 				writeOnce_(fd);
-			else if (CGIMap_.find(fd) != CGIMap_.end())
-				writeOnceCGI_(CGIMap_[fd]);
+			else if (CGIbyWrite_.find(fd) != CGIbyWrite_.end())
+				writeOnceCGI_(CGIbyWrite_[fd]->second);
 		}
 		sweepExpiredClients();
 	}
 }
 
-void	ServerLoop::addPollCGI(struct pollfd &pfd, pid_t pid, Client& client, Router& router, int partnerFd)
+void	ServerLoop::addPollCGI(int ReadFd, int Writefd, pid_t pid, Client& client, Router& router)
 {
-	addPollFd(this->pollFdList_, this->fdIndex_, pfd.fd, pfd.events);
-	CGIcontext ctx;
+	addPollFd(this->pollFdList_, this->fdIndex_, ReadFd, POLLIN);
+	addPollFd(this->pollFdList_, this->fdIndex_, Writefd, POLLOUT);
+	CGIcontext ctx(client, *router.locationConfig);
 	ctx.pid = pid;
-	ctx.fd = pfd.fd;
-	ctx.clientFd = client.fd;
-	ctx.partnerFd = partnerFd;
+	ctx.fdRead = ReadFd;
+	ctx.fdWrite = Writefd;
 	ctx.sendPos = 0;
 	ctx.buffer.clear();
 	ctx.timeoutMs = router.locationConfig->cgi_timeout_sec * 1000;
 	ctx.expiresAtMs = nowMs() + uint64_t(ctx.timeoutMs);
-	ctx.response = client.response;
-	ctx.loc = router.locationConfig;
-	ctx.serverConfig = client.serverConfig;
-	this->CGIMap_[pfd.fd] = ctx;
-	std::cout << "accepted(CGI) " << pfd.fd << " on Client " << client.fd << std::endl;
+	std::map<int, CGIcontext>::iterator it = CGIMap_.insert(std::make_pair(pid, ctx)).first;
+	this->CGIbyRead_[ReadFd] = it;
+	this->CGIbyWrite_[Writefd] = it;
+	std::cout << "accepted(CGI) [" << ReadFd << ", " << Writefd << "] on Client " << client.fd << std::endl;
 }
 
-void	ServerLoop::readOnceCGI_(CGIcontext& ctx)
+void	ServerLoop::readOnceCGI_(CGIcontext &ctx)
 {
 	char buff[4096];
 
-	ssize_t n = read(ctx.fd, buff, sizeof(buff));
+	ssize_t n = read(ctx.fdRead, buff, sizeof(buff));
 	if (n > 0)
 	{
 		ctx.buffer.append(buff, n);
@@ -185,20 +181,19 @@ void	ServerLoop::readOnceCGI_(CGIcontext& ctx)
 		if (it != clientList_.end())
 		{
 			Client& c = it->second;
-			c.outBuff = ctx.response.toString();
+			c.outBuff = ctx.response_.toString();
 			c.responseQueued = true;
 			modifyEvent(pollFdList_, fdIndex_, ctx.clientFd, (short) (POLLOUT | POLLIN));
 		}
-
-		waitpid(ctx.pid, NULL, 0);
-		closeCGI(ctx.fd);
+		waitpid(ctx.pid, NULL, WNOHANG);
+		closeCGIRead(ctx);
 		return ;
 	}
 	else
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			return ;
-		std::cerr << "CGI Read Error on fd " << ctx.fd << std::endl;
+		std::cerr << "CGI Read Error on fd " << ctx.fdRead << std::endl;
 		try
 		{
 			throw Http500InternalServerErrorException();
@@ -208,33 +203,30 @@ void	ServerLoop::readOnceCGI_(CGIcontext& ctx)
 			if (clientList_.find(ctx.clientFd) != clientList_.end())
 			{
 				Client &c = clientList_[ctx.clientFd];
-				handleHttpException(*c.serverConfig, ctx.loc, e, ctx.response);
-				ctx.response.addHeader("Connection", "close");
+				handleHttpException(*c.serverConfig, &ctx.loc_, e, ctx.response_);
+				ctx.response_.addHeader("Connection", "close");
 				c.closeFlag = true;
-				c.outBuff = ctx.response.toString();
+				c.outBuff = ctx.response_.toString();
 				c.responseQueued = true;
 				modifyEvent(pollFdList_, fdIndex_, c.fd, POLLOUT);
 			}
 		}
-		kill(ctx.pid, SIGKILL);
-		waitpid(ctx.pid, NULL, 0);
-		closeCGI(ctx.partnerFd);
-		closeCGI(ctx.fd);
+		closeCGI(ctx);
 		return ;
 	}
 }
 
-void	ServerLoop::writeOnceCGI_(CGIcontext& ctx)
+void	ServerLoop::writeOnceCGI_(CGIcontext &ctx)
 {
 	std::map<int, Client>::iterator it = clientList_.find(ctx.clientFd);
 	std::string	data = it->second.request.getBody();
 	if (ctx.sendPos >= data.size())
 	{
-		closeCGI(ctx.fd);
+		closeCGIWrite(ctx);
 		return ;
 	}
 
-	ssize_t n = write(ctx.fd, data.data() + ctx.sendPos, data.size() - ctx.sendPos);
+	ssize_t n = write(ctx.fdWrite, data.data() + ctx.sendPos, data.size() - ctx.sendPos);
 	if (n > 0)
 	{
 		ctx.sendPos += n;
@@ -244,7 +236,7 @@ void	ServerLoop::writeOnceCGI_(CGIcontext& ctx)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			return ;
-		std::cerr << "CGI write error fd " << ctx.fd << " errno=" << errno << std::endl;
+		std::cerr << "CGI write error fd " << ctx.fdWrite << " errno=" << errno << std::endl;
 		try
 		{
 			throw Http500InternalServerErrorException();
@@ -254,26 +246,49 @@ void	ServerLoop::writeOnceCGI_(CGIcontext& ctx)
 			if (clientList_.find(ctx.clientFd) != clientList_.end())
 			{
 				Client &c = clientList_[ctx.clientFd];
-				handleHttpException(*c.serverConfig, ctx.loc, e, ctx.response);
-				ctx.response.addHeader("Connection", "close");
+				handleHttpException(*c.serverConfig, &ctx.loc_, e, ctx.response_);
+				ctx.response_.addHeader("Connection", "close");
 				c.closeFlag = true;
-				c.outBuff = ctx.response.toString();
+				c.outBuff = ctx.response_.toString();
 				c.responseQueued = true;
 				modifyEvent(pollFdList_, fdIndex_, c.fd, POLLOUT);
 			}
 		}
-		kill(ctx.pid, SIGKILL);
-		waitpid(ctx.pid, NULL, 0);
-		closeCGI(ctx.partnerFd);
-		closeCGI(ctx.fd);
+		closeCGI(ctx);
 		return ;
 	}
 }
 
-void	ServerLoop::closeCGI(int fd)
+void	ServerLoop::closeCGIRead(CGIcontext &ctx)
 {
-	std::cout << "close(CGI) " << fd << std::endl;
-	delPollFd(this->pollFdList_, this->fdIndex_, fd);
-	close(fd);
-	CGIMap_.erase(fd);
+	std::cout << "close(CGI Read) " << ctx.fdRead << std::endl;
+	delPollFd(this->pollFdList_, this->fdIndex_, ctx.fdRead);
+	close(ctx.fdRead);
+	CGIbyRead_.erase(ctx.fdRead);
+	if (CGIbyWrite_.find(ctx.fdWrite) == CGIbyWrite_.end())
+		CGIMap_.erase(ctx.pid);
+	return ;
+}
+
+void	ServerLoop::closeCGIWrite(CGIcontext &ctx)
+{
+	std::cout << "close(CGI Write) " << ctx.fdWrite << std::endl;
+	delPollFd(this->pollFdList_, this->fdIndex_, ctx.fdWrite);
+	close(ctx.fdWrite);
+	CGIbyWrite_.erase(ctx.fdWrite);
+	if (CGIbyRead_.find(ctx.fdRead) == CGIbyRead_.end())
+		CGIMap_.erase(ctx.pid);
+	return ;
+}
+
+void	ServerLoop::closeCGI(CGIcontext& ctx)
+{
+	kill(ctx.pid, SIGKILL);
+	waitpid(ctx.pid, NULL, WNOHANG);
+	if (CGIbyRead_.find(ctx.fdRead) != CGIbyRead_.end())
+		closeCGIRead(ctx);
+	if (CGIbyWrite_.find(ctx.fdWrite) != CGIbyWrite_.end())
+		closeCGIWrite(ctx);
+	CGIMap_.erase(ctx.pid);
+	return ;
 }

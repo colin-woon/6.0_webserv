@@ -66,14 +66,22 @@ int calcNextTimeout(std::map<int, Client> &clients, std::map<int, CGIcontext>& C
 			else if (c.expiresAtMs < earliest)
 				earliest = c.expiresAtMs;
 		}
+		// for (std::map<int, std::map<int, CGIcontext>::iterator>::iterator ctxIt = c.CGIiter.begin();
+		// 		ctxIt != c.CGIiter.end(); ctxIt++)
+		// {
+		// 	CGIcontext& ctx = ctxIt->second->second;
+		// 	if (ctx.timeoutMs > 0 && ctx.expiresAtMs > 0
+		// 		&& ctx.expiresAtMs < earliest)
+		// 			earliest = ctx.expiresAtMs;
+		// }
 		++it;
 	}
-	for (std::map<int, CGIcontext>::iterator it = CGImap.begin();
-			it != CGImap.end(); it++)
+	for (std::map<int, CGIcontext>::iterator ctx = CGImap.begin();
+			ctx != CGImap.end(); ctx++)
 	{
-		if (it->second.timeoutMs > 0 && it->second.expiresAtMs > 0
-			&& it->second.expiresAtMs < earliest)
-				earliest = it->second.expiresAtMs;
+		if (ctx->second.timeoutMs > 0 && ctx->second.expiresAtMs > 0
+			&& ctx->second.expiresAtMs < earliest)
+				earliest = ctx->second.expiresAtMs;
 	}
 	if (earliest == 0)
 		return fallbackMs;

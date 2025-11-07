@@ -3,6 +3,8 @@
 import os
 import time
 
+time.sleep(10)
+
 # Required header
 print("Status: 201")
 print("Content-Type: text/html")

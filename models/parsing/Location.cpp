@@ -3,6 +3,13 @@
 std::map<std::string, Location::_directiveHandler> Location::_directiveMap;
 std::vector<std::string> Location::_totalMethods;
 
+Spec::Spec(const std::string &pth, std::vector<Token>::iterator Start, std::vector<Token>::iterator End)
+			: path(pth), Context(std::make_pair(Start, End)) {}
+Spec::~Spec() {}
+	
+bool Spec::operator==(const std::string path) { return (path == this->path); }
+bool Spec::operator>(const std::string path) { return (path.size() > this->path.size()); }
+
 void Location::stoiLocation(const std::string &str, int &value)
 {
 	char *end = NULL;

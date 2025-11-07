@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <list>
 
 #include "../../http/HttpRequest.hpp"
 #include "../../http/HttpResponse.hpp"
@@ -62,6 +63,8 @@ public:
 	std::map<int, Client>			clientList_;
 	std::map<int, int>				listenerTimeoutMs_; // listener fd -> timeout ms
 	std::map<int, std::vector<const Server*> > listenerOwner_;
+	std::map<int, std::map<int, CGIcontext>::iterator>	CGIbyRead_;
+	std::map<int, std::map<int, CGIcontext>::iterator>	CGIbyWrite_;
 	std::map<int, CGIcontext>	CGIMap_;
 
 	void closeClient_(int fd);
@@ -69,8 +72,8 @@ public:
 	void readOnce_(int fd);
 	void writeOnce_(int fd);
 
-	void readOnceCGI_(CGIcontext& ctx);
-	void writeOnceCGI_(CGIcontext& ctx);
+	void readOnceCGI_(CGIcontext &ctx);
+	void writeOnceCGI_(CGIcontext &ctx);
 
 	static void resetKeepAlive_(Client& c);
 	static bool findHeadersEndAndMark_(Client& c);
@@ -86,8 +89,10 @@ public:
 	const Server* vhostPicker_(const std::vector<const Server*>& candidates, const std::string& rawHeaders);
 
 	static std::string toLowerCopy_(const std::string& s);
-	void	addPollCGI(struct pollfd &pfd, pid_t pid, Client& client, Router& router, int partnerFd);
-	void	closeCGI(int fd);
+	void	addPollCGI(int ReadFd, int Writefd, pid_t pid, Client& client, Router& router);
+	void	closeCGIRead(CGIcontext& ctx);
+	void	closeCGIWrite(CGIcontext& ctx);
+	void	closeCGI(CGIcontext &ctx);
 };
 
 #endif
