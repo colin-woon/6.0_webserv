@@ -24,9 +24,13 @@ void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>
 	int fdWrite[2];
 	if (pipe(fdRead) < 0 || pipe(fdWrite) < 0)
 	{
-		std::cout << "CGI Pipe Fail" << std::endl;
+		std::cerr << "CGI Pipe Fail" << std::endl;
 		return ;
 	}
+	if (!setNonBlocking(fdRead[1]) || !setNonBlocking(fdRead[0])
+		|| !setNonBlocking(fdWrite[1]) || !setNonBlocking(fdWrite[0])) 
+		std::cerr << "Pipe Failed to Set Non-Block\n";
+
 	pid_t pid = fork();
 	if (pid == -1)
 	{
@@ -71,8 +75,6 @@ void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>
 	{
 		close(fdRead[0]);
 		close(fdWrite[1]);
-		fcntl(fdRead[1], F_SETFL, O_NONBLOCK);
-		fcntl(fdWrite[0], F_SETFL, O_NONBLOCK);
 
 		srvLoop.addPollCGI(fdWrite[0], fdRead[1], pid, _client, router);
 		return ;

@@ -96,7 +96,7 @@ void ServerLoop::run(){
 						CGIbyWrite_.find(p.fd) != CGIbyWrite_.end())
 				{
 					if (p.revents & (POLLHUP | POLLIN))
-						readOnceCGI_(CGIbyRead_[p.fd]->second);
+						readyReaders.push_back(p.fd);
 				}
 				else if (!listenerOrNot(listenerFdList_, p.fd))
 					errFds.push_back(p.fd);
@@ -157,8 +157,7 @@ void	ServerLoop::addPollCGI(int ReadFd, int Writefd, pid_t pid, Client& client, 
 	ctx.buffer.clear();
 	ctx.timeoutMs = router.locationConfig->cgi_timeout_sec * 1000;
 	ctx.expiresAtMs = nowMs() + uint64_t(ctx.timeoutMs);
-	this->CGIMap_.insert(std::make_pair(pid, ctx));
-	std::map<int, CGIcontext>::iterator it = this->CGIMap_.find(ctx.pid);
+	std::map<int, CGIcontext>::iterator it = CGIMap_.insert(std::make_pair(pid, ctx)).first;
 	this->CGIbyRead_[ReadFd] = it;
 	this->CGIbyWrite_[Writefd] = it;
 	std::cout << "accepted(CGI) [" << ReadFd << ", " << Writefd << "] on Client " << client.fd << std::endl;
@@ -186,7 +185,7 @@ void	ServerLoop::readOnceCGI_(CGIcontext &ctx)
 			c.responseQueued = true;
 			modifyEvent(pollFdList_, fdIndex_, ctx.clientFd, (short) (POLLOUT | POLLIN));
 		}
-		waitpid(ctx.pid, NULL, 0);
+		waitpid(ctx.pid, NULL, WNOHANG);
 		closeCGIRead(ctx);
 		return ;
 	}
@@ -285,7 +284,7 @@ void	ServerLoop::closeCGIWrite(CGIcontext &ctx)
 void	ServerLoop::closeCGI(CGIcontext& ctx)
 {
 	kill(ctx.pid, SIGKILL);
-	waitpid(ctx.pid, NULL, 0);
+	waitpid(ctx.pid, NULL, WNOHANG);
 	if (CGIbyRead_.find(ctx.fdRead) != CGIbyRead_.end())
 		closeCGIRead(ctx);
 	if (CGIbyWrite_.find(ctx.fdWrite) != CGIbyWrite_.end())
