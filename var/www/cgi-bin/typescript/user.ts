@@ -83,11 +83,11 @@ function readStdin(): Promise<string> {
 /**
  * The only function that prints to stdout.
  * Formats and sends the final CGI response.
- * @param status The CGI status line (e.g., "200 OK", "404 Not Found")
+ * @param statusCode The HTTP status code (e.g., "200", "404", "500")
  * @param body The JavaScript object to send as a JSON response.
  */
-function sendResponse(status: string, body: object) {
-	console.log(`Status: ${status}`);
+function sendResponse(statusCode: string, body: object) {
+	console.log(`Status: ${statusCode}`);
 	console.log("Content-Type: application/json");
 	console.log(""); // The critical blank line
 	console.log(JSON.stringify(body, null, 2)); // Pretty-print JSON
@@ -105,16 +105,16 @@ async function handleGet() {
 	// If no ID provided, return ALL users
 	if (!id) {
 		const allUsers = Array.from(db.values());
-		return sendResponse("200 OK", { users: allUsers });
+		return sendResponse("200", { users: allUsers });
 	}
 
 	// Otherwise, return specific user
 	const user = db.get(id);
 
 	if (user) {
-		return sendResponse("200 OK", user);
+		return sendResponse("200", user);
 	} else {
-		return sendResponse("404 Not Found", {
+		return sendResponse("404", {
 			error: `User with id ${id} not found.`,
 		});
 	}
@@ -127,7 +127,7 @@ async function handlePost() {
 	// 1. Check Content-Type (as per your plan)
 	const contentType = process.env.CONTENT_TYPE || "";
 	if (contentType !== "application/x-www-form-urlencoded") {
-		return sendResponse("415 Unsupported Media Type", {
+		return sendResponse("415", {
 			error: `Expected 'application/x-www-form-urlencoded', but got '${contentType}'`,
 		});
 	}
@@ -142,7 +142,7 @@ async function handlePost() {
 
 	// 4. Validate
 	if (!name || !title) {
-		return sendResponse("400 Bad Request", {
+		return sendResponse("400", {
 			error: "Missing 'name' or 'title' in form body.",
 		});
 	}
@@ -154,7 +154,7 @@ async function handlePost() {
 	saveDB(db); // Persist to file
 
 	// 6. Respond with 201 Created
-	return sendResponse("201 Created", newUser);
+	return sendResponse("201", newUser);
 }
 
 /**
@@ -163,7 +163,7 @@ async function handlePost() {
 function handleMethodNotAllowed() {
 	// The "Allow" header is crucial for a 405 response
 	console.log("Allow: GET, POST");
-	sendResponse("405 Method Not Allowed", {
+	sendResponse("405", {
 		error: `Method ${process.env.REQUEST_METHOD} is not allowed.`,
 	});
 }
@@ -184,7 +184,7 @@ async function main() {
 				handleMethodNotAllowed();
 		}
 	} catch (error) {
-		sendResponse("500 Internal Server Error", {
+		sendResponse("500", {
 			error: "An unexpected error occurred.",
 			detail: error instanceof Error ? error.message : "Unknown error",
 		});

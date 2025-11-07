@@ -71,13 +71,13 @@ void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>
 		close(fdRead[0]);
 		close(fdWrite[1]);
 		struct pollfd	pfd;
-		
+
 		fcntl(fdRead[1], F_SETFL, O_NONBLOCK);
 		pfd.fd = fdRead[1];
 		pfd.events = POLLOUT;
 		pfd.revents = 0;
 		srvLoop.addPollCGI(pfd, pid, _client, router, fdWrite[0]);
-		
+
 		fcntl(fdWrite[0], F_SETFL, O_NONBLOCK);
 		pfd.fd = fdWrite[0];
 		pfd.events = POLLIN;
@@ -183,14 +183,30 @@ void CGI::getHttpResponse(CGIcontext& ctx)
 					ctx.response.setStatusCode(value);
 				else
 					ctx.response.addHeader(key, value);
-
 			}
 		}
 	}
 	else
 		cgiBody = ctx.buffer;
+
 	if (ctx.response.getStatusCode().empty())
 		ctx.response.setStatusCode(HttpException::statusCodeToString(HTTP_200_OK));
+
+	// Check if CGI returned an error status code
+	std::string statusCode = ctx.response.getStatusCode();
+	if (statusCode[0] == '4' || statusCode[0] == '5')
+	{
+		// Create exception and generate error page
+		HttpException* exception = HttpException::createFromStatusCode(statusCode);
+		if (exception && ctx.serverConfig)
+		{
+			handleHttpException(*ctx.serverConfig, ctx.loc, *exception, ctx.response);
+			delete exception;
+			return;
+		}
+		delete exception;
+	}
+
 	ctx.response.setBody(cgiBody);
 	if (ctx.response.getHeaders().find("Content-Length") == ctx.response.getHeaders().end())
 	{
