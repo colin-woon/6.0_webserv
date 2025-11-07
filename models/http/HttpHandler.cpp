@@ -72,6 +72,13 @@ void HttpHandler::handleRequest(Client &client)
 	{
 		handleHttpException(serverConfig, router.locationConfig, e, response);
 		const std::string &statusCode = response.getStatusCode();
+		std::map<std::string, std::string>::const_iterator it = request.getHeaders().find("Connection");
+		if (it != request.getHeaders().end() && it->second == "close")
+		{
+			response.addHeader("Connection", "close");
+			client.closeFlag = true;
+			return ;
+		}
 		if (statusCode == "400" || statusCode[0] == '5')
 		{
 			response.addHeader("Connection", "close");
