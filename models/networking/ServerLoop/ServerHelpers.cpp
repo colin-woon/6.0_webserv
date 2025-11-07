@@ -334,7 +334,7 @@ int ServerLoop::stepReadSizeLine_(Client &c)
 	std::string::size_type eol = c.inBuff.find("\r\n", c.parsePos);
 	if (eol == std::string::npos)
 		return 0;
-	std::string::size_type semi = c.inBuff.find(';', c.parsePos);
+	std::string::size_type semi = c.inBuff.find(';', c.parsePos); //not really used, but good to take care of ;test=bla/r/n
 	std::string::size_type sizeEnd = eol;
 	if (semi != std::string::npos && semi < eol)
 		sizeEnd = semi;
@@ -356,9 +356,9 @@ int ServerLoop::stepCopyChunkData_(Client &c, size_t maxBody)
 	if (c.parsePos >= c.inBuff.size())
 		return 0;
 
-	size_t avail = c.inBuff.size() - c.parsePos;
-	size_t take = c.chunkRemain;
-	if (take > avail)
+	size_t avail = c.inBuff.size() - c.parsePos; // unread bytes in buffer
+	size_t take = c.chunkRemain; // how many this chunk need to read
+	if (take > avail) // dont read past buffered data
 		take = avail;
 
 	if (take > 0)
@@ -399,14 +399,14 @@ int ServerLoop::stepConsumeTrailers_(Client &c)
 		if (c.inBuff[c.parsePos] == '\r' && c.inBuff[c.parsePos + 1] == '\n')
 		{
 			c.parsePos += 2;
-			c.chunkStage = 4; // done
+			c.chunkStage = 4;
 			return 1;
 		}
 	}
 	std::string::size_type end = c.inBuff.find("\r\n\r\n", c.parsePos);
 	if (end == std::string::npos)
 		return 0;
-	c.chunkStage = 4;
+	c.chunkStage = 4; // done
 	return 1;
 }
 
@@ -414,31 +414,31 @@ int ServerLoop::unchunkStep_(Client &c, size_t maxBody)
 {
 	while (1)
 	{
-		if (c.chunkStage == 0)
+		if (c.chunkStage == 0) // 0 = read next line size
 		{
 			int r = stepReadSizeLine_(c);
 			if (r <= 0)
 				return r;
 		}
-		else if (c.chunkStage == 1)
+		else if (c.chunkStage == 1) // 1 = copy chunk data based on line size
 		{
 			int r = stepCopyChunkData_(c, maxBody);
 			if (r <= 0)
 				return r;
 		}
-		else if (c.chunkStage == 2)
+		else if (c.chunkStage == 2) // 2 = check if has /r/n 
 		{
 			int r = stepCheckLineCRLF_(c);
 			if (r <= 0)
 				return r;
 		}
-		else if (c.chunkStage == 3)
+		else if (c.chunkStage == 3) // 3 = got 0 byte, consume /r/n/r/n
 		{
 			int r = stepConsumeTrailers_(c);
 			if (r <= 0)
 				return r;
 		}
-		else if (c.chunkStage == 4)
+		else if (c.chunkStage == 4) // done, just set parse pos
 		{
 			c.consumedBytes = c.parsePos; // end of request in inBuff
 			return 1;

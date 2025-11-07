@@ -9,7 +9,7 @@ uint64_t nowMs()
 	return (ms);
 }
 
-void buildTimeoutList(std::vector<int> &listenerFdList, std::vector<Server> &serverList, std::map<int, int> &listenerTimeoutMs)
+void buildTimeoutList(std::vector<int> &listenerFdList, std::vector<Server> &serverList, std::map<int, int> &listenerTimeoutMs) //build map for listenerfd -> timeout
 {
 	listenerTimeoutMs.clear();
 	size_t n = listenerFdList.size();
@@ -26,16 +26,16 @@ void buildTimeoutList(std::vector<int> &listenerFdList, std::vector<Server> &ser
 			else
 				ms = (int)tmp;
 		}
-		listenerTimeoutMs[listenerFdList[i]] = ms;
+		listenerTimeoutMs[listenerFdList[i]] = ms;  // store in map
 	}
 }
 
-void setClientTimeout(int listenerFd, Client &c, std::map<int, int> &listenerTimeoutMs)
+void setClientTimeout(int listenerFd, Client &c, std::map<int, int> &listenerTimeoutMs) //set timeout on client based on server settings
 {
-	c.timeoutMs = 0;
+	c.timeoutMs = 0; // reset 
 	c.expiresAtMs = 0;
 
-	std::map<int, int>::iterator it = listenerTimeoutMs.find(listenerFd);
+	std::map<int, int>::iterator it = listenerTimeoutMs.find(listenerFd); // find listenerFd time timeout list, add current time with timeout time
 	if (it != listenerTimeoutMs.end())
 	{
 		c.timeoutMs = it->second;
@@ -59,7 +59,7 @@ int calcNextTimeout(std::map<int, Client> &clients, std::map<int, CGIcontext>& C
 	while (it != clients.end())
 	{
 		Client &c = it->second;
-		if (c.timeoutMs > 0 && c.expiresAtMs > 0)
+		if (c.timeoutMs > 0 && c.expiresAtMs > 0) // go through all client, find earliest to expire
 		{
 			if (earliest == 0)
 				earliest = c.expiresAtMs;
@@ -86,9 +86,9 @@ int calcNextTimeout(std::map<int, Client> &clients, std::map<int, CGIcontext>& C
 	if (earliest == 0)
 		return fallbackMs;
 	uint64_t delta = earliest - now;
-	if (delta <= 0)
+	if (delta <= 0) // already expire
 		return 0;
-	if (delta > INT_MAX)
+	if (delta > INT_MAX) // debug for delta too big
 		return (INT_MAX);
-	return (int)delta;
+	return (int)delta; // return next timeout time
 }

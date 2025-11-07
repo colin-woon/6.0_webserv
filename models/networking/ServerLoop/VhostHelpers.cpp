@@ -20,12 +20,12 @@ static void trimWhiteSpace(std::string& s) {
 	}
 
 static bool lowerCaseHeaders(const std::string& rawHeaders, const char* headerName, std::string& out) {
-	std::string lower = rawHeaders;
+	std::string lower = rawHeaders; // lower case raw header
 		replaceLowerCase(lower);
-	std::string toFind = headerName;
+	std::string toFind = headerName; // lower case host name
 		replaceLowerCase(toFind);
 	toFind += ":";
-	std::string::size_type pos = lower.find(toFind);
+	std::string::size_type pos = lower.find(toFind); // look for Host:, and get the value behind
 	if (pos == std::string::npos)
 		return false;
 	pos += toFind.size();
@@ -42,7 +42,7 @@ static bool lowerCaseHeaders(const std::string& rawHeaders, const char* headerNa
 
 static bool getHostValue(const std::string& rawHeaders, std::string& outHost) {
 	std::string host;
-	if (!lowerCaseHeaders(rawHeaders, "Host", host))
+	if (!lowerCaseHeaders(rawHeaders, "Host", host)) //get host name
 		return false;
 
 	replaceLowerCase(host);
@@ -51,7 +51,7 @@ static bool getHostValue(const std::string& rawHeaders, std::string& outHost) {
 		host = host.substr(0, colon);
 	}
 	trimWhiteSpace(host);
-	outHost = host;
+	outHost = host; // return host name 
 	return true;
 }
 
@@ -68,7 +68,7 @@ const Server* ServerLoop::vhostPicker_(const std::vector<const Server*>& candida
 				std::string candidate = srv->name[j];
 				replaceLowerCase(candidate);
 				trimWhiteSpace(candidate);
-				if (candidate == hostLowerNoPort)
+				if (candidate == hostLowerNoPort) //try to match if candidate name is = to whatever we are looking for in the request
 					return srv;
 			}
 		}

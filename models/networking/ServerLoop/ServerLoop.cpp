@@ -72,7 +72,7 @@ void ServerLoop::run(){
 		int timeoutMs = calcNextTimeout(clientList_, CGIMap_, 1000);
 		int pollReady = poll(&pollFdList_[0], pollFdList_.size(), timeoutMs);
 		if (pollReady == -1) {
-			if (errno == EINTR) continue;
+			if (errno == EINTR) continue; //interupted syscall
 			throw std::runtime_error("poll error.");
 		}
 

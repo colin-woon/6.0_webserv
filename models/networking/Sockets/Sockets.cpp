@@ -11,11 +11,11 @@ static std::string makeBindKey(uint32_t ipv4Net, int port) {
 	in_addr ipAddrStruct;
 	ipAddrStruct.s_addr = ipv4Net;
 
-	if (inet_ntop(AF_INET, &ipAddrStruct, ipText, sizeof(ipText)) == NULL) {
+	if (inet_ntop(AF_INET, &ipAddrStruct, ipText, sizeof(ipText)) == NULL) { //convert ip struct to character string of hex_ip:dec_port
 		std::ostringstream keyBuilder;
 		keyBuilder << "0x"
 					<< std::hex
-					<< static_cast<unsigned long>(ntohl(ipv4Net))
+					<< static_cast<unsigned long>(ntohl(ipv4Net)) // convert to little/big endian depending on host
 					<< ":"
 					<< std::dec
 					<< port;
@@ -28,16 +28,16 @@ static std::string makeBindKey(uint32_t ipv4Net, int port) {
 }
 
 static bool convStrToIpv4(std::string host, uint32_t &ipv4Net){
-	if (host.empty() || host == "*" || host == "0.0.0.0"){
+	if (host.empty() || host == "*" || host == "0.0.0.0"){ //unspecified host
 		ipv4Net = htonl(INADDR_ANY);
 		return true;
 	}
-	if (host == "localhost"){
+	if (host == "localhost"){ //127.0.0.1
 		ipv4Net = htonl(INADDR_LOOPBACK);
 		return true;
 	}
 	in_addr temp_adr;
-	if (inet_aton(host.c_str(), &temp_adr) != 0){
+	if (inet_aton(host.c_str(), &temp_adr) != 0){ //conv string ip to whatever format the host can use
 		ipv4Net = temp_adr.s_addr;
 		return true;
 	}
@@ -46,8 +46,8 @@ static bool convStrToIpv4(std::string host, uint32_t &ipv4Net){
 
 static bool toSockAddr(std::string host, int port, sockaddr_in &socketAddr){
 	std::memset(&socketAddr, 0, sizeof(socketAddr));
-	socketAddr.sin_family = AF_INET;
-	socketAddr.sin_port = htons(port);
+	socketAddr.sin_family = AF_INET; //ipv4 family
+	socketAddr.sin_port = htons(port); // port stored in network byte orer
 
 	uint32_t ipv4Net;
 	if (convStrToIpv4(host, ipv4Net) == false)
@@ -71,7 +71,7 @@ static bool openListeners(sockaddr_in socketAddr, int backlog, int &listenerFd){
 	}
 
 	int yes = 1;
-	if (setsockopt(listenerFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1){
+	if (setsockopt(listenerFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1){ // allows port to be reused immediately
 		std::cerr << "Setsockopt function call error!" << std::endl;
 		return false;
 	}
@@ -101,35 +101,35 @@ static bool openListeners(sockaddr_in socketAddr, int backlog, int &listenerFd){
 
 std::vector<int> setupListenerSockets(const std::vector<Server>& serverList, std::map<int, std::vector<const Server*> >& outListenerOwners)
 {
-	std::map<std::string, std::vector<const Server*> > bindGroups;
+	std::map<std::string, std::vector<const Server*> > bindGroups; // ip:port -> server block
 	for (size_t serverIdx = 0; serverIdx < serverList.size(); ++serverIdx) {
 		const Server& serverRef = serverList[serverIdx];
 
 		sockaddr_in bindSockAddr;
-		if (toSockAddr(serverRef.host, serverRef.port, bindSockAddr) == false) {
+		if (toSockAddr(serverRef.host, serverRef.port, bindSockAddr) == false) { //conv host and port to socket addr format
 			throw std::runtime_error("HOST/PORT invalid error!");
 		}
 		std::string bindKey = makeBindKey(bindSockAddr.sin_addr.s_addr, serverRef.port);
-		bindGroups[bindKey].push_back(&serverRef);
+		bindGroups[bindKey].push_back(&serverRef);// group server in vector under bind key
 	}
 
 	std::vector<int> listenerFdList;
 
-	std::map<std::string, std::vector<const Server*> >::const_iterator bindIt = bindGroups.begin();
+	std::map<std::string, std::vector<const Server*> >::const_iterator bindIt = bindGroups.begin(); //iterate through bindgroups
 	for (; bindIt != bindGroups.end(); ++bindIt) {
 		const std::string& bindKey = bindIt->first;
 		const std::vector<const Server*>& groupCandidates = bindIt->second;
 		const Server* primaryServer = groupCandidates[0];
 
 		sockaddr_in listenerSockAddr;
-		if (toSockAddr(primaryServer->host, primaryServer->port, listenerSockAddr) == false) {
+		if (toSockAddr(primaryServer->host, primaryServer->port, listenerSockAddr) == false) { // conv string ip:port to sockaddr
 			throw std::runtime_error("Internal sockaddr rebuild failed");
 		}
 
 		int listenerFd = -1;
-		if (openListeners(listenerSockAddr, primaryServer->backlog, listenerFd) == false)
+		if (openListeners(listenerSockAddr, primaryServer->backlog, listenerFd) == false)//open listener socket
 			throw std::runtime_error("Failed to open listener");
-		if (setNonBlocking(listenerFd) == false) {
+		if (setNonBlocking(listenerFd) == false) { // set non-blocking
 			close(listenerFd);
 			throw std::runtime_error("Failed to set non-blocking");
 		}
