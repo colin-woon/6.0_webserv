@@ -4,6 +4,9 @@
 CGI::CGI(Client& client, const Server &srv) : _client(client)
 {
 	this->createEnv(srv);
+	// std::cout << "This is the ENVIRONMENT: " << std::endl;
+	// for (size_t i = 0; i < this->_envp.size(); i++)
+		// std::cout << this->_envp[i] << std::endl;
 }
 
 CGI::~CGI() {}
@@ -16,28 +19,42 @@ const char *CGI::CGISimpleException::what() const throw()
 
 void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>& cgiEntry, Router& router)
 {
-	int sp[2];
-
-	if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, sp) == -1)
-		throw CGI::CGISimpleException("Socket Pair Failed");
-
+	int fdRead[2];
+	int fdWrite[2];
+	if (pipe(fdRead) < 0 || pipe(fdWrite) < 0)
+	{
+		std::cout << "CGI Pipe Fail" << std::endl;
+		return ;
+	}
 	pid_t pid = fork();
 	if (pid == -1)
 	{
-		close(sp[0]);
-		close(sp[1]);
+		close(fdRead[0]);
+		close(fdRead[1]);
+		close(fdWrite[0]);
+		close(fdWrite[1]);
 		throw CGI::CGISimpleException("Fork Failed");
 	}
 	if (!pid)
 	{
-		dup2(sp[1], STDIN_FILENO);
-		dup2(sp[1], STDOUT_FILENO);
-		close(sp[0]);
-		close(sp[1]);
+		dup2(fdRead[0], STDIN_FILENO);
+		dup2(fdWrite[1], STDOUT_FILENO);
+		close(fdRead[0]);
+		close(fdRead[1]);
+		close(fdWrite[0]);
+		close(fdWrite[1]);
 
 		char *argv[3];
-		argv[0] = const_cast<char *>(cgiEntry.first.c_str());
-		argv[1] = const_cast<char *>(cgiEntry.second.c_str());
+		if (cgiEntry.first.empty())
+		{
+			argv[0] = const_cast<char *>(cgiEntry.second.c_str());
+			argv[1] = NULL;
+		}
+		else
+		{
+			argv[0] = const_cast<char *>(cgiEntry.first.c_str());
+			argv[1] = const_cast<char *>(cgiEntry.second.c_str());
+		}
 		argv[2] = NULL;
 
 		std::vector<char *> envp;
@@ -51,12 +68,22 @@ void	CGI::execCGI(ServerLoop& srvLoop, const std::pair<std::string, std::string>
 	}
 	else
 	{
-		close(sp[1]);
-		fcntl(sp[0], F_SETFL, O_NONBLOCK);
+		close(fdRead[0]);
+		close(fdWrite[1]);
 		struct pollfd	pfd;
-		pfd.fd = sp[0];
-		pfd.events = POLLIN | POLLOUT;
-		srvLoop.addSocket(pfd, pid, _client, router);
+		
+		fcntl(fdRead[1], F_SETFL, O_NONBLOCK);
+		pfd.fd = fdRead[1];
+		pfd.events = POLLOUT;
+		pfd.revents = 0;
+		srvLoop.addPollCGI(pfd, pid, _client, router, fdWrite[0]);
+		
+		fcntl(fdWrite[0], F_SETFL, O_NONBLOCK);
+		pfd.fd = fdWrite[0];
+		pfd.events = POLLIN;
+		pfd.revents = 0;
+		srvLoop.addPollCGI(pfd, pid, _client, router, fdRead[1]);
+		return ;
 	}
 }
 
@@ -118,7 +145,8 @@ void CGI::handleCGI(Client& client, Router &router)
 	std::string cgiInterpreter;
 	try
 	{
-		cgiInterpreter = router.locationConfig->cgi.at(cgiExtension);
+		if (cgiExtension != ".cgi")
+			cgiInterpreter = router.locationConfig->cgi.at(cgiExtension);
 	}
 	catch (const std::out_of_range &e)
 	{

@@ -31,7 +31,8 @@ void ServerLoop::sweepExpiredClients(){
 	for (std::map<int, CGIcontext>::iterator it = CGIMap_.begin();
 			it != CGIMap_.end(); it++)
 	{
-		if (now >= it->second.expiresAtMs)
+		if (now >= it->second.expiresAtMs ||
+			std::find(toClose.begin(), toClose.end(), it->second.clientFd) != toClose.end())
 			cgiToClose.push_back(it->second);
 	}
 	for (size_t i = 0; i < cgiToClose.size(); ++i)
@@ -43,21 +44,21 @@ void ServerLoop::sweepExpiredClients(){
 		}
 		catch(const HttpException& e)
 		{
-			Client &c = clientList_.find(ctx.clientFd)->second;
-			handleHttpException(*c.serverConfig, ctx.loc, e, ctx.response);
-			ctx.response.addHeader("Connection", "close");
-			c.closeFlag = true;
-			c.outBuff = ctx.response.toString();
-			c.responseQueued = true;
-			ctx.response.isCGI = false;
-			modifyEvent(pollFdList_, fdIndex_, c.fd, POLLOUT);
+			if (clientList_.find(ctx.clientFd) != clientList_.end())
+			{
+				Client &c = clientList_[ctx.clientFd];
+				handleHttpException(*c.serverConfig, ctx.loc, e, ctx.response);
+				ctx.response.addHeader("Connection", "close");
+				c.closeFlag = true;
+				c.outBuff = ctx.response.toString();
+				c.responseQueued = true;
+				modifyEvent(pollFdList_, fdIndex_, c.fd, POLLOUT);
+			}
 		}
-		std::cout << "closed(CGI) " << ctx.fd << std::endl;
 		kill(ctx.pid, SIGKILL);
 		waitpid(ctx.pid, NULL, 0);
-		delPollFd(this->pollFdList_, this->fdIndex_, ctx.fd);
-		close(ctx.fd);
-		CGIMap_.erase(ctx.fd);
+		closeCGI(ctx.partnerFd);
+		closeCGI(ctx.fd);
 	}
 	for (size_t i = 0; i < toClose.size(); ++i)
 		closeClient_(toClose[i]);
@@ -96,7 +97,7 @@ void ServerLoop::run(){
 			if ((p.revents & POLLERR) || (p.revents & POLLHUP) || (p.revents & POLLNVAL)) {
 				if (CGIMap_.find(p.fd) != CGIMap_.end())
 				{
-					if ((p.revents & POLLHUP) && (p.revents & POLLIN))
+					if ((p.revents & POLLHUP))
 						readOnceCGI_(CGIMap_[p.fd]);
 					continue ;
 				}
@@ -147,13 +148,14 @@ void ServerLoop::run(){
 	}
 }
 
-void	ServerLoop::addSocket(struct pollfd &pfd, pid_t pid, Client& client, Router& router)
+void	ServerLoop::addPollCGI(struct pollfd &pfd, pid_t pid, Client& client, Router& router, int partnerFd)
 {
-	addPollFd(this->pollFdList_, this->fdIndex_, pfd.fd, POLLIN | POLLOUT);
+	addPollFd(this->pollFdList_, this->fdIndex_, pfd.fd, pfd.events);
 	CGIcontext ctx;
 	ctx.pid = pid;
 	ctx.fd = pfd.fd;
 	ctx.clientFd = client.fd;
+	ctx.partnerFd = partnerFd;
 	ctx.sendPos = 0;
 	ctx.buffer.clear();
 	ctx.timeoutMs = router.locationConfig->cgi_timeout_sec * 1000;
@@ -161,14 +163,14 @@ void	ServerLoop::addSocket(struct pollfd &pfd, pid_t pid, Client& client, Router
 	ctx.response = client.response;
 	ctx.loc = router.locationConfig;
 	this->CGIMap_[pfd.fd] = ctx;
-	std::cout << "accepted(CGI) " << pfd.fd << std::endl;
+	std::cout << "accepted(CGI) " << pfd.fd << " on Client " << client.fd << std::endl;
 }
 
 void	ServerLoop::readOnceCGI_(CGIcontext& ctx)
 {
 	char buff[4096];
 
-	ssize_t n = recv(ctx.fd, buff, sizeof(buff), 0);
+	ssize_t n = read(ctx.fd, buff, sizeof(buff));
 	if (n > 0)
 	{
 		ctx.buffer.append(buff, n);
@@ -185,27 +187,38 @@ void	ServerLoop::readOnceCGI_(CGIcontext& ctx)
 			c.outBuff = ctx.response.toString();
 			c.responseQueued = true;
 			modifyEvent(pollFdList_, fdIndex_, ctx.clientFd, (short) (POLLOUT | POLLIN));
-			c.response.isCGI = false;
 		}
 
-		std::cout << "close(CGI) " << ctx.fd << std::endl;
-		delPollFd(this->pollFdList_, this->fdIndex_, ctx.fd);
 		waitpid(ctx.pid, NULL, 0);
-		close(ctx.fd);
-		CGIMap_.erase(ctx.fd);
+		closeCGI(ctx.fd);
 		return ;
 	}
 	else
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			return ;
-		std::cerr << "CGI Read Error on fd" << ctx.fd << std::endl;
-		std::cout << "close(CGI) " << ctx.fd << std::endl;
-		delPollFd(this->pollFdList_, this->fdIndex_, ctx.fd);
+		std::cerr << "CGI Read Error on fd " << ctx.fd << std::endl;
+		try
+		{
+			throw Http500InternalServerErrorException();
+		}
+		catch(const HttpException& e)
+		{
+			if (clientList_.find(ctx.clientFd) != clientList_.end())
+			{
+				Client &c = clientList_[ctx.clientFd];
+				handleHttpException(*c.serverConfig, ctx.loc, e, ctx.response);
+				ctx.response.addHeader("Connection", "close");
+				c.closeFlag = true;
+				c.outBuff = ctx.response.toString();
+				c.responseQueued = true;
+				modifyEvent(pollFdList_, fdIndex_, c.fd, POLLOUT);
+			}
+		}
 		kill(ctx.pid, SIGKILL);
 		waitpid(ctx.pid, NULL, 0);
-		close(ctx.fd);
-		CGIMap_.erase(ctx.fd);
+		closeCGI(ctx.partnerFd);
+		closeCGI(ctx.fd);
 		return ;
 	}
 }
@@ -216,11 +229,11 @@ void	ServerLoop::writeOnceCGI_(CGIcontext& ctx)
 	std::string	data = it->second.request.getBody();
 	if (ctx.sendPos >= data.size())
 	{
-		modifyEvent(this->pollFdList_, this->fdIndex_, ctx.fd, POLLIN);
+		closeCGI(ctx.fd);
 		return ;
 	}
 
-	ssize_t n = send(ctx.fd, data.data() + ctx.sendPos, data.size() - ctx.sendPos, 0);
+	ssize_t n = write(ctx.fd, data.data() + ctx.sendPos, data.size() - ctx.sendPos);
 	if (n > 0)
 	{
 		ctx.sendPos += n;
@@ -231,12 +244,35 @@ void	ServerLoop::writeOnceCGI_(CGIcontext& ctx)
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			return ;
 		std::cerr << "CGI write error fd " << ctx.fd << " errno=" << errno << std::endl;
-		std::cout << "close(CGI) " << ctx.fd << std::endl;
-		delPollFd(this->pollFdList_, this->fdIndex_, ctx.fd);
+		try
+		{
+			throw Http500InternalServerErrorException();
+		}
+		catch(const HttpException& e)
+		{
+			if (clientList_.find(ctx.clientFd) != clientList_.end())
+			{
+				Client &c = clientList_[ctx.clientFd];
+				handleHttpException(*c.serverConfig, ctx.loc, e, ctx.response);
+				ctx.response.addHeader("Connection", "close");
+				c.closeFlag = true;
+				c.outBuff = ctx.response.toString();
+				c.responseQueued = true;
+				modifyEvent(pollFdList_, fdIndex_, c.fd, POLLOUT);
+			}
+		}
 		kill(ctx.pid, SIGKILL);
 		waitpid(ctx.pid, NULL, 0);
-		close(ctx.fd);
-		CGIMap_.erase(ctx.fd);
+		closeCGI(ctx.partnerFd);
+		closeCGI(ctx.fd);
 		return ;
 	}
+}
+
+void	ServerLoop::closeCGI(int fd)
+{
+	std::cout << "close(CGI) " << fd << std::endl;
+	delPollFd(this->pollFdList_, this->fdIndex_, fd);
+	close(fd);
+	CGIMap_.erase(fd);
 }

@@ -336,11 +336,23 @@ send_request() {
 # send_request "GET /api/downloads/d1d86da2a930e50f.pdf HTTP/1.1\r\nHost: localhost\r\n\r\n"
 # echo ""
 
-echo "TEST 32: Unsupported Content-Type (application/json)"
-echo "EXPECTED: 501 Not Implemented"
-echo "----------------------------------------"
-send_request "POST /uploads HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 48\r\n\r\n{\"filename\": \"document.txt\", \"data\": \"VGhpcyBpcyBhIHRlc3QgZGF0YQ==\"}\r\n"
-echo ""
+# echo "TEST 32: Unsupported Content-Type (application/json)"
+# echo "EXPECTED: 501 Not Implemented"
+# echo "----------------------------------------"
+# send_request "POST /uploads HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 48\r\n\r\n{\"filename\": \"document.txt\", \"data\": \"VGhpcyBpcyBhIHRlc3QgZGF0YQ==\"}\r\n"
+# echo ""
+
+# echo "TEST 33: Vhost testing (local.a)"
+# echo "EXPECTED: HTML for index.html"
+# echo "----------------------------------------"
+# send_request "GET / HTTP/1.1\r\nHost: local.a\r\nConnection: close\r\n\r\n"
+# echo ""
+
+# echo "TEST 34: Vhost testing (local.b)"
+# echo "EXPECTED: HTML for index.html"
+# echo "----------------------------------------"
+# send_request "GET / HTTP/1.1\r\nHost: local.b\r\nConnection: close\r\n\r\n"
+# echo ""
 
 # echo "=========================================="
 # echo "Test completed. Results saved to $OUTPUT_FILE"

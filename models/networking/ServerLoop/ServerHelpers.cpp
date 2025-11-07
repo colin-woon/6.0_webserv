@@ -151,15 +151,17 @@ void ServerLoop::readOnce_(int fd)
 		c.responseQueued = true;
 		modifyEvent(pollFdList_, fdIndex_, fd, (short)(POLLIN | POLLOUT));
 	}
+	else
+		c.response.isCGI = false;
 }
 
 void ServerLoop::writeOnce_(int fd)
 {
 	std::map<int, Client>::iterator it = clientList_.find(fd);
 	if (it == clientList_.end())
-		return;
+	return;
 	Client &c = it->second;
-
+	
 	if (c.outBuff.empty())
 	{
 		modifyEvent(pollFdList_, fdIndex_, fd, POLLIN);
@@ -169,7 +171,7 @@ void ServerLoop::writeOnce_(int fd)
 			closeClient_(fd);
 		}
 		else
-			resetKeepAlive_(c);
+		resetKeepAlive_(c);
 		return;
 	}
 
