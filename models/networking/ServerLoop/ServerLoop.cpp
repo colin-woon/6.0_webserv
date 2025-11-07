@@ -157,6 +157,7 @@ void	ServerLoop::addPollCGI(int ReadFd, int Writefd, pid_t pid, Client& client, 
 	ctx.buffer.clear();
 	ctx.timeoutMs = router.locationConfig->cgi_timeout_sec * 1000;
 	ctx.expiresAtMs = nowMs() + uint64_t(ctx.timeoutMs);
+	ctx.srvConfig = client.serverConfig;
 	std::map<int, CGIcontext>::iterator it = CGIMap_.insert(std::make_pair(pid, ctx)).first;
 	this->CGIbyRead_[ReadFd] = it;
 	this->CGIbyWrite_[Writefd] = it;
@@ -175,11 +176,11 @@ void	ServerLoop::readOnceCGI_(CGIcontext &ctx)
 	}
 	else if (n == 0)
 	{
-		CGI::getHttpResponse(ctx);
-
 		std::map<int, Client>::iterator it = clientList_.find(ctx.clientFd);
+		it->second.serverConfig;
 		if (it != clientList_.end())
 		{
+			CGI::getHttpResponse(ctx);
 			Client& c = it->second;
 			c.outBuff = ctx.response_.toString();
 			c.responseQueued = true;

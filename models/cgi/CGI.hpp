@@ -22,6 +22,7 @@ class CGIcontext
 		uint64_t	expiresAtMs;
 		const Location&	loc_;
 		HttpResponse& response_;
+		const Server	*srvConfig;
 
 		CGIcontext(Client& client, const Location& loc);
 		~CGIcontext();
