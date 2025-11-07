@@ -3,16 +3,43 @@
 /**
  * A CGI script (using ts-node) for a simple User API.
  * - GET: Responds to /user.ts?id=1 (returns JSON)
+ * - GET: Responds to /user.ts (returns all users)
  * - POST: Responds to form data (application/x-www-form-urlencoded)
  * - OUTPUT: Always returns JSON.
  */
 
-// --- Mock Database (lives for one request, then dies) ---
-// In a real app, this would read/write to a file or external DB.
-const db = new Map<string, { id: string; name: string; title: string }>();
-// Pre-populate our "database"
-db.set("1", { id: "1", name: "Gigachad", title: "CEO" });
-db.set("2", { id: "2", name: "Colin", title: "Dev" });
+import * as fs from "fs";
+import * as path from "path";
+
+// Path to persistent storage
+const DB_FILE = path.join(__dirname, "users.json");
+
+// --- Persistent Database ---
+function loadDB(): Map<string, { id: string; name: string; title: string }> {
+	try {
+		if (fs.existsSync(DB_FILE)) {
+			const data = fs.readFileSync(DB_FILE, "utf-8");
+			const obj = JSON.parse(data);
+			return new Map(Object.entries(obj));
+		}
+	} catch (err) {
+		// If file doesn't exist or is corrupt, start fresh
+	}
+
+	// Initialize with default users
+	const db = new Map<string, { id: string; name: string; title: string }>();
+	db.set("1", { id: "1", name: "Gigachad", title: "CEO" });
+	db.set("2", { id: "2", name: "Colin", title: "Dev" });
+	saveDB(db);
+	return db;
+}
+
+function saveDB(db: Map<string, { id: string; name: string; title: string }>) {
+	const obj = Object.fromEntries(db);
+	fs.writeFileSync(DB_FILE, JSON.stringify(obj, null, 2));
+}
+
+const db = loadDB();
 
 /**
  * Asynchronously reads the full request body from stdin.
@@ -67,18 +94,21 @@ function sendResponse(status: string, body: object) {
 }
 
 /**
- * Handles GET requests (e.g., /user.ts?id=1)
+ * Handles GET requests
+ * - /user.ts?id=1 (returns single user)
+ * - /user.ts (returns all users)
  */
 async function handleGet() {
 	const params = new URLSearchParams(process.env.QUERY_STRING || "");
 	const id = params.get("id");
 
+	// If no ID provided, return ALL users
 	if (!id) {
-		return sendResponse("400 Bad Request", {
-			error: "Missing 'id' in query string.",
-		});
+		const allUsers = Array.from(db.values());
+		return sendResponse("200 OK", { users: allUsers });
 	}
 
+	// Otherwise, return specific user
 	const user = db.get(id);
 
 	if (user) {
@@ -121,6 +151,7 @@ async function handlePost() {
 	const newId = String(db.size + 1);
 	const newUser = { id: newId, name, title };
 	db.set(newId, newUser);
+	saveDB(db); // Persist to file
 
 	// 6. Respond with 201 Created
 	return sendResponse("201 Created", newUser);
