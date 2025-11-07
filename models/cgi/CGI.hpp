@@ -23,6 +23,7 @@ struct CGIcontext
 	uint64_t	expiresAtMs;
 	const Location	*loc;
 	HttpResponse response;
+	const Server* serverConfig;
 };
 
 class CGI

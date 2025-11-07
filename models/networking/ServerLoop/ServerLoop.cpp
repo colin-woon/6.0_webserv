@@ -162,6 +162,7 @@ void	ServerLoop::addPollCGI(struct pollfd &pfd, pid_t pid, Client& client, Route
 	ctx.expiresAtMs = nowMs() + uint64_t(ctx.timeoutMs);
 	ctx.response = client.response;
 	ctx.loc = router.locationConfig;
+	ctx.serverConfig = client.serverConfig;
 	this->CGIMap_[pfd.fd] = ctx;
 	std::cout << "accepted(CGI) " << pfd.fd << " on Client " << client.fd << std::endl;
 }

@@ -139,6 +139,27 @@ std::string HttpException::statusCodeToString(int statusCode)
 	}
 }
 
+HttpException* HttpException::createFromStatusCode(const std::string& statusCode)
+{
+	int code = std::atoi(statusCode.c_str());
+
+	if (code == 400) return new Http400BadRequestException();
+	if (code == 401) return new Http401UnauthorizedException();
+	if (code == 403) return new Http403ForbiddenException();
+	if (code == 404) return new Http404NotFoundException();
+	if (code == 405) return new Http405MethodNotAllowedException();
+	if (code == 413) return new Http413PayloadTooLargeException();
+	if (code == 414) return new Http414UriTooLongException();
+	if (code == 415) return new Http415UnsupportedMediaTypeException();
+	if (code == 501) return new Http501NotImplementedException();
+	if (code == 502) return new Http502BadGatewayException();
+	if (code == 504) return new Http504GatewayTimeoutException();
+	if (code == 505) return new Http505HttpVersionNotSupportedException();
+
+	// Default to 500 for unknown errors
+	return new Http500InternalServerErrorException();
+}
+
 const char *Http400BadRequestException::what() const throw()
 {
 	return "Bad Request";

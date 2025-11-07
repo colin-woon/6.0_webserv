@@ -107,6 +107,7 @@
 
 	<h2>API Output Log</h2>
 	<pre id="output">Waiting for an API call...</pre>
+	<!-- ...existing code... -->
 
 	<script>
 		// Get all the DOM elements we need
@@ -136,7 +137,7 @@
 				outputLog.textContent = JSON.stringify(result, null, 2);
 
 				if (response.ok) {
-					addUserToList(result); // Add the new user to our list
+					loadAllUsers(); // Reload the entire list
 					userForm.reset();
 				}
 
@@ -157,6 +158,23 @@
 			}
 		}
 
+		// --- Load ALL users from database ---
+		async function loadAllUsers() {
+			try {
+				const response = await fetch('/cgi-bin/user.js'); // No query params = get all
+				const result = await response.json();
+
+				userList.innerHTML = ''; // Clear the list
+
+				if (result.users && Array.isArray(result.users)) {
+					result.users.forEach(user => addUserToList(user));
+					outputLog.textContent = `Loaded ${result.users.length} users`;
+				}
+			} catch (err) {
+				outputLog.textContent = `Error loading users: ${err.message}`;
+			}
+		}
+
 		// --- Helper to update the UI ---
 		function addUserToList(user) {
 			const li = document.createElement('li');
@@ -172,12 +190,8 @@
 		}
 
 		// --- Initial Load ---
-		// Let's pre-load the users that are already in the "database"
 		document.addEventListener('DOMContentLoaded', () => {
-			getUserDetails("1"); // Log user 1 to the output
-			// Manually add the users we know are in the mock DB
-			addUserToList({ id: "1", name: "Gigachad", title: "CEO" });
-			addUserToList({ id: "2", name: "Colin", title: "Dev" });
+			loadAllUsers(); // Load all users from the persistent database
 		});
 	</script>
 </body>
