@@ -177,7 +177,6 @@ void	ServerLoop::readOnceCGI_(CGIcontext &ctx)
 	else if (n == 0)
 	{
 		std::map<int, Client>::iterator it = clientList_.find(ctx.clientFd);
-		it->second.serverConfig;
 		if (it != clientList_.end())
 		{
 			CGI::getHttpResponse(ctx);
