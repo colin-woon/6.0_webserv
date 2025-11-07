@@ -5,7 +5,7 @@ PORT=8081
 
 # Function to send HTTP request via netcat
 send_request() {
-    echo -en "$1" | nc -N localhost $PORT
+    echo -en "$1" | nc -w 1 localhost $PORT
 }
 
 # Redirect output to file
@@ -33,7 +33,7 @@ send_request() {
 # echo "TEST 2: POST with JSON data."
 # echo "EXPECTED: Normal POST request handling"
 # echo "----------------------------------------"
-# send_request "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 37\r\n\r\n{\"username\":\"testuser\",\"password\":\"123456\"}"
+# send_request "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 37\r\nConnection: close\r\n\r\n{\"username\":\"testuser\",\"password\":\"123456\"}"
 # echo ""
 
 # # GET with query parameters
@@ -352,6 +352,36 @@ send_request() {
 # echo "EXPECTED: HTML for index.html"
 # echo "----------------------------------------"
 # send_request "GET / HTTP/1.1\r\nHost: local.b\r\nConnection: close\r\n\r\n"
+# echo ""
+
+# echo "TEST 35: CGI Error"
+# echo "EXPECTED: 404"
+# echo "----------------------------------------"
+# send_request "GET /cgi-bin/user.js?id=999 HTTP/1.1\r\nHost: localhost\r\n\r\n"
+# echo ""
+
+# echo "TEST 36: CGI 400 - Missing Required Fields"
+# echo "EXPECTED: 400 Bad Request with custom error page"
+# echo "----------------------------------------"
+# send_request "POST /cgi-bin/user.js HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 9\r\n\r\nname=John"
+# echo ""
+
+# echo "TEST 37: CGI 415 - Unsupported Media Type"
+# echo "EXPECTED: 415 Unsupported Media Type with custom error page"
+# echo "----------------------------------------"
+# send_request "POST /cgi-bin/user.js HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 35\r\n\r\n{\"name\":\"John\",\"title\":\"Developer\"}"
+# echo ""
+
+# echo "TEST 38: CGI 405 - Method Not Allowed (PUT)"
+# echo "EXPECTED: 405 Method Not Allowed with custom error page"
+# echo "----------------------------------------"
+# send_request "PUT /cgi-bin/user.js?id=1 HTTP/1.1\r\nHost: localhost\r\n\r\n"
+# echo ""
+
+# echo "TEST 39: CGI 405 - Method Not Allowed (DELETE)"
+# echo "EXPECTED: 405 Method Not Allowed with custom error page"
+# echo "----------------------------------------"
+# send_request "DELETE /cgi-bin/user.js?id=1 HTTP/1.1\r\nHost: localhost\r\n\r\n"
 # echo ""
 
 # echo "=========================================="
